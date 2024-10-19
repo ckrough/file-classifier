@@ -15,7 +15,7 @@ def analyze_file_content(file_path):
             content = file.read()
             # Use OpenAI's GPT model to analyze the file content
 
-            client = OpenAI()
+            client = OpenAI
 
             response = client.completions.create(
                 model="gpt-3.5-turbo",
