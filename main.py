@@ -1,7 +1,12 @@
-import os
 import argparse
-import openai as OpenAI
+import logging
+import os
+
 import magic
+from openai import OpenAI
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Set your OpenAI API key here
 OpenAI.api_key = ""
@@ -13,12 +18,9 @@ def analyze_file_content(file_path):
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
             content = file.read()
-            # Use OpenAI's GPT model to analyze the file content
-
-            client = OpenAI
-
-            response = client.completions.create(
-                model="gpt-3.5-turbo",
+            client = OpenAI()
+            completion = client.chat.completions.create(
+                model="gpt-4",
                 messages=[
                     {
                         "role": "system",
@@ -29,12 +31,11 @@ def analyze_file_content(file_path):
                         "content": f"Analyze the following content and suggest a suitable name for the file:\n\n{content}\n\nSuggested file name:"
                     }
                 ],
-                max_tokens=50
             )
-            suggested_name = response.choices[0].text.strip()
-            return suggested_name
+            suggested_name = completion.choices[0].message.content
+        return suggested_name
     except Exception as e:
-        print(f"Error reading file: {e}")
+        logging.error(f"Error reading file: {e}")
         return None
 
 
@@ -47,7 +48,7 @@ def is_supported_filetype(file_path):
         # Check if the file is a text file based on its MIME type
         return file_type.startswith('text/')
     except Exception as e:
-        print(f"Error determining file type: {e}")
+        logging.error(f"Error determining file type: {e}")
         return False
 
 
@@ -65,16 +66,16 @@ def main():
     file_path = args.file_path
 
     if not os.path.isfile(file_path):
-        print(f"The file '{file_path}' does not exist.")
+        logging.error(f"The file '{file_path}' does not exist.")
         return
 
     if not is_supported_filetype(file_path):
-        print(f"The file '{file_path}' is not a supported file type.")
+        logging.error(f"The file '{file_path}' is not a supported file type.")
         return
 
     suggested_name = analyze_file_content(file_path)
     if suggested_name:
-        print(f"Suggested name for the file: {suggested_name}")
+        logging.info(f"Suggested name for the file: {suggested_name}")
         user_confirmation = input("Do you want to rename the file to this suggested name? (yes/no): ").strip().lower()
         if user_confirmation == 'yes':
             # Get the directory and new file name with the same extension
@@ -83,13 +84,13 @@ def main():
             new_file_path = os.path.join(directory, suggested_name + file_extension)
             try:
                 os.rename(file_path, new_file_path)
-                print(f"File has been renamed to: {new_file_path}")
+                logging.info(f"File has been renamed to: {new_file_path}")
             except Exception as e:
-                print(f"Error renaming file: {e}")
+                logging.error(f"Error renaming file: {e}")
         else:
-            print("File renaming was canceled by the user.")
+            logging.info("File renaming was canceled by the user.")
     else:
-        print("Could not determine a suitable name for the file.")
+        logging.error("Could not determine a suitable name for the file.")
 
 
 if __name__ == "__main__":
