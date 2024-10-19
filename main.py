@@ -24,15 +24,19 @@ def analyze_file_content(file_path):
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a helpful assistant that suggests suitable file names based on content."
+                        "content": "You are a helpful assistant that suggests suitable categories and descriptive text for file names based on content."
                     },
                     {
                         "role": "user",
-                        "content": f"Analyze the following content and suggest a suitable name for the file:\n\n{content}\n\nSuggested file name:"
+                        "content": f"Analyze the following content and suggest a category and a short descriptive text for the file. The response should be in the format: category,descriptive text. The category should be one concise word that clearly represents the type of document. The descriptive text should be general, concise, and no more than three words, focusing on summarizing the main theme of the content without listing detailed items. For example, if the content contains 'bananas, apples, milk', the category would be 'receipt' and the description would be 'groceries'.\n\n{content}\n\nSuggested category and description:"
                     }
                 ],
             )
-            suggested_name = completion.choices[0].message.content.strip('"')
+            suggestion = completion.choices[0].message.content.strip('"')
+            category, description = map(str.strip, suggestion.split(',', 1))
+            category = category.lower().replace(' ', '-')
+            description = description.lower().replace(' ', '-')
+            suggested_name = f"{category}-{description}"
         return suggested_name
     except Exception as e:
         logging.error(f"Error reading file: {e}")
