@@ -3,6 +3,7 @@ import logging
 import os
 
 import magic
+import PyPDF2
 from openai import OpenAI
 
 # Configure logging
@@ -16,28 +17,38 @@ def analyze_file_content(file_path):
     Analyzes the content of a file to determine its context and purpose.
     """
     try:
-        with open(file_path, 'r', encoding='utf-8') as file:
-            content = file.read()
-            client = OpenAI()
-            completion = client.chat.completions.create(
-                model="gpt-4",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a helpful assistant that suggests suitable categories and descriptive text for file names based on content."
-                    },
-                    {
-                        "role": "user",
-                        "content": f"Analyze the following content and suggest a category, a vendor name, and a short descriptive text for the file. The response should be in the format: category,vendor,description. The category should be one concise word that clearly represents the type of document. The vendor should be a single word representing the name of the company or entity relevant to the content. The description should be general, concise, and no more than three words, focusing on summarizing the main theme of the content without listing detailed items. For example, if the content contains 'ACME Markets' and 'bananas, apples, milk', the category would be 'receipt', the vendor could be 'ACME', and the description would be 'groceries'.\n\n{content}\n\nSuggested category, vendor, and description:"
-                    }
-                ],
-            )
-            suggestion = completion.choices[0].message.content.strip('"')
-            category, vendor, description = map(str.strip, suggestion.split(',', 2))
-            category = category.lower().replace(' ', '-')
-            vendor = vendor.lower().replace(' ', '-')
-            description = description.lower().replace(' ', '-')
-            suggested_name = f"{vendor}-{category}-{description}"
+        if file_path.lower().endswith('.pdf'):
+            # Extract text from PDF
+            with open(file_path, 'rb') as file:
+                reader = PyPDF2.PdfReader(file)
+                content = ""
+                for page in reader.pages:
+                    content += page.extract_text() + "\n"
+        else:
+            # Extract text from text file
+            with open(file_path, 'r', encoding='utf-8') as file:
+                content = file.read()
+
+        client = OpenAI()
+        completion = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant that suggests suitable categories and descriptive text for file names based on content."
+                },
+                {
+                    "role": "user",
+                    "content": f"Analyze the following content and suggest a category, a vendor name, and a short descriptive text for the file. The response should be in the format: category,vendor,description. The category should be one concise word that clearly represents the type of document. The vendor should be a single word representing the name of the company or entity relevant to the content. The description should be general, concise, and no more than three words, focusing on summarizing the main theme of the content without listing detailed items. For example, if the content contains 'ACME Markets' and 'bananas, apples, milk', the category would be 'receipt', the vendor could be 'ACME', and the description would be 'groceries'.\n\n{content}\n\nSuggested category, vendor, and description:"
+                }
+            ],
+        )
+        suggestion = completion.choices[0].message.content.strip('"')
+        category, vendor, description = map(str.strip, suggestion.split(',', 2))
+        category = category.lower().replace(' ', '-')
+        vendor = vendor.lower().replace(' ', '-')
+        description = description.lower().replace(' ', '-')
+        suggested_name = f"{vendor}-{category}-{description}"
         return suggested_name
     except Exception as e:
         logging.error(f"Error reading file: {e}")
@@ -50,8 +61,8 @@ def is_supported_filetype(file_path):
     """
     try:
         file_type = magic.from_file(file_path, mime=True)
-        # Check if the file is a text file based on its MIME type
-        return file_type.startswith('text/')
+        # Check if the file is a text file or a PDF based on its MIME type
+        return file_type.startswith('text/') or file_type == 'application/pdf'
     except Exception as e:
         logging.error(f"Error determining file type: {e}")
         return False
