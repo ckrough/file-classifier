@@ -28,15 +28,16 @@ def analyze_file_content(file_path):
                     },
                     {
                         "role": "user",
-                        "content": f"Analyze the following content and suggest a category and a short descriptive text for the file. The response should be in the format: category,descriptive text. The category should be one concise word that clearly represents the type of document. The descriptive text should be general, concise, and no more than three words, focusing on summarizing the main theme of the content without listing detailed items. For example, if the content contains 'bananas, apples, milk', the category would be 'receipt' and the description would be 'groceries'.\n\n{content}\n\nSuggested category and description:"
+                        "content": f"Analyze the following content and suggest a category, a vendor name, and a short descriptive text for the file. The response should be in the format: category,vendor,description. The category should be one concise word that clearly represents the type of document. The vendor should be a single word representing the name of the company or entity relevant to the content. The description should be general, concise, and no more than three words, focusing on summarizing the main theme of the content without listing detailed items. For example, if the content contains 'ACME Markets' and 'bananas, apples, milk', the category would be 'receipt', the vendor could be 'ACME', and the description would be 'groceries'.\n\n{content}\n\nSuggested category, vendor, and description:"
                     }
                 ],
             )
             suggestion = completion.choices[0].message.content.strip('"')
-            category, description = map(str.strip, suggestion.split(',', 1))
+            category, vendor, description = map(str.strip, suggestion.split(',', 2))
             category = category.lower().replace(' ', '-')
+            vendor = vendor.lower().replace(' ', '-')
             description = description.lower().replace(' ', '-')
-            suggested_name = f"{category}-{description}"
+            suggested_name = f"{vendor}-{category}-{description}"
         return suggested_name
     except Exception as e:
         logging.error(f"Error reading file: {e}")
