@@ -1,0 +1,19 @@
+
+- parse a tree
+  - recommend changes
+  - ask approval
+- parse a tree
+  - recommend categories
+  - build directory structure
+  - update existing directory structure
+- move files to directory structure
+- mutate existing directory structure
+  - create categories
+  - rename files and move to categories
+  - delete empty directories
+- use less tokens
+  - use minimal GPT
+  - use local LLM
+- port to MacOS
+  - build GUI
+  
