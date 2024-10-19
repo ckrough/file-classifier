@@ -32,7 +32,7 @@ def analyze_file_content(file_path):
                     }
                 ],
             )
-            suggested_name = completion.choices[0].message.content
+            suggested_name = completion.choices[0].message.content.strip('"')
         return suggested_name
     except Exception as e:
         logging.error(f"Error reading file: {e}")
@@ -61,6 +61,20 @@ def get_user_arguments():
     return parser.parse_args()
 
 
+def rename_file(file_path, suggested_name):
+    """
+    Renames the file to the suggested name if the user confirms.
+    """
+    directory = os.path.dirname(file_path)
+    file_extension = os.path.splitext(file_path)[1]
+    new_file_path = os.path.join(directory, suggested_name + file_extension)
+    try:
+        os.rename(file_path, new_file_path)
+        logging.info(f"File has been renamed to: {new_file_path}")
+    except Exception as e:
+        logging.error(f"Error renaming file: {e}")
+
+
 def main():
     args = get_user_arguments()
     file_path = args.file_path
@@ -78,15 +92,7 @@ def main():
         logging.info(f"Suggested name for the file: {suggested_name}")
         user_confirmation = input("Do you want to rename the file to this suggested name? (yes/no): ").strip().lower()
         if user_confirmation == 'yes':
-            # Get the directory and new file name with the same extension
-            directory = os.path.dirname(file_path)
-            file_extension = os.path.splitext(file_path)[1]
-            new_file_path = os.path.join(directory, suggested_name + file_extension)
-            try:
-                os.rename(file_path, new_file_path)
-                logging.info(f"File has been renamed to: {new_file_path}")
-            except Exception as e:
-                logging.error(f"Error renaming file: {e}")
+            rename_file(file_path, suggested_name)
         else:
             logging.info("File renaming was canceled by the user.")
     else:
