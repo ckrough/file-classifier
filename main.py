@@ -1,10 +1,10 @@
 import os
 import argparse
-import openai
+import openai as OpenAI
 import magic
 
 # Set your OpenAI API key here
-openai.api_key = "YOUR_OPENAI_API_KEY"
+OpenAI.api_key = ""
 
 
 def analyze_file_content(file_path):
@@ -12,15 +12,20 @@ def analyze_file_content(file_path):
     Analyzes the content of a file to determine its context and purpose.
     """
     try:
-        with open(file_path, 'r') as file:
+        with open(file_path, 'r', encoding='utf-8') as file:
             content = file.read()
             # Use OpenAI's GPT model to analyze the file content
-            response = openai.ChatCompletion.create(
+            response = OpenAI.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "system", "content": "You are a helpful assistant that suggests suitable file names based on content."},
-                    {"role": "user", "content": f"Analyze the following content and suggest a suitable name for the file:\n\n{
-                        content}\n\nSuggested file name:"}
+                    {
+                        "role": "system",
+                        "content": "You are a helpful assistant that suggests suitable file names based on content."
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Analyze the following content and suggest a suitable name for the file:\n\n{content}\n\nSuggested file name:"
+                    }
                 ],
                 max_tokens=50
             )
@@ -68,8 +73,8 @@ def main():
     suggested_name = analyze_file_content(file_path)
     if suggested_name:
         print(f"Suggested name for the file: {suggested_name}")
-        user_confirmation = input("Do you want to rename the file to this suggested name? (yes/no): ")
-        if user_confirmation.lower() == 'yes':
+        user_confirmation = input("Do you want to rename the file to this suggested name? (yes/no): ").strip().lower()
+        if user_confirmation == 'yes':
             # Get the directory and new file name with the same extension
             directory = os.path.dirname(file_path)
             file_extension = os.path.splitext(file_path)[1]

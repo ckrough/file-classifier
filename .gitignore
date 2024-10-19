@@ -21,3 +21,8 @@ dist/
 
 # Ignore log files
 *.log
+
+# Ignore development files
+.coverage
+.vscode/
+sample-documents/
