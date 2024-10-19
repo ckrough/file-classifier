@@ -12,22 +12,43 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # Set your OpenAI API key here
 OpenAI.api_key = ""
 
+def extract_text_from_pdf(file_path):
+    """
+    Extracts text from a PDF file.
+    """
+    try:
+        with open(file_path, 'rb') as file:
+            reader = PyPDF2.PdfReader(file)
+            content = ""
+            for page in reader.pages:
+                content += page.extract_text() + "\n"
+        return content
+    except Exception as e:
+        logging.error(f"Error extracting text from PDF: {e}")
+        return ""
+
+
+def extract_text_from_txt(file_path):
+    """
+    Extracts text from a text file.
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            return file.read()
+    except Exception as e:
+        logging.error(f"Error extracting text from text file: {e}")
+        return ""
+
+
 def analyze_file_content(file_path):
     """
     Analyzes the content of a file to determine its context and purpose.
     """
     try:
         if file_path.lower().endswith('.pdf'):
-            # Extract text from PDF
-            with open(file_path, 'rb') as file:
-                reader = PyPDF2.PdfReader(file)
-                content = ""
-                for page in reader.pages:
-                    content += page.extract_text() + "\n"
+            content = extract_text_from_pdf(file_path)
         else:
-            # Extract text from text file
-            with open(file_path, 'r', encoding='utf-8') as file:
-                content = file.read()
+            content = extract_text_from_txt(file_path)
 
         client = OpenAI()
         completion = client.chat.completions.create(
