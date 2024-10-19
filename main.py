@@ -60,16 +60,17 @@ def analyze_file_content(file_path):
                 },
                 {
                     "role": "user",
-                    "content": f"Analyze the following content and filename to suggest a category, a vendor name, and a short descriptive text for the file. The response should be in the format: category,vendor,description. The category should be one concise word that clearly represents the type of document. The vendor should be a single word representing the name of the company or entity relevant to the content. The description should be general, concise, and no more than three words, focusing on summarizing the main theme of the content without listing detailed items. For example, if the content contains 'ACME Markets' and 'bananas, apples, milk', the category would be 'receipt', the vendor could be 'ACME', and the description would be 'groceries'. Use the filename as additional context if it provides useful information about the document.\n\nFilename: {os.path.basename(file_path)}\n\nContent:\n\n{content}\n\nSuggested category, vendor, and description:"
+                    "content": f"Analyze the following content and filename to suggest a category, a vendor name, a short descriptive text for the file, and a prominent date in the content in YYYYMMDD format if available. The response should be in the format: category,vendor,description,date. The category should be one concise word that clearly represents the type of document. The vendor should be a single word representing the name of the company or entity relevant to the content. The description should be general, concise, and no more than three words, focusing on summarizing the main theme of the content without listing detailed items. The date should be in ISO 8601 format (YYYYMMDD) if there is a prominent date in the content, otherwise leave it blank. For example, if the content contains 'ACME Markets' and 'bananas, apples, milk', the category would be 'receipt', the vendor could be 'ACME', and the description would be 'groceries'. If a date is present such as 'April 5, 2023', the date should be returned as '20230405'. Use the filename as additional context if it provides useful information about the document.\n\nFilename: {os.path.basename(file_path)}\n\nContent:\n\n{content}\n\nSuggested category, vendor, description, and date:"
                 }
             ],
         )
         suggestion = completion.choices[0].message.content.strip('"')
-        category, vendor, description = map(str.strip, suggestion.split(',', 2))
+        category, vendor, description, date = map(str.strip, suggestion.split(',', 3))
         category = category.lower().replace(' ', '-')
         vendor = vendor.lower().replace(' ', '-')
         description = description.lower().replace(' ', '-')
-        suggested_name = f"{vendor}-{category}-{description}"
+        date = date if date else ''
+        suggested_name = f"{vendor}-{category}-{description}{'-' + date if date else ''}"
         return suggested_name
     except Exception as e:
         logging.error(f"Error reading file: {e}")
