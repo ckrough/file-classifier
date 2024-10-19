@@ -6,7 +6,6 @@ import magic
 # Set your OpenAI API key here
 OpenAI.api_key = ""
 
-
 def analyze_file_content(file_path):
     """
     Analyzes the content of a file to determine its context and purpose.
@@ -15,7 +14,10 @@ def analyze_file_content(file_path):
         with open(file_path, 'r', encoding='utf-8') as file:
             content = file.read()
             # Use OpenAI's GPT model to analyze the file content
-            response = OpenAI.ChatCompletion.create(
+
+            client = OpenAI()
+
+            response = client.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {
@@ -29,7 +31,7 @@ def analyze_file_content(file_path):
                 ],
                 max_tokens=50
             )
-            suggested_name = response.choices[0].message['content'].strip()
+            suggested_name = response.choices[0].text.strip()
             return suggested_name
     except Exception as e:
         print(f"Error reading file: {e}")
