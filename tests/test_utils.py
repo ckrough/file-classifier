@@ -44,7 +44,8 @@ def test_rename_file():
     try:
         # Test the function
         rename_file(temp_txt_file_path, new_name)
-        new_file_path = os.path.join(os.path.dirname(temp_txt_file_path), new_name + ".txt")
+        new_file_path = os.path.join(os.path.dirname(
+            temp_txt_file_path), new_name + ".txt")
         assert os.path.exists(new_file_path)
     finally:
         # Clean up the temporary file
