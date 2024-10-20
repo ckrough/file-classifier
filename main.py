@@ -7,7 +7,8 @@ import PyPDF2
 from openai import OpenAI
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Set your OpenAI API key here
 OpenAI.api_key = ""
@@ -65,12 +66,14 @@ def analyze_file_content(file_path):
             ],
         )
         suggestion = completion.choices[0].message.content.strip('"')
-        category, vendor, description, date = map(str.strip, suggestion.split(',', 3))
+        category, vendor, description, date = map(
+            str.strip, suggestion.split(',', 3))
         category = category.lower().replace(' ', '-')
         vendor = vendor.lower().replace(' ', '-')
         description = description.lower().replace(' ', '-')
         date = date if date else ''
-        suggested_name = f"{vendor}-{category}-{description}{'-' + date if date else ''}"
+        suggested_name = f"{
+            vendor}-{category}-{description}{'-' + date if date else ''}"
         return suggested_name
     except Exception as e:
         logging.error(f"Error reading file: {e}")
@@ -94,9 +97,12 @@ def get_user_arguments():
     """
     Parses and returns the user arguments specifying the file to be classified.
     """
-    parser = argparse.ArgumentParser(description="Classify and rename a file based on its content.")
-    parser.add_argument('--file-path', type=str, required=True, help="Path to the target file.")
-    parser.add_argument('--auto-rename', action='store_true', help="Automatically rename the file without user confirmation.")
+    parser = argparse.ArgumentParser(
+        description="Classify and rename a file based on its content.")
+    parser.add_argument('--file-path', type=str,
+                        required=True, help="Path to the target file.")
+    parser.add_argument('--auto-rename', action='store_true',
+                        help="Automatically rename the file without user confirmation.")
     return parser.parse_args()
 
 
@@ -132,7 +138,8 @@ def main():
         if args.auto_rename:
             rename_file(file_path, suggested_name)
         else:
-            user_confirmation = input("Do you want to rename the file to this suggested name? (yes/no): ").strip().lower()
+            user_confirmation = input(
+                "Do you want to rename the file to this suggested name? (yes/no): ").strip().lower()
             if user_confirmation == 'yes':
                 rename_file(file_path, suggested_name)
             else:
