@@ -95,13 +95,14 @@ def get_user_arguments():
     Parses and returns the user arguments specifying the file to be classified.
     """
     parser = argparse.ArgumentParser(description="Classify and rename a file based on its content.")
-    parser.add_argument('file_path', type=str, help="Path to the target file.")
+    parser.add_argument('--file-path', type=str, required=True, help="Path to the target file.")
+    parser.add_argument('--auto-rename', action='store_true', help="Automatically rename the file without user confirmation.")
     return parser.parse_args()
 
 
 def rename_file(file_path, suggested_name):
     """
-    Renames the file to the suggested name if the user confirms.
+    Renames the file to the suggested name.
     """
     directory = os.path.dirname(file_path)
     file_extension = os.path.splitext(file_path)[1]
@@ -128,11 +129,14 @@ def main():
     suggested_name = analyze_file_content(file_path)
     if suggested_name:
         logging.info(f"Suggested name for the file: {suggested_name}")
-        user_confirmation = input("Do you want to rename the file to this suggested name? (yes/no): ").strip().lower()
-        if user_confirmation == 'yes':
+        if args.auto_rename:
             rename_file(file_path, suggested_name)
         else:
-            logging.info("File renaming was canceled by the user.")
+            user_confirmation = input("Do you want to rename the file to this suggested name? (yes/no): ").strip().lower()
+            if user_confirmation == 'yes':
+                rename_file(file_path, suggested_name)
+            else:
+                logging.info("File renaming was canceled by the user.")
     else:
         logging.error("Could not determine a suitable name for the file.")
 
