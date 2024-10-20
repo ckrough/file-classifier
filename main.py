@@ -67,6 +67,7 @@ def analyze_file_content(file_path):
         system_prompt = load_and_format_prompt(
             'prompts/file-analysis-system-prompt.txt'
         )
+
         user_prompt = load_and_format_prompt(
             'prompts/file-analysis-user-prompt.txt',
             filename=os.path.basename(file_path),
@@ -168,7 +169,7 @@ def main():
             rename_file(file_path, suggested_name)
         else:
             user_confirmation = input(
-                "Do you want to rename the file to this suggested name? (yes/no): "
+                "Do you want to rename the file? (yes/no): "
             ).strip().lower()
             if user_confirmation == 'yes':
                 rename_file(file_path, suggested_name)
