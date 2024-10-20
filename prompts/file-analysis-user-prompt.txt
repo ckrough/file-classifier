@@ -1,14 +1,42 @@
-Analyze the following content and filename to suggest a category, a vendor name, a short descriptive text for the file, and a prominent date in the content in YYYYMMDD format if available.
-The category should be one concise word that clearly represents the type of document. 
-The vendor should be a single word representing the name of the company or entity relevant to the content. 
-The description should be general, concise, and no more than three words, focusing on summarizing the main theme of the content without listing detailed items. 
-The date should be in ISO 8601 format (YYYYMMDD) if there is a prominent date in the content, otherwise leave it blank.
-Use the filename as additional context if it provides useful information about the document.
-The response should be in the format: category,vendor,description,date. 
+Analyze the provided file content and filename to determine specific attributes for classification.
 
-For example, if the content contains 'ACME Markets' and 'bananas, apples, milk', the category would be 'receipt', the vendor could be 'ACME', and the description would be 'groceries'. If a prominent date is present such as 'April 5, 2023', the date should be returned as '20230405'. 
+1. **Category**: Choose a single concise word that best describes the type of document.
+2. **Vendor**: Choose a single conside word that best identifies the company or entity relevant to the content.
+3. **Description**: Craft a general and concise description, not exceeding three words, summarizing the content's main theme without listing detailed items.
+4. **Date**: Extract a prominent date from the content, formatted in ISO 8601 (YYYYMMDD). If unavailable, leave this blank.
 
-[content]
+Utilize the filename for context if it offers useful insights into the document.
 
-Filename: {filename}
-Content: {content}
+# Output Format
+
+Return the result in the following format: `Category,Vendor,Description,Date`.
+
+# Examples
+
+- **Input:**
+  - Filename: invoice12345.pdf
+  - Content: "Invoice from John's Window Cleaning for services rendered on May 10, 2022."
+  
+  **Output:**
+  - `invoice,johns,window-cleaning,20220510`
+
+- **Input:**
+  - Filename: groceries_receipt.txt
+  - Content: "Thank you for shopping at ACME Markets. Items: bananas, apples, milk."
+
+  **Output:**
+  - `receipt,ACME,groceries,`
+
+# Notes
+
+- Focus on prominent details within the content.
+- If multiple dates exist, select the most relevant one based on context.
+- Use the filename as additional evidence for categorization and context if necessary.
+
+# file name and content
+
+## name
+{filename}
+
+## content
+{content}
