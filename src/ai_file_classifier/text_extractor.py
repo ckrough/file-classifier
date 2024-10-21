@@ -2,6 +2,8 @@ import logging
 
 import PyPDF2
 
+logger = logging.getLogger(__name__)
+
 
 def extract_text_from_pdf(file_path):
     """
@@ -13,9 +15,10 @@ def extract_text_from_pdf(file_path):
             content = ""
             for page in reader.pages:
                 content += page.extract_text() + "\n"
+        logger.debug(f"Extracted text from PDF '{file_path}'")
         return content
     except Exception as e:
-        logging.error(f"Error extracting text from PDF: {e}")
+        logger.error(f"Error extracting text from PDF: {e}", exc_info=True)
         return ""
 
 
@@ -25,7 +28,10 @@ def extract_text_from_txt(file_path):
     """
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
-            return file.read()
+            content = file.read()
+            logger.debug(f"Extracted text from TXT '{file_path}'")
+            return content
     except Exception as e:
-        logging.error(f"Error extracting text from text file: {e}")
+        logger.error(f"Error extracting text from text file: {
+                     e}", exc_info=True)
         return ""

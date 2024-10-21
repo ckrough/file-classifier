@@ -1,5 +1,7 @@
 import logging
 
+logger = logging.getLogger(__name__)
+
 
 def load_and_format_prompt(file_path, **kwargs):
     """
@@ -10,5 +12,5 @@ def load_and_format_prompt(file_path, **kwargs):
             prompt = file.read()
             return prompt.format(**kwargs)
     except Exception as e:
-        logging.error(f"Error loading or formatting prompt from file: {e}")
+        logger.error(f"Error loading or formatting prompt from file: {e}")
         return ""

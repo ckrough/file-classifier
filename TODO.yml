@@ -12,7 +12,6 @@
   - rename files and move to categories
   - delete empty directories
 - use less tokens
-  - use minimal GPT
   - use local LLM
 - port to MacOS
   - build GUI

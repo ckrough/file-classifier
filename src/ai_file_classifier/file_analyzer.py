@@ -7,8 +7,10 @@ from src.ai_file_classifier.prompt_loader import load_and_format_prompt
 from src.ai_file_classifier.text_extractor import (extract_text_from_pdf,
                                                    extract_text_from_txt)
 
+logger = logging.getLogger(__name__)
 
-def analyze_file_content(file_path):
+
+def analyze_file_content(file_path, model):
     """
     Analyzes the content of a file to determine its context and purpose.
     """
@@ -33,7 +35,7 @@ def analyze_file_content(file_path):
         # Make API request to analyze content
         client = OpenAI()
         completion = client.chat.completions.create(
-            model="gpt-4",
+            model=model,
             messages=[
                 {
                     "role": "system",
@@ -45,7 +47,12 @@ def analyze_file_content(file_path):
                 }
             ],
         )
+
+        logger.debug(f"Completion response: {completion}")
+
         suggestion = completion.choices[0].message.content.strip('"')
+
+        # Process the suggestion
         category, vendor, description, date = map(
             str.strip, suggestion.split(',', 3)
         )
@@ -58,5 +65,5 @@ def analyze_file_content(file_path):
         )
         return suggested_name
     except Exception as e:
-        logging.error(f"Error analyzing file content: {e}")
+        logger.error(f"Error analyzing file content: {e}", exc_info=True)
         return None
