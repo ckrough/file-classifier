@@ -1,4 +1,7 @@
+## Bugs
+- file-path and directory can be provided together
 
+## Improvements
 - parse a tree
   - recommend changes
   - ask approval
