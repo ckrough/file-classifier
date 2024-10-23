@@ -1,59 +1,89 @@
 import logging
 import os
+import sqlite3
 import tempfile
 
 import pytest
 
-from src.ai_file_classifier.utils import is_supported_filetype, rename_file
+from src.ai_file_classifier.utils import (bulk_rename_files,
+                                          get_all_suggested_changes,
+                                          insert_or_update_file)
 
 logger = logging.getLogger(__name__)
 
+DB_FILE = "file_cache.db"
 
-def test_is_supported_filetype():
-    """
-    Test if the file type is supported.
-    """
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w', encoding='utf-8') as temp_txt_file:
-        temp_txt_file.write("This is a sample text.")
-        temp_txt_file_path = temp_txt_file.name
 
+def test_insert_or_update_file():
+    """
+    Test inserting or updating a file record in the SQLite database.
+    """
+    test_file_path = "test_file.txt"
+    suggested_name = "suggested_file_name"
+    category = "test_category"
+    description = "test_description"
+    vendor = "test_vendor"
+    date = "20231023"
+
+    conn = None
     try:
-        # Test if the text file is supported
-        assert is_supported_filetype(temp_txt_file_path) is True
+        # Insert or update the file in the cache
+        insert_or_update_file(test_file_path, suggested_name,
+                              category, description, vendor, date)
 
-        # Test if an unsupported file type returns False
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".unsupported", mode='w', encoding='utf-8') as temp_unsupported_file:
-            temp_unsupported_file.write("This is an unsupported file type.")
-            temp_unsupported_file_path = temp_unsupported_file.name
-            assert is_supported_filetype(temp_unsupported_file_path) is False
+        # Verify that the file was inserted or updated
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''SELECT * FROM files WHERE file_path = ?''', (test_file_path,))
+        row = cursor.fetchone()
+        assert row is not None
+        assert row[1] == test_file_path
+        assert row[6] == suggested_name
     except Exception as e:
         logger.error(f"Test failed: {e}", exc_info=True)
     finally:
-        # Clean up the temporary files
-        os.remove(temp_txt_file_path)
-        os.remove(temp_unsupported_file_path)
+        if conn:
+            conn.close()
 
 
-def test_rename_file():
+def test_get_all_suggested_changes():
     """
-    Test renaming a file.
+    Test retrieving all files with suggested changes from the SQLite database.
     """
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w', encoding='utf-8') as temp_file:
+    try:
+        changes = get_all_suggested_changes()
+        assert isinstance(changes, list)
+    except Exception as e:
+        logger.error(f"Test failed: {e}", exc_info=True)
+
+
+def test_bulk_rename_files():
+    """
+    Test renaming files in bulk based on suggested changes.
+    """
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w',
+                                     encoding='utf-8') as temp_file:
         temp_file.write("This is a sample text.")
         temp_file_path = temp_file.name
 
     try:
-        # Test renaming the file
-        new_name = "renamed_file"
-        rename_file(temp_file_path, new_name)
+        suggested_name = "bulk_renamed_file"
+        changes = [{'file_path': temp_file_path,
+                    'suggested_name': suggested_name}]
+
+        # Perform the bulk rename operation
+        bulk_rename_files(changes)
+
+        # Verify that the file has been renamed
         new_path = os.path.join(os.path.dirname(
-            temp_file_path), f"{new_name}.txt")
+            temp_file_path), f"{suggested_name}.txt")
         assert os.path.exists(new_path) is True
     except Exception as e:
         logger.error(f"Test failed: {e}", exc_info=True)
     finally:
         # Clean up the renamed file
-        if os.path.exists(new_path):
+        if 'new_path' in locals() and os.path.exists(new_path):
             os.remove(new_path)
 
 

@@ -13,7 +13,7 @@ def test_load_and_format_prompt():
     """
     Test the loading and formatting of a prompt from a file.
     """
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w', 
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w',
                                      encoding='utf-8') as temp_prompt_file:
         temp_prompt_file.write("Hello, {name}! This is a test prompt.")
         temp_prompt_file_path = temp_prompt_file.name

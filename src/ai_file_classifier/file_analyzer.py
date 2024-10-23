@@ -1,13 +1,15 @@
 import logging
 import os
-from pprint import pprint
 
-from openai import OpenAI
 from pydantic import BaseModel
 
 from src.ai_file_classifier.prompt_loader import load_and_format_prompt
 from src.ai_file_classifier.text_extractor import (extract_text_from_pdf,
                                                    extract_text_from_txt)
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 class Analysis(BaseModel):
@@ -17,9 +19,10 @@ class Analysis(BaseModel):
     date: str
 
 
-def analyze_file_content(file_path, model):
+def analyze_file_content(file_path, model, client):
     """
     Analyzes the content of a file to determine its context and purpose.
+    Returns suggested name, category, vendor, description, and date.
     """
     try:
         # Extract content based on file type
@@ -40,7 +43,6 @@ def analyze_file_content(file_path, model):
         )
 
         # Make API request to analyze content
-        client = OpenAI()
         completion = client.beta.chat.completions.parse(
             model=model,
             messages=[
@@ -57,12 +59,12 @@ def analyze_file_content(file_path, model):
             max_tokens=50
         )
 
-        logging.debug(f"Completion response: {completion}")
+        logger.debug(f"Completion response: {completion}")
 
         response = completion.choices[0].message
 
-        if (response.refusal):
-            raise (response.refusal)
+        if hasattr(response, 'refusal') and response.refusal:
+            raise ValueError(f"Refusal: {response.refusal}")
         else:
             suggestion = response.parsed
             category = suggestion.category.lower().replace(' ', '-')
@@ -72,7 +74,6 @@ def analyze_file_content(file_path, model):
             suggested_name = (
                 f"{vendor}-{category}-{description}{'-' + date if date else ''}"
             )
-            return suggested_name, category
+            return suggested_name, category, vendor, description, date
     except Exception as e:
-        logging.error(f"Error analyzing file content: {e}", exc_info=True)
-        return None, None
+        raise RuntimeError(f"Error analyzing file content: {e}") from e

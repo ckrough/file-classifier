@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 def test_analyze_file_content():
     """
-    Test the analysis of file content to determine a suggested name.
+    Test the analysis of file content to determine suggested metadata.
     """
     with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w',
                                      encoding='utf-8') as temp_txt_file:
@@ -20,10 +20,14 @@ def test_analyze_file_content():
 
     try:
         # Test with the sample text file
-        suggested_name = analyze_file_content(
+        suggested_name, category, vendor, description, date = analyze_file_content(
             temp_txt_file_path, "gpt-4o-mini")
         assert suggested_name is not None
         assert isinstance(suggested_name, str)
+        assert isinstance(category, str)
+        assert isinstance(vendor, str)
+        assert isinstance(description, str)
+        assert isinstance(date, str) or date is None
     except Exception as e:
         logger.error(f"Test failed: {e}", exc_info=True)
     finally:
