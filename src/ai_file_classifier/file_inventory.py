@@ -67,8 +67,3 @@ def inventory_files(directory):
         logger.error(f"Error during file inventory: {e}", exc_info=True)
     finally:
         conn.close()
-
-
-if __name__ == "__main__":
-    initialize_cache()
-    inventory_files("samples")
