@@ -7,10 +7,6 @@ Analyze the provided file content and filename to determine specific attributes 
 
 Utilize the filename for context if it offers useful insights into the document.
 
-# Output Format
-
-Return the result in the following format: Category,Vendor,Description,Date
-
 # Examples
 
 - **Input:**
@@ -18,14 +14,20 @@ Return the result in the following format: Category,Vendor,Description,Date
   - Content: "Invoice from John's Window Cleaning for services rendered on May 10, 2022."
   
   **Output:**
-  - invoice,johns,window-cleaning,20220510
+  "category"="invoice"
+  "vendor"="johns"
+  "description"="window-cleaning"
+  "date"="20220510"
 
 - **Input:**
   - Filename: groceries_receipt.txt
   - Content: "Thank you for shopping at ACME Markets. Items: bananas, apples, milk."
 
   **Output:**
-  - receipt,ACME,groceries
+  "category"="receipt"
+  "vendor"="ACME"
+  "description"="groceries"
+  "date"=""
 
 # Notes
 

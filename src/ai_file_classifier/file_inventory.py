@@ -40,7 +40,7 @@ def inventory_files(directory):
                 file_path = os.path.join(root, file)
                 file_hash = calculate_md5(file_path)
 
-                # Insert or update the file record if the file hash is differs
+                # Insert or update the file record if the file hash differs
                 cursor.execute('''
                     INSERT OR REPLACE INTO files (file_path, file_hash)
                     VALUES (?, ?)

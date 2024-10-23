@@ -41,7 +41,8 @@ def main():
                     f"The file '{file_path}' is not a supported file type.")
                 return
 
-            suggested_name = analyze_file_content(file_path, AI_MODEL)
+            suggested_name, category = analyze_file_content(
+                file_path, AI_MODEL)
             if suggested_name:
                 logger.info(f"Suggested name for the file: {suggested_name}")
                 if args.auto_rename:
@@ -71,7 +72,7 @@ def main():
                 for file in files:
                     file_path = os.path.join(root, file)
                     if is_supported_filetype(file_path):
-                        suggested_name = analyze_file_content(
+                        suggested_name, category = analyze_file_content(
                             file_path, AI_MODEL)
                         if suggested_name:
                             logger.info(f"Suggested name for the file: {

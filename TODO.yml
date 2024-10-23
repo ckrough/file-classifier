@@ -1,14 +1,13 @@
 ## Bugs
 - file-path and directory can be provided together
+- cache never gets cleaned up
+- folder names are not plurized
 
 ## Improvements
-- parse a tree
-  - recommend changes
-  - ask approval
-- parse a tree
-  - recommend categories
-  - build directory structure
-  - update existing directory structure
+- categories need to be generalized
+- cache all changes before applying
+- build directory structure
+- update existing directory structure
 - move files to directory structure
 - mutate existing directory structure
   - create categories
