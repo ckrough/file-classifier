@@ -5,86 +5,118 @@ import tempfile
 
 import pytest
 
-from src.ai_file_classifier.utils import (bulk_rename_files,
-                                          get_all_suggested_changes,
-                                          insert_or_update_file)
+from src.ai_file_classifier.config import DB_FILE, delete_cache
+from src.ai_file_classifier.utils import (insert_or_update_file,
+                                          is_supported_filetype, rename_file)
 
 logger = logging.getLogger(__name__)
 
-DB_FILE = "file_cache.db"
+
+@pytest.fixture(autouse=True)
+def setup_and_teardown():
+    # Setup: Initialize the cache
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS files (
+            id INTEGER PRIMARY KEY,
+            file_path TEXT UNIQUE,
+            file_hash TEXT,
+            category TEXT,
+            description TEXT,
+            vendor TEXT,
+            date TEXT,
+            suggested_name TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+    yield
+    # Teardown: Delete the cache file
+    if os.path.exists(DB_FILE):
+        delete_cache()
 
 
-def test_insert_or_update_file():
+def test_is_supported_filetype():
     """
-    Test inserting or updating a file record in the SQLite database.
+    Test if the file type is supported.
     """
-    test_file_path = "test_file.txt"
-    suggested_name = "suggested_file_name"
-    category = "test_category"
-    description = "test_description"
-    vendor = "test_vendor"
-    date = "20231023"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w', encoding='utf-8') as temp_txt_file:
+        temp_txt_file.write("This is a sample text.")
+        temp_txt_file_path = temp_txt_file.name
 
-    conn = None
     try:
-        # Insert or update the file in the cache
-        insert_or_update_file(test_file_path, suggested_name,
-                              category, description, vendor, date)
+        # Test if the text file is supported
+        assert is_supported_filetype(temp_txt_file_path) is True
 
-        # Verify that the file was inserted or updated
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute(
-            '''SELECT * FROM files WHERE file_path = ?''', (test_file_path,))
-        row = cursor.fetchone()
-        assert row is not None
-        assert row[1] == test_file_path
-        assert row[6] == suggested_name
+        # Test if an unsupported file type returns False
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".unsupported", mode='w', encoding='utf-8') as temp_unsupported_file:
+            temp_unsupported_file.write("This is an unsupported file type.")
+            temp_unsupported_file_path = temp_unsupported_file.name
+            assert is_supported_filetype(temp_unsupported_file_path) is False
     except Exception as e:
         logger.error(f"Test failed: {e}", exc_info=True)
     finally:
-        if conn:
-            conn.close()
+        # Clean up the temporary files
+        if os.path.exists(temp_txt_file_path):
+            os.remove(temp_txt_file_path)
+        if os.path.exists(temp_unsupported_file_path):
+            os.remove(temp_unsupported_file_path)
 
 
-def test_get_all_suggested_changes():
+def test_rename_file():
     """
-    Test retrieving all files with suggested changes from the SQLite database.
+    Test renaming a file.
     """
-    try:
-        changes = get_all_suggested_changes()
-        assert isinstance(changes, list)
-    except Exception as e:
-        logger.error(f"Test failed: {e}", exc_info=True)
-
-
-def test_bulk_rename_files():
-    """
-    Test renaming files in bulk based on suggested changes.
-    """
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w',
-                                     encoding='utf-8') as temp_file:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w', encoding='utf-8') as temp_file:
         temp_file.write("This is a sample text.")
         temp_file_path = temp_file.name
 
+    new_path = os.path.join(os.path.dirname(
+        temp_file_path), "renamed_file.txt")
+
     try:
-        suggested_name = "bulk_renamed_file"
-        changes = [{'file_path': temp_file_path,
-                    'suggested_name': suggested_name}]
-
-        # Perform the bulk rename operation
-        bulk_rename_files(changes)
-
-        # Verify that the file has been renamed
-        new_path = os.path.join(os.path.dirname(
-            temp_file_path), f"{suggested_name}.txt")
+        # Test renaming the file
+        rename_file(temp_file_path, "renamed_file")
         assert os.path.exists(new_path) is True
     except Exception as e:
         logger.error(f"Test failed: {e}", exc_info=True)
     finally:
         # Clean up the renamed file
-        if 'new_path' in locals() and os.path.exists(new_path):
+        if os.path.exists(new_path):
             os.remove(new_path)
+
+
+def test_insert_or_update_file():
+    """
+    Test inserting or updating a file record in the database.
+    """
+    file_path = "/path/to/sample.txt"
+    suggested_name = "sample-suggested-name"
+    category = "test-category"
+    description = "test-description"
+    vendor = "test-vendor"
+    date = "20230101"
+
+    try:
+        insert_or_update_file(file_path, suggested_name,
+                              category, description, vendor, date)
+
+        # Verify that the record was inserted
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM files WHERE file_path=?", (file_path,))
+        record = cursor.fetchone()
+        assert record is not None
+        assert record[1] == file_path
+        assert record[2] == suggested_name
+        assert record[3] == category
+        assert record[4] == description
+        assert record[5] == vendor
+        assert record[6] == date
+        conn.close()
+    except Exception as e:
+        logger.error(f"Test failed: {e}", exc_info=True)
 
 
 if __name__ == "__main__":

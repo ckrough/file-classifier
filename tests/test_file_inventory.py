@@ -5,80 +5,71 @@ import tempfile
 
 import pytest
 
+from src.ai_file_classifier.config import DB_FILE, delete_cache
 from src.ai_file_classifier.file_inventory import (initialize_cache,
                                                    inventory_files)
 
 logger = logging.getLogger(__name__)
-DB_FILE = "file_cache.db"
+
+
+@pytest.fixture(autouse=True)
+def setup_and_teardown():
+    # Setup: Initialize the cache
+    initialize_cache()
+    yield
+    # Teardown: Delete the cache file
+    if os.path.exists(DB_FILE):
+        delete_cache()
 
 
 def test_initialize_cache():
     """
-    Test the initialization of the SQLite cache database.
+    Test that the cache database is initialized correctly.
     """
-    try:
-        # Initialize the cache
-        initialize_cache()
+    initialize_cache()
+    assert os.path.exists(DB_FILE)
 
-        # Verify that the database file exists
-        assert os.path.exists(DB_FILE) is True
-
-        # Verify that the expected table exists
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute(
-            '''SELECT name FROM sqlite_master WHERE type='table' AND name='files';''')
-        table_exists = cursor.fetchone()
-        assert table_exists is not None
-    except Exception as e:
-        logger.error(f"Test failed: {e}", exc_info=True)
-    finally:
-        if 'conn' in locals():
-            conn.close()
+    # Verify that the required table exists
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='files'")
+    table = cursor.fetchone()
+    assert table is not None
+    conn.close()
 
 
 def test_inventory_files():
     """
-    Test the inventorying of files in a specified directory.
+    Test that files in a directory are inventoried and stored in the database.
     """
     with tempfile.TemporaryDirectory() as temp_dir:
-        # Create sample text and PDF files in the temporary directory
+        # Create sample text and PDF files
         txt_file_path = os.path.join(temp_dir, "sample.txt")
-        with open(txt_file_path, "w", encoding="utf-8") as txt_file:
+        pdf_file_path = os.path.join(temp_dir, "sample.pdf")
+
+        with open(txt_file_path, "w") as txt_file:
             txt_file.write("This is a sample text file.")
 
-        pdf_file_path = os.path.join(temp_dir, "sample.pdf")
-        from fpdf import FPDF
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
-        pdf.cell(200, 10, txt="This is a sample PDF file.", ln=True)
-        pdf.output(pdf_file_path)
+        with open(pdf_file_path, "w") as pdf_file:
+            pdf_file.write("This is a sample PDF file.")
 
-        try:
-            # Initialize the cache
-            initialize_cache()
+        # Inventory the files in the temporary directory
+        inventory_files(temp_dir)
 
-            # Inventory the files in the temporary directory
-            inventory_files(temp_dir)
+        # Verify that the files are stored in the database
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT file_path FROM files WHERE file_path=?", (txt_file_path,))
+        txt_record = cursor.fetchone()
+        assert txt_record is not None
 
-            # Verify that the files were added to the database
-            conn = sqlite3.connect(DB_FILE)
-            cursor = conn.cursor()
-            cursor.execute(
-                '''SELECT file_path FROM files WHERE file_path = ?''', (txt_file_path,))
-            txt_file_record = cursor.fetchone()
-            assert txt_file_record is not None
-
-            cursor.execute(
-                '''SELECT file_path FROM files WHERE file_path = ?''', (pdf_file_path,))
-            pdf_file_record = cursor.fetchone()
-            assert pdf_file_record is not None
-        except Exception as e:
-            logger.error(f"Test failed: {e}", exc_info=True)
-        finally:
-            if 'conn' in locals():
-                conn.close()
+        cursor.execute(
+            "SELECT file_path FROM files WHERE file_path=?", (pdf_file_path,))
+        pdf_record = cursor.fetchone()
+        assert pdf_record is not None
+        conn.close()
 
 
 if __name__ == "__main__":

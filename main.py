@@ -1,9 +1,13 @@
+import atexit
 import logging
 import os
+import signal
+import sys
 
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from src.ai_file_classifier.config import delete_cache
 from src.ai_file_classifier.file_inventory import (initialize_cache,
                                                    inventory_files)
 from src.ai_file_classifier.logging_config import setup_logging
@@ -20,6 +24,19 @@ DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
 
 def main():
     setup_logging()
+
+    # Register delete_cache to be called upon exit
+    atexit.register(delete_cache)
+
+    # Handle termination signals to clean up
+    def handle_signal(signum, frame):
+        delete_cache()
+        sys.exit(0)
+
+    # Register signal handlers for SIGINT (Ctrl+C) and SIGTERM
+    signal.signal(signal.SIGINT, handle_signal)
+    signal.signal(signal.SIGTERM, handle_signal)
+
     logger = logging.getLogger('file-classifier')
     client = OpenAI()
     try:
@@ -60,6 +77,7 @@ def main():
                 "Do you approve all suggested changes for renaming? (yes/no): ").strip().lower()
             if user_confirmation == 'yes':
                 bulk_rename_files(suggested_changes)
+                delete_cache()
             else:
                 logger.info("Bulk renaming was canceled by the user.")
         else:
@@ -68,6 +86,8 @@ def main():
 
     except Exception as e:
         logger.error(f"An unexpected error occurred: {e}", exc_info=True)
+    finally:
+        delete_cache()
 
 
 if __name__ == "__main__":
