@@ -2,9 +2,8 @@ import logging
 import os
 import sqlite3
 
+from src.ai_file_classifier.config import DB_FILE
 from src.ai_file_classifier.utils import calculate_md5
-
-DB_FILE = "file_cache.db"
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)

@@ -4,11 +4,10 @@ import logging
 import os
 import sqlite3
 
+from src.ai_file_classifier.config import DB_FILE
 from src.ai_file_classifier.file_analyzer import analyze_file_content
 
 logger = logging.getLogger(__name__)
-
-DB_FILE = "file_cache.db"
 
 
 def get_user_arguments():
