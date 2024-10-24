@@ -7,7 +7,7 @@ import pytest
 
 from src.ai_file_classifier.config import DB_FILE, delete_cache
 from src.ai_file_classifier.utils import (insert_or_update_file,
-                                          is_supported_filetype, rename_file)
+                                          is_supported_filetype)
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,8 @@ def test_is_supported_filetype():
     """
     Test if the file type is supported.
     """
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w', encoding='utf-8') as temp_txt_file:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w',
+                                     encoding='utf-8') as temp_txt_file:
         temp_txt_file.write("This is a sample text.")
         temp_txt_file_path = temp_txt_file.name
 
@@ -50,7 +51,10 @@ def test_is_supported_filetype():
         assert is_supported_filetype(temp_txt_file_path) is True
 
         # Test if an unsupported file type returns False
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".unsupported", mode='w', encoding='utf-8') as temp_unsupported_file:
+        with tempfile.NamedTemporaryFile(delete=False,
+                                         suffix=".unsupported",
+                                         mode='w',
+                                         encoding='utf-8') as temp_unsupported_file:
             temp_unsupported_file.write("This is an unsupported file type.")
             temp_unsupported_file_path = temp_unsupported_file.name
             assert is_supported_filetype(temp_unsupported_file_path) is False
@@ -62,29 +66,6 @@ def test_is_supported_filetype():
             os.remove(temp_txt_file_path)
         if os.path.exists(temp_unsupported_file_path):
             os.remove(temp_unsupported_file_path)
-
-
-def test_rename_file():
-    """
-    Test renaming a file.
-    """
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w', encoding='utf-8') as temp_file:
-        temp_file.write("This is a sample text.")
-        temp_file_path = temp_file.name
-
-    new_path = os.path.join(os.path.dirname(
-        temp_file_path), "renamed_file.txt")
-
-    try:
-        # Test renaming the file
-        rename_file(temp_file_path, "renamed_file")
-        assert os.path.exists(new_path) is True
-    except Exception as e:
-        logger.error(f"Test failed: {e}", exc_info=True)
-    finally:
-        # Clean up the renamed file
-        if os.path.exists(new_path):
-            os.remove(new_path)
 
 
 def test_insert_or_update_file():

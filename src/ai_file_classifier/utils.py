@@ -16,13 +16,10 @@ def get_user_arguments():
     """
     parser = argparse.ArgumentParser(description="File Analyzer Application")
     parser.add_argument(
-        "--file_path", type=str, help="Path to the file to be analyzed"
+        "path", type=str, help="Path to the file or directory to be analyzed"
     )
     parser.add_argument(
-        "--directory", type=str, help="Path to the directory to be analyzed"
-    )
-    parser.add_argument(
-        "--auto-rename", action="store_true", help="Always rename the file"
+        "--auto-rename", action="store_true", help="Always rename the file[s]"
     )
     return parser.parse_args()
 
@@ -42,21 +39,6 @@ def is_supported_filetype(file_path):
         logger.error(f"Error detecting MIME type for file '{
                      file_path}': {e}", exc_info=True)
         return False
-
-
-def rename_file(file_path, new_name):
-    """
-    Renames the specified file to the new name, preserving the file extension.
-    """
-    try:
-        base, ext = os.path.splitext(file_path)
-        directory = os.path.dirname(file_path)
-        new_path = os.path.join(directory, f"{new_name}{ext}")
-        os.rename(file_path, new_path)
-        logger.info(f"File '{file_path}' renamed to '{new_path}'")
-    except Exception as e:
-        logger.error(f"Error renaming file '{file_path}' to '{
-                     new_name}': {e}", exc_info=True)
 
 
 def calculate_md5(file_path):
@@ -82,9 +64,10 @@ def connect_to_db():
     return sqlite3.connect(DB_FILE)
 
 
-def insert_or_update_file(file_path, suggested_name, category=None, description=None, vendor=None, date=None):
+def insert_or_update_file(file_path, suggested_name, category=None,
+                          description=None, vendor=None, date=None):
     """
-    Inserts or updates a file record in the SQLite database with the given metadata.
+    Inserts or updates a file record in the cache with the given metadata.
     """
     try:
         conn = connect_to_db()
@@ -96,7 +79,7 @@ def insert_or_update_file(file_path, suggested_name, category=None, description=
             VALUES (?, ?, ?, ?, ?, ?)
         ''', (file_path, suggested_name, category, description, vendor, date))
         conn.commit()
-        logger.info(f"File '{file_path}' updated in cache with suggested name '{
+        logger.info(f"File '{file_path}' cache updated with suggested name '{
                     suggested_name}'.")
     except Exception as e:
         logger.error(f"Error inserting or updating file '{
@@ -113,8 +96,10 @@ def get_all_suggested_changes():
         conn = connect_to_db()
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT file_path, suggested_name FROM files WHERE suggested_name IS NOT NULL
-        ''')
+                       SELECT file_path, suggested_name
+                       FROM files
+                       WHERE suggested_name IS NOT NULL
+                       ''')
         changes = [{'file_path': row[0], 'suggested_name': row[1]}
                    for row in cursor.fetchall()]
         logger.info(f"Retrieved {len(changes)} suggested changes from cache.")
@@ -126,7 +111,7 @@ def get_all_suggested_changes():
         conn.close()
 
 
-def bulk_rename_files(suggested_changes):
+def rename_files(suggested_changes):
     """
     Renames files in bulk based on the approved suggested changes.
     """
@@ -146,7 +131,7 @@ def bulk_rename_files(suggested_changes):
 
 def process_file(file_path, model, client, logger):
     """
-    Processes a single file by analyzing its content and storing the suggested metadata in the cache.
+    Processes a single file by analyzing its content and caching metadata.
     """
     if not os.path.exists(file_path):
         logger.error(f"The file '{file_path}' does not exist.")
@@ -161,8 +146,8 @@ def process_file(file_path, model, client, logger):
         return
 
     try:
-        suggested_name, category, vendor, description, date = analyze_file_content(
-            file_path, model, client)
+        suggested_name, category, vendor, description, date = \
+            analyze_file_content(file_path, model, client)
         if suggested_name:
             logger.info(f"Suggested name for the file: {suggested_name}")
             insert_or_update_file(file_path, suggested_name,
