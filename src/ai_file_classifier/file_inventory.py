@@ -1,6 +1,7 @@
 import logging
 import os
 import sqlite3
+from typing import Generator
 
 from src.ai_file_classifier.config import DB_FILE
 from src.ai_file_classifier.utils import calculate_md5
@@ -10,14 +11,14 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-def initialize_cache():
+def initialize_cache() -> None:
     """
-    Initializes the SQLite cache database, creating the necessary 
+    Initializes the SQLite cache database, creating the necessary
     table if it does not exist.
     """
     try:
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
+        conn: sqlite3.Connection = sqlite3.connect(DB_FILE)
+        cursor: sqlite3.Cursor = conn.cursor()
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS files (
                 id INTEGER PRIMARY KEY,
@@ -38,20 +39,20 @@ def initialize_cache():
         conn.close()
 
 
-def inventory_files(directory):
+def inventory_files(directory: str) -> Generator[str, None, None]:
     """
     Traverses the specified directory and inventories all .txt and .pdf files,
     storing their paths and MD5 hashes in the SQLite database.
     """
     try:
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
+        conn: sqlite3.Connection = sqlite3.connect(DB_FILE)
+        cursor: sqlite3.Cursor = conn.cursor()
 
         for root, _, files in os.walk(directory):
             for file in files:
                 if file.endswith(('.txt', '.pdf')):
-                    file_path = os.path.join(root, file)
-                    file_hash = calculate_md5(file_path)
+                    file_path: str = os.path.join(root, file)
+                    file_hash: str = calculate_md5(file_path)
 
                     # Insert or update the file record if the file hash differs
                     cursor.execute('''
@@ -59,7 +60,8 @@ def inventory_files(directory):
                         VALUES (?, ?)
                     ''', (file_path, file_hash))
                     logger.info(
-                        f"File '{file_path}' inventoried with hash '{file_hash}'.")
+                        f"File '{file_path}' "
+                        f"inventoried with hash '{file_hash}'.")
 
         conn.commit()
         logger.info(f"Inventory completed for directory: {directory}")

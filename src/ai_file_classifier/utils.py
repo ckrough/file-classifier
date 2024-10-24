@@ -3,6 +3,7 @@ import hashlib
 import logging
 import os
 import sqlite3
+from typing import Any, Dict, List, Optional
 
 from src.ai_file_classifier.config import DB_FILE
 from src.ai_file_classifier.file_analyzer import analyze_file_content
@@ -10,7 +11,7 @@ from src.ai_file_classifier.file_analyzer import analyze_file_content
 logger = logging.getLogger(__name__)
 
 
-def get_user_arguments():
+def get_user_arguments() -> argparse.Namespace:
     """
     Parses command line arguments provided by the user.
     """
@@ -24,15 +25,15 @@ def get_user_arguments():
     return parser.parse_args()
 
 
-def is_supported_filetype(file_path):
+def is_supported_filetype(file_path: str) -> bool:
     """
     Validates if the specified file is a supported type.
     """
-    supported_mimetypes = ["text/plain", "application/pdf"]
+    supported_mimetypes: List[str] = ["text/plain", "application/pdf"]
     try:
         import magic
         mime = magic.Magic(mime=True)
-        mimetype = mime.from_file(file_path)
+        mimetype: str = mime.from_file(file_path)
         logger.debug(f"Detected MIME type for file '{file_path}': {mimetype}")
         return mimetype in supported_mimetypes
     except Exception as e:
@@ -41,7 +42,7 @@ def is_supported_filetype(file_path):
         return False
 
 
-def calculate_md5(file_path):
+def calculate_md5(file_path: str) -> Optional[str]:
     """
     Calculates the MD5 hash of the given file.
     """
@@ -57,21 +58,27 @@ def calculate_md5(file_path):
     return hash_md5.hexdigest()
 
 
-def connect_to_db():
+def connect_to_db() -> sqlite3.Connection:
     """
     Connects to the SQLite database and returns the connection object.
     """
     return sqlite3.connect(DB_FILE)
 
 
-def insert_or_update_file(file_path, suggested_name, category=None,
-                          description=None, vendor=None, date=None):
+def insert_or_update_file(
+        file_path: str,
+        suggested_name: str,
+        category: Optional[str] = None,
+        description: Optional[str] = None,
+        vendor: Optional[str] = None,
+        date: Optional[str] = None
+) -> None:
     """
     Inserts or updates a file record in the cache with the given metadata.
     """
     try:
-        conn = connect_to_db()
-        cursor = conn.cursor()
+        conn: sqlite3.Connection = connect_to_db()
+        cursor: sqlite3.Cursor = conn.cursor()
         cursor.execute('''
             INSERT OR REPLACE INTO files (
                 file_path, suggested_name, category, description, vendor, date
@@ -88,20 +95,21 @@ def insert_or_update_file(file_path, suggested_name, category=None,
         conn.close()
 
 
-def get_all_suggested_changes():
+def get_all_suggested_changes() -> List[Dict[str, str]]:
     """
     Retrieves all files with suggested changes from the SQLite database.
     """
     try:
-        conn = connect_to_db()
-        cursor = conn.cursor()
+        conn: sqlite3.Connection = connect_to_db()
+        cursor: sqlite3.Cursor = conn.cursor()
         cursor.execute('''
-                       SELECT file_path, suggested_name
-                       FROM files
-                       WHERE suggested_name IS NOT NULL
-                       ''')
-        changes = [{'file_path': row[0], 'suggested_name': row[1]}
-                   for row in cursor.fetchall()]
+            SELECT file_path, suggested_name
+            FROM files
+            WHERE suggested_name IS NOT NULL
+        ''')
+        changes: List[Dict[str, str]] = [{'file_path': row[0],
+                                          'suggested_name': row[1]}
+                                         for row in cursor.fetchall()]
         logger.info(f"Retrieved {len(changes)} suggested changes from cache.")
         return changes
     except Exception as e:
@@ -111,17 +119,17 @@ def get_all_suggested_changes():
         conn.close()
 
 
-def rename_files(suggested_changes):
+def rename_files(suggested_changes: List[Dict[str, str]]) -> None:
     """
     Renames files in bulk based on the approved suggested changes.
     """
     for change in suggested_changes:
-        file_path = change['file_path']
-        suggested_name = change['suggested_name']
+        file_path: str = change['file_path']
+        suggested_name: str = change['suggested_name']
         try:
             base, ext = os.path.splitext(file_path)
-            directory = os.path.dirname(file_path)
-            new_path = os.path.join(directory, f"{suggested_name}{ext}")
+            directory: str = os.path.dirname(file_path)
+            new_path: str = os.path.join(directory, f"{suggested_name}{ext}")
             os.rename(file_path, new_path)
             logger.info(f"File '{file_path}' renamed to '{new_path}'.")
         except Exception as e:
@@ -129,7 +137,8 @@ def rename_files(suggested_changes):
                          suggested_name}': {e}", exc_info=True)
 
 
-def process_file(file_path, model, client, logger):
+def process_file(file_path: str, model: str, client: Any,
+                 logger: logging.Logger) -> None:
     """
     Processes a single file by analyzing its content and caching metadata.
     """
@@ -146,8 +155,8 @@ def process_file(file_path, model, client, logger):
         return
 
     try:
-        suggested_name, category, vendor, description, date = \
-            analyze_file_content(file_path, model, client)
+        suggested_name, category, vendor, description, \
+            date = analyze_file_content(file_path, model, client)
         if suggested_name:
             logger.info(f"Suggested name for the file: {suggested_name}")
             insert_or_update_file(file_path, suggested_name,

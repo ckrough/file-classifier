@@ -1,5 +1,7 @@
 import logging
 import os
+from typing import Tuple, Optional
+from openai import OpenAI
 
 from pydantic import BaseModel
 
@@ -16,10 +18,12 @@ class Analysis(BaseModel):
     category: str
     vendor: str
     description: str
-    date: str
+    date: Optional[str]
 
 
-def analyze_file_content(file_path, model, client):
+def analyze_file_content(file_path: str, model: str, client: OpenAI) -> \
+        Tuple[Optional[str], Optional[str], Optional[str], Optional[str],
+              Optional[str]]:
     """
     Analyzes the content of a file to determine its context and purpose.
     Returns suggested name, category, vendor, description, and date.
@@ -27,23 +31,23 @@ def analyze_file_content(file_path, model, client):
     try:
         # Extract content based on file type
         if file_path.lower().endswith('.pdf'):
-            content = extract_text_from_pdf(file_path)
+            content: str = extract_text_from_pdf(file_path)
         else:
-            content = extract_text_from_txt(file_path)
+            content: str = extract_text_from_txt(file_path)
 
         # Load prompts
-        system_prompt = load_and_format_prompt(
+        system_prompt: str = load_and_format_prompt(
             'prompts/file-analysis-system-prompt.txt'
         )
 
-        user_prompt = load_and_format_prompt(
+        user_prompt: str = load_and_format_prompt(
             'prompts/file-analysis-user-prompt.txt',
             filename=os.path.basename(file_path),
             content=content
         )
 
         # Make API request to analyze content
-        completion = client.beta.chat.completions.parse(
+        completion: OpenAI = client.beta.chat.completions.parse(
             model=model,
             messages=[
                 {
@@ -61,18 +65,19 @@ def analyze_file_content(file_path, model, client):
 
         logger.debug(f"Completion response: {completion}")
 
-        response = completion.choices[0].message
+        response: Analysis = completion.choices[0].message
 
         if hasattr(response, 'refusal') and response.refusal:
             raise ValueError(f"Refusal: {response.refusal}")
         else:
-            suggestion = response.parsed
-            category = suggestion.category.lower().replace(' ', '-')
-            vendor = suggestion.vendor.lower().replace(' ', '-')
-            description = suggestion.description.lower().replace(' ', '-')
-            date = suggestion.date if suggestion.date else ''
-            suggested_name = (
-                f"{vendor}-{category}-{description}{'-' + date if date else ''}"
+            suggestion: Analysis = response.parsed
+            category: str = suggestion.category.lower().replace(' ', '-')
+            vendor: str = suggestion.vendor.lower().replace(' ', '-')
+            description: str = suggestion.description.lower().replace(' ', '-')
+            date: str = suggestion.date if suggestion.date else ''
+            suggested_name: str = (
+                f"{vendor}-{category}-{description}"
+                f"{'-' + date if date else ''}"
             )
             return suggested_name, category, vendor, description, date
     except Exception as e:
