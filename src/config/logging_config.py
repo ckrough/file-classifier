@@ -1,10 +1,12 @@
+"""Configuration module for setting up logging in the application."""
+
 import logging
 import logging.config
 import os
 
 
 def setup_logging():
-    # Get the DEBUG_MODE value from environment variables
+    """Configure and set up logging for the application."""
     debug_mode = os.getenv("DEBUG_MODE", "false").lower() == "true"
 
     # Set the logging level based on DEBUG_MODE
@@ -15,7 +17,8 @@ def setup_logging():
         'disable_existing_loggers': False,
         'formatters': {
             'standard': {
-                'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                'format': ('%(asctime)s - %(name)s - '
+                           '%(levelname)s - %(message)s'),
                 'datefmt': '%Y-%m-%d %H:%M:%S'
             },
         },

@@ -1,7 +1,8 @@
+"""Configuration and utilities for file caching."""
+
 import logging
 import os
 import sys
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -9,12 +10,12 @@ DB_FILE: str = "file_cache.db"
 
 
 def delete_cache() -> None:
+    """Delete the cache file if it exists."""
     if os.path.exists(DB_FILE):
         os.remove(DB_FILE)
-        logger.debug(f"Deleted cache file: {DB_FILE}")
 
 
-# Handle termination signals to clean up
-def handle_signal(signum: int, frame: Any) -> None:
+def handle_signal() -> None:
+    """Handle termination signals by deleting cache and exiting."""
     delete_cache()
     sys.exit(0)
