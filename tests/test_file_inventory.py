@@ -16,10 +16,9 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture(autouse=True)
 def setup_and_teardown():
-    # Setup: Initialize the cache
+    """Set up and tear down the test environment."""
     initialize_cache()
     yield
-    # Teardown: Delete the cache file
     if os.path.exists(DB_FILE):
         delete_cache()
 

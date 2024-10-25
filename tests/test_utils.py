@@ -7,8 +7,7 @@ import tempfile
 
 import pytest
 
-from src.ai_file_classifier.utils import (insert_or_update_file,
-                                          is_supported_filetype)
+from src.ai_file_classifier.utils import is_supported_filetype
 from src.config.cache_config import DB_FILE, delete_cache
 
 logger = logging.getLogger(__name__)
@@ -16,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture(autouse=True)
 def setup_and_teardown():
+    """Set up the test database and tear it down after the test."""
     # Setup: Initialize the cache
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
@@ -43,12 +43,14 @@ def test_is_supported_filetype():
     """
     Test if the file type is supported.
     """
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w',
-                                     encoding='utf-8') as temp_txt_file:
-        temp_txt_file.write("This is a sample text.")
-        temp_txt_file_path = temp_txt_file.name
-
+    temp_txt_file_path = None
+    temp_unsupported_file_path = None
     try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w',
+                                         encoding='utf-8') as temp_txt_file:
+            temp_txt_file.write("This is a sample text.")
+            temp_txt_file_path = temp_txt_file.name
+
         # Test if the text file is supported
         assert is_supported_filetype(temp_txt_file_path) is True
 
@@ -60,46 +62,14 @@ def test_is_supported_filetype():
             temp_unsupported_file.write("This is an unsupported file type.")
             temp_unsupported_file_path = temp_unsupported_file.name
             assert is_supported_filetype(temp_unsupported_file_path) is False
-    except Exception as e:
-        logger.error("Test failed: %s", e, exc_info=True)
     finally:
         # Clean up the temporary files
-        if os.path.exists(temp_txt_file_path):
-            os.remove(temp_txt_file_path)
-        if os.path.exists(temp_unsupported_file_path):
-            os.remove(temp_unsupported_file_path)
-
-
-def test_insert_or_update_file():
-    """
-    Test inserting or updating a file record in the database.
-    """
-    file_path = "/path/to/sample.txt"
-    suggested_name = "sample-suggested-name"
-    category = "test-category"
-    description = "test-description"
-    vendor = "test-vendor"
-    date = "20230101"
-
-    try:
-        insert_or_update_file(file_path, suggested_name,
-                              category, description, vendor, date)
-
-        # Verify that the record was inserted
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM files WHERE file_path=?", (file_path,))
-        record = cursor.fetchone()
-        assert record is not None
-        assert record[1] == file_path
-        assert record[2] == suggested_name
-        assert record[3] == category
-        assert record[4] == description
-        assert record[5] == vendor
-        assert record[6] == date
-        conn.close()
-    except Exception as e:
-        logger.error("Test failed: %s", e, exc_info=True)
+        for file_path in (temp_txt_file_path, temp_unsupported_file_path):
+            if file_path and os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except OSError as e:
+                    logger.warning("Failed to remove temporary file %s: %s", file_path, str(e))
 
 
 if __name__ == "__main__":

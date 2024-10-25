@@ -25,9 +25,13 @@ def extract_text_from_pdf(file_path: str) -> Optional[str]:
                 content += page.extract_text() + "\n"
         logger.debug("Extracted text from PDF '%s'", file_path)
         return content
-    except Exception as e:
-        logger.error("Error extracting text from PDF: %s", e, exc_info=True)
-        return None
+    except IOError as e:
+        logger.error("Error opening PDF file: %s", e, exc_info=True)
+    except pypdf.errors.PdfReadError as e:
+        logger.error("Error reading PDF file: %s", e, exc_info=True)
+    except ValueError as e:
+        logger.error("Value error in PDF extraction: %s", e, exc_info=True)
+    return None
 
 
 def extract_text_from_txt(file_path: str) -> Optional[str]:
@@ -36,10 +40,11 @@ def extract_text_from_txt(file_path: str) -> Optional[str]:
     """
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
-            content: str = file.read()
-            logger.debug("Extracted text from TXT '%s'", file_path)
-            return content
-    except Exception as e:
-        logger.error("Error extracting text from text file: %s", e,
-                     exc_info=True)
-        return None
+            content = file.read()
+        logger.debug("Extracted text from TXT '%s'", file_path)
+        return content
+    except IOError as e:
+        logger.error("Error opening text file: %s", e, exc_info=True)
+    except UnicodeDecodeError as e:
+        logger.error("Error decoding text file: %s", e, exc_info=True)
+    return None

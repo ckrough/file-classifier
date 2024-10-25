@@ -44,13 +44,12 @@ def is_supported_filetype(file_path: str) -> bool:
         mimetype: str = mime.from_file(file_path)
         logger.debug("Detected MIME type for file '%s': %s", file_path, mimetype)
         return mimetype in supported_mimetypes
-    except Exception as e:
-        logger.error(
-            "Error detecting MIME type for file '%s': %s",
-            file_path,
-            e,
-            exc_info=True
-        )
+    except ImportError:
+        logger.error("Failed to import 'magic' module", exc_info=True)
+        return False
+    except (IOError, OSError) as e:
+        logger.error("Error accessing file '%s': %s", file_path, str(e),
+                     exc_info=True)
         return False
 
 
@@ -63,8 +62,8 @@ def calculate_md5(file_path: str) -> Optional[str]:
         with open(file_path, 'rb') as f:
             for chunk in iter(lambda: f.read(4096), b""):
                 hash_md5.update(chunk)
-    except Exception as e:
-        logger.error("Error calculating MD5 for file '%s': %s", file_path, e, exc_info=True)
+    except (IOError, OSError) as e:
+        logger.error("Error reading file '%s': %s", file_path, str(e), exc_info=True)
         return None
     return hash_md5.hexdigest()
 
@@ -95,8 +94,9 @@ def insert_or_update_file(
         vendor (Optional[str]): File vendor.
         date (Optional[str]): File date.
     """
+    conn: Optional[sqlite3.Connection] = None
     try:
-        conn: sqlite3.Connection = connect_to_db()
+        conn = connect_to_db()
         cursor: sqlite3.Cursor = conn.cursor()
         cursor.execute('''
             INSERT OR REPLACE INTO files (
@@ -110,23 +110,25 @@ def insert_or_update_file(
             file_path,
             suggested_name
         )
-    except Exception as e:
+    except sqlite3.Error as e:
         logger.error(
-            "Error inserting or updating file '%s': %s",
+            "SQLite error inserting or updating file '%s': %s",
             file_path,
-            e,
+            str(e),
             exc_info=True
         )
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 
 def get_all_suggested_changes() -> List[Dict[str, str]]:
     """
     Retrieves all files with suggested changes from the SQLite database.
     """
+    conn: Optional[sqlite3.Connection] = None
     try:
-        conn: sqlite3.Connection = connect_to_db()
+        conn = connect_to_db()
         cursor: sqlite3.Cursor = conn.cursor()
         cursor.execute('''
             SELECT file_path, suggested_name
@@ -138,11 +140,12 @@ def get_all_suggested_changes() -> List[Dict[str, str]]:
                                          for row in cursor.fetchall()]
         logger.debug("Retrieved %d suggested changes from cache.", len(changes))
         return changes
-    except Exception as e:
-        logger.error("Error retrieving suggested changes: %s", e, exc_info=True)
+    except sqlite3.Error as e:
+        logger.error("SQLite error retrieving suggested changes: %s", str(e), exc_info=True)
         return []
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 
 def rename_files(suggested_changes: List[Dict[str, str]]) -> None:
@@ -158,8 +161,8 @@ def rename_files(suggested_changes: List[Dict[str, str]]) -> None:
             new_path: str = os.path.join(directory, f"{suggested_name}{ext}")
             os.rename(file_path, new_path)
             logger.info("File '%s' renamed to '%s'.", file_path, new_path)
-        except Exception as e:
-            logger.error("Error renaming file '%s' to '%s': %s", file_path, suggested_name, e, exc_info=True)
+        except (OSError, IOError) as e:
+            logger.error("Error renaming file '%s' to '%s': %s", file_path, suggested_name, str(e), exc_info=True)
 
 
 def process_file(file_path: str, model: str, client: Any) -> None:

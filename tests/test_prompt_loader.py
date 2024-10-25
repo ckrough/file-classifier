@@ -30,11 +30,18 @@ def test_load_and_format_prompt():
         # Test loading and formatting with missing keyword arguments
         result = load_and_format_prompt(temp_prompt_file_path)
         assert result == ""
-    except Exception as e:
-        logger.error("Test failed: %s", e, exc_info=True)
+    except FileNotFoundError:
+        logger.error("Test failed: Prompt file not found.")
+    except PermissionError:
+        logger.error("Test failed: Permission denied accessing prompt file.")
+    except KeyError as e:
+        logger.error("Test failed: Missing key in prompt format string: %s", e)
     finally:
         # Clean up the temporary file
-        os.remove(temp_prompt_file_path)
+        try:
+            os.remove(temp_prompt_file_path)
+        except OSError as e:
+            logger.warning("Failed to remove temporary file: %s", e)
 
 
 if __name__ == "__main__":

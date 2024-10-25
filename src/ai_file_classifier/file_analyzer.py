@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class Analysis(BaseModel):
+    """Represents the analyzed metadata of a file."""
     category: str
     vendor: str
     description: str
@@ -22,6 +23,16 @@ class Analysis(BaseModel):
 
 
 def standardize_analysis(analysis: Analysis) -> Analysis:
+    """
+    Standardize the analysis data by converting fields to lowercase and
+    replacing spaces with hyphens.
+
+    Args:
+        analysis (Analysis): The original analysis object.
+
+    Returns:
+        Analysis: A new Analysis object with standardized fields.
+    """
     return Analysis(
         category=analysis.category.lower().replace(' ', '-'),
         vendor=analysis.vendor.lower().replace(' ', '-'),
@@ -98,6 +109,7 @@ def analyze_file_content(file_path: str, model: str, client: OpenAI) -> \
 
 
 def generate_filename(analysis: Analysis) -> str:
+    """Generate a standardized filename based on the analysis data."""
     category: str = analysis.category.lower().replace(' ', '-')
     vendor: str = analysis.vendor.lower().replace(' ', '-')
     description: str = analysis.description.lower().replace(' ', '-')
