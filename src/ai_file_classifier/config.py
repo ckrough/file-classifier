@@ -11,7 +11,7 @@ DB_FILE: str = "file_cache.db"
 def delete_cache() -> None:
     if os.path.exists(DB_FILE):
         os.remove(DB_FILE)
-        logger.info(f"Deleted cache file: {DB_FILE}")
+        logger.debug(f"Deleted cache file: {DB_FILE}")
 
 
 # Handle termination signals to clean up

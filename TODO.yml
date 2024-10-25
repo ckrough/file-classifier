@@ -1,10 +1,8 @@
 ## Bugs
 - folder names are not plurized
+- calculate_md5 not used
 
 ## Improvements
-- consolidate logging config?
-- consolidate file validation (present, is file etc, support ext)
-- move suggested_name generation to it's own function
 - categories need to be generalized
 - cache all changes before applying
 - build directory structure

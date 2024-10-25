@@ -48,49 +48,37 @@ def main() -> None:
         if args.path:
             if os.path.isfile(args.path):
                 # Process single file
-                process_file(args.path, AI_MODEL, client, logger)
-                suggested_changes = get_all_suggested_changes()
-                for change in suggested_changes:
-                    if change['file_path'] == args.path:
-                        logger.info(
-                            f"Current Name: {change['file_path']}, "
-                            f"Suggested Name: {change['suggested_name']}"
-                        )
-                        user_confirmation: str = input(
-                            "Approve rename? (yes/no):"
-                        ).strip().lower()
-                        if user_confirmation == 'yes':
-                            rename_files([change])
-                        else:
-                            logger.info("Renaming was canceled by the user.")
+                process_file(args.path, AI_MODEL, client)
             elif os.path.isdir(args.path):
-                # Inventory Files
-                directory: str = args.path
-
-                # Analyze Files
-                for root, _, files in os.walk(directory):
+                # Process directory
+                for root, _, files in os.walk(args.path):
                     for file in files:
                         file_path: str = os.path.join(root, file)
                         if is_supported_filetype(file_path):
-                            process_file(file_path, AI_MODEL, client, logger)
-
-                # Present Suggested Changes to User
-                suggested_changes = get_all_suggested_changes()
-                for change in suggested_changes:
-                    logger.info(
-                        f"Current Name: {change['file_path']}, "
-                        f"Suggested Name: {change['suggested_name']}"
-                    )
-                user_confirmation = input("Approve rename? (yes/no):"
-                                          ).strip().lower()
-                if user_confirmation == 'yes':
-                    rename_files(suggested_changes)
-                    delete_cache()
-                else:
-                    logger.info("Bulk renaming was canceled by the user.")
+                            process_file(file_path, AI_MODEL, client)
             else:
                 logger.error(
                     "The provided path is neither a file nor a directory.")
+                return
+
+            # User verification and approval step
+            suggested_changes = get_all_suggested_changes()
+            if suggested_changes:
+                for change in suggested_changes:
+                    print(
+                        f"Current Name: {change['file_path']}\n"
+                        f"Suggested Name: {change['suggested_name']}\n"
+                    )
+                user_confirmation = input(
+                    "Approve rename? (yes/no): "
+                ).strip().lower()
+                if user_confirmation == 'yes':
+                    rename_files(suggested_changes)
+                    print("Files have been renamed.")
+                else:
+                    print("Renaming was canceled by the user.")
+            else:
+                print("No changes were suggested.")
         else:
             logger.error("Please provide a valid path to a file or directory.")
 

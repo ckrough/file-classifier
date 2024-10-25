@@ -30,7 +30,7 @@ def initialize_cache() -> None:
             )
         ''')
         conn.commit()
-        logger.info("Cache database initialized successfully.")
+        logger.debug("Cache database initialized successfully.")
     except Exception as e:
         logger.error(f"Error initializing cache database: {e}", exc_info=True)
     finally:

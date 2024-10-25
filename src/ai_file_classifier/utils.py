@@ -86,7 +86,7 @@ def insert_or_update_file(
             VALUES (?, ?, ?, ?, ?, ?)
         ''', (file_path, suggested_name, category, description, vendor, date))
         conn.commit()
-        logger.info(f"File '{file_path}' cache updated with suggested name '{
+        logger.debug(f"File '{file_path}' cache updated with suggested name '{
                     suggested_name}'.")
     except Exception as e:
         logger.error(f"Error inserting or updating file '{
@@ -110,7 +110,7 @@ def get_all_suggested_changes() -> List[Dict[str, str]]:
         changes: List[Dict[str, str]] = [{'file_path': row[0],
                                           'suggested_name': row[1]}
                                          for row in cursor.fetchall()]
-        logger.info(f"Retrieved {len(changes)} suggested changes from cache.")
+        logger.debug(f"Retrieved {len(changes)} suggested changes from cache.")
         return changes
     except Exception as e:
         logger.error(f"Error retrieving suggested changes: {e}", exc_info=True)
@@ -137,8 +137,7 @@ def rename_files(suggested_changes: List[Dict[str, str]]) -> None:
                          suggested_name}': {e}", exc_info=True)
 
 
-def process_file(file_path: str, model: str, client: Any,
-                 logger: logging.Logger) -> None:
+def process_file(file_path: str, model: str, client: Any) -> None:
     """
     Processes a single file by analyzing its content and caching metadata.
     """
