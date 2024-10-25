@@ -10,11 +10,11 @@ from openai import OpenAI
 
 from src.ai_file_classifier.config import delete_cache
 from src.ai_file_classifier.file_inventory import initialize_cache
-from src.ai_file_classifier.logging_config import setup_logging
 from src.ai_file_classifier.utils import (get_all_suggested_changes,
                                           get_user_arguments,
                                           is_supported_filetype, process_file,
                                           rename_files)
+from src.config.logging_config import setup_logging
 
 # Load environment variables
 load_dotenv()
@@ -22,8 +22,12 @@ AI_MODEL: str = os.getenv("AI_MODEL", "gpt-4o-mini")
 DEBUG_MODE: bool = os.getenv("DEBUG_MODE", "false").lower() == "true"
 
 
+setup_logging()
+logger = logging.getLogger(__name__)
+
+
 def main() -> None:
-    setup_logging()
+    logger.info("Application started")
 
     # Register delete_cache to be called upon exit
     atexit.register(delete_cache)
@@ -37,7 +41,6 @@ def main() -> None:
     signal.signal(signal.SIGINT, handle_signal)
     signal.signal(signal.SIGTERM, handle_signal)
 
-    logger: logging.Logger = logging.getLogger('file-classifier')
     client: OpenAI = OpenAI()
     try:
         args = get_user_arguments()

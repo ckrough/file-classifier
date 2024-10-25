@@ -1,8 +1,6 @@
 import logging
 import sqlite3
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 

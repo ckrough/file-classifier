@@ -6,8 +6,6 @@ from typing import Generator
 from src.ai_file_classifier.config import DB_FILE
 from src.ai_file_classifier.utils import calculate_md5
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 

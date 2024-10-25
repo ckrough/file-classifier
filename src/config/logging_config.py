@@ -1,12 +1,8 @@
 import logging
 import logging.config
-import sys
 
 
 def setup_logging():
-    """
-    Configures logging for the entire application.
-    """
     logging_config = {
         'version': 1,
         'disable_existing_loggers': False,
@@ -16,24 +12,27 @@ def setup_logging():
             },
         },
         'handlers': {
-            'console': {
+            'default': {
+                'level': 'INFO',
+                'formatter': 'standard',
                 'class': 'logging.StreamHandler',
+                'stream': 'ext://sys.stdout',
+            },
+            'file': {
                 'level': 'DEBUG',
                 'formatter': 'standard',
-                'stream': sys.stdout,
-            }
-        },
-        'root': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
+                'class': 'logging.FileHandler',
+                'filename': 'app.log',
+                'mode': 'a',
+            },
         },
         'loggers': {
-            'file-analyzer': {
-                'handlers': ['console'],
+            '': {  # root logger
+                'handlers': ['default', 'file'],
                 'level': 'DEBUG',
-                'propagate': False
+                'propagate': True
             },
         }
     }
-
     logging.config.dictConfig(logging_config)
+

@@ -1,16 +1,14 @@
 import logging
 import os
-from typing import Tuple, Optional
-from openai import OpenAI
+from typing import Optional, Tuple
 
+from openai import OpenAI
 from pydantic import BaseModel
 
 from src.ai_file_classifier.prompt_loader import load_and_format_prompt
 from src.ai_file_classifier.text_extractor import (extract_text_from_pdf,
                                                    extract_text_from_txt)
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 

@@ -1,8 +1,6 @@
 import logging
 from typing import Any
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
