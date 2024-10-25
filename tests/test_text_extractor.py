@@ -1,3 +1,5 @@
+"""Unit tests for the text_extractor module."""
+
 import logging
 import os
 import tempfile

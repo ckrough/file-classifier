@@ -1,3 +1,5 @@
+"""Utility functions for the AI File Classifier application."""
+
 import argparse
 import hashlib
 import logging
@@ -27,7 +29,13 @@ def get_user_arguments() -> argparse.Namespace:
 
 def is_supported_filetype(file_path: str) -> bool:
     """
-    Validates if the specified file is a supported type.
+    Validate if the specified file is a supported type.
+
+    Args:
+        file_path (str): Path to the file to be checked.
+
+    Returns:
+        bool: True if the file type is supported, False otherwise.
     """
     supported_mimetypes: List[str] = ["text/plain", "application/pdf"]
     try:
@@ -37,7 +45,12 @@ def is_supported_filetype(file_path: str) -> bool:
         logger.debug("Detected MIME type for file '%s': %s", file_path, mimetype)
         return mimetype in supported_mimetypes
     except Exception as e:
-        logger.error("Error detecting MIME type for file '%s': %s", file_path, e, exc_info=True)
+        logger.error(
+            "Error detecting MIME type for file '%s': %s",
+            file_path,
+            e,
+            exc_info=True
+        )
         return False
 
 
@@ -64,15 +77,23 @@ def connect_to_db() -> sqlite3.Connection:
 
 
 def insert_or_update_file(
-        file_path: str,
-        suggested_name: str,
-        category: Optional[str] = None,
-        description: Optional[str] = None,
-        vendor: Optional[str] = None,
-        date: Optional[str] = None
+    file_path: str,
+    suggested_name: str,
+    category: Optional[str] = None,
+    description: Optional[str] = None,
+    vendor: Optional[str] = None,
+    date: Optional[str] = None
 ) -> None:
     """
-    Inserts or updates a file record in the cache with the given metadata.
+    Insert or update a file record in the cache with the given metadata.
+
+    Args:
+        file_path (str): Path to the file.
+        suggested_name (str): Suggested name for the file.
+        category (Optional[str]): File category.
+        description (Optional[str]): File description.
+        vendor (Optional[str]): File vendor.
+        date (Optional[str]): File date.
     """
     try:
         conn: sqlite3.Connection = connect_to_db()
@@ -84,10 +105,18 @@ def insert_or_update_file(
             VALUES (?, ?, ?, ?, ?, ?)
         ''', (file_path, suggested_name, category, description, vendor, date))
         conn.commit()
-        logger.debug("File '%s' cache updated with suggested name '%s'.",
-                     file_path, suggested_name)
+        logger.debug(
+            "File '%s' cache updated with suggested name '%s'.",
+            file_path,
+            suggested_name
+        )
     except Exception as e:
-        logger.error("Error inserting or updating file '%s': %s", file_path, e, exc_info=True)
+        logger.error(
+            "Error inserting or updating file '%s': %s",
+            file_path,
+            e,
+            exc_info=True
+        )
     finally:
         conn.close()
 

@@ -1,3 +1,10 @@
+"""
+This module provides functionality for loading and formatting prompts from files.
+
+It includes a function to read a prompt from a file, format it with given
+parameters, and handle potential errors during the process.
+"""
+
 import logging
 from typing import Any
 

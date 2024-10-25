@@ -1,3 +1,5 @@
+"""Unit tests for the file_analyzer module."""
+
 import logging
 import os
 import tempfile

@@ -1,3 +1,5 @@
+"""Module for analyzing file content and extracting metadata."""
+
 import logging
 import os
 from typing import Optional, Tuple

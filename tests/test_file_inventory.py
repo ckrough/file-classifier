@@ -1,3 +1,7 @@
+"""
+This module contains unit tests for the file inventory module.
+"""
+
 import logging
 import os
 import sqlite3

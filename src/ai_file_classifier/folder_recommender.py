@@ -1,3 +1,5 @@
+"""Module for recommending folder structures based on file categories."""
+
 import logging
 import sqlite3
 

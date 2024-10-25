@@ -1,3 +1,10 @@
+"""
+This module provides functions for extracting text content from different file types.
+
+It includes functions to extract text from PDF and TXT files, handling potential
+errors and logging the extraction process.
+"""
+
 import logging
 from typing import Optional
 
