@@ -1,7 +1,7 @@
 import logging
 import sqlite3
 
-from src.ai_file_classifier.config import DB_FILE
+from src.config.cache_config import DB_FILE
 
 logger = logging.getLogger(__name__)
 

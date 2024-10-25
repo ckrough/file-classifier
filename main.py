@@ -8,7 +8,7 @@ from typing import Any
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from src.ai_file_classifier.config import delete_cache
+from src.config.cache_config import delete_cache
 from src.ai_file_classifier.file_inventory import initialize_cache
 from src.ai_file_classifier.utils import (get_all_suggested_changes,
                                           get_user_arguments,

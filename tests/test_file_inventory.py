@@ -4,7 +4,7 @@ import sqlite3
 
 import pytest
 
-from src.ai_file_classifier.config import DB_FILE, delete_cache
+from src.config.cache_config import DB_FILE, delete_cache
 from src.ai_file_classifier.file_inventory import initialize_cache
 
 logger = logging.getLogger(__name__)

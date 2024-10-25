@@ -5,9 +5,9 @@ import tempfile
 
 import pytest
 
-from src.ai_file_classifier.config import DB_FILE, delete_cache
 from src.ai_file_classifier.utils import (insert_or_update_file,
                                           is_supported_filetype)
+from src.config.cache_config import DB_FILE, delete_cache
 
 logger = logging.getLogger(__name__)
 

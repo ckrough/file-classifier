@@ -74,17 +74,22 @@ def analyze_file_content(file_path: str, model: str, client: OpenAI) -> \
 
         response: Analysis = completion.choices[0].message
 
+        # Add debug output for the recommended metadata
+        logger.debug(f"AI recommended metadata: {response.parsed}")
+
         if hasattr(response, 'refusal') and response.refusal:
             raise ValueError(f"Refusal: {response.refusal}")
         else:
             analyzed_data: Analysis = standardize_analysis(response.parsed)
-            category: str = (analyzed_data.category.lower().replace(' ', '-'))
-            vendor: str = (analyzed_data.vendor.lower().replace(' ', '-'))
-            description: str = (
-                analyzed_data.description.lower().replace(' ', '-')
-            )
-            date: str = analyzed_data.date if analyzed_data.date else ''
+            category: str = analyzed_data.category
+            vendor: str = analyzed_data.vendor
+            description: str = analyzed_data.description
+            date: str = analyzed_data.date
             suggested_name: str = generate_filename(analyzed_data)
+
+            # Add debug output for the standardized metadata
+            logger.debug(f"Standardized metadata: {analyzed_data}")
+
             return suggested_name, category, vendor, description, date
     except Exception as e:
         raise RuntimeError(f"Error analyzing file content: {e}") from e

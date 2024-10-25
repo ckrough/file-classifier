@@ -5,7 +5,7 @@ import os
 import sqlite3
 from typing import Any, Dict, List, Optional
 
-from src.ai_file_classifier.config import DB_FILE
+from src.config.cache_config import DB_FILE
 from src.ai_file_classifier.file_analyzer import analyze_file_content
 
 logger = logging.getLogger(__name__)
