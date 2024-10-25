@@ -2,41 +2,13 @@
 
 import logging
 import os
-import sqlite3
 import tempfile
 
 import pytest
 
 from src.ai_file_classifier.utils import is_supported_filetype
-from src.config.cache_config import DB_FILE, delete_cache
 
 logger = logging.getLogger(__name__)
-
-
-@pytest.fixture(autouse=True)
-def setup_and_teardown():
-    """Set up the test database and tear it down after the test."""
-    # Setup: Initialize the cache
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS files (
-            id INTEGER PRIMARY KEY,
-            file_path TEXT UNIQUE,
-            file_hash TEXT,
-            category TEXT,
-            description TEXT,
-            vendor TEXT,
-            date TEXT,
-            suggested_name TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
-    yield
-    # Teardown: Delete the cache file
-    if os.path.exists(DB_FILE):
-        delete_cache()
 
 
 def test_is_supported_filetype():
