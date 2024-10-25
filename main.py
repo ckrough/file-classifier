@@ -35,67 +35,65 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 
+def process_path(path: str, ai_model: str, client: OpenAI) -> None:
+    """Process a single file or directory."""
+    if os.path.isfile(path):
+        process_file(path, ai_model, client)
+    elif os.path.isdir(path):
+        process_directory(path, ai_model, client)
+    else:
+        logger.error("The provided path is neither a file nor a directory.")
+
+
+def process_directory(directory: str, ai_model: str, client: OpenAI) -> None:
+    """Process all supported files in a directory."""
+    for root, _, files in os.walk(directory):
+        for file in files:
+            file_path: str = os.path.join(root, file)
+            if is_supported_filetype(file_path):
+                process_file(file_path, ai_model, client)
+
+
+def handle_suggested_changes() -> None:
+    """Handle user verification and approval of suggested changes."""
+    suggested_changes = get_all_suggested_changes()
+    if not suggested_changes:
+        print("No changes were suggested.")
+        return
+
+    for change in suggested_changes:
+        print(f"Current Name: {change['file_path']}")
+        print(f"Suggested Name: {change['suggested_name']}\n")
+
+    user_confirmation = input("Approve rename? (yes/no): ").strip().lower()
+    if user_confirmation == 'yes':
+        rename_files(suggested_changes)
+        print("Files have been renamed.")
+    else:
+        print("Renaming was canceled by the user.")
+
+
 def main() -> None:
     """Execute the main application logic for AI File Classifier."""
     logger.info("Application started")
 
-    # Register delete_cache to be called upon exit
     atexit.register(delete_cache)
-
-    # Handle termination signals to clean up
-    def handle_signal(_: int, __: Any) -> None:
-        delete_cache()
-        sys.exit(0)
-
-    # Register signal handlers for SIGINT (Ctrl+C) and SIGTERM
-    signal.signal(signal.SIGINT, handle_signal)
-    signal.signal(signal.SIGTERM, handle_signal)
+    signal.signal(signal.SIGINT, lambda s, f: sys.exit(0))
+    signal.signal(signal.SIGTERM, lambda s, f: sys.exit(0))
 
     client: OpenAI = OpenAI()
     try:
         args = get_user_arguments()
         initialize_cache()
-        if args.path:
-            if os.path.isfile(args.path):
-                # Process single file
-                process_file(args.path, AI_MODEL, client)
-            elif os.path.isdir(args.path):
-                # Process directory
-                for root, _, files in os.walk(args.path):
-                    for file in files:
-                        file_path: str = os.path.join(root, file)
-                        if is_supported_filetype(file_path):
-                            process_file(file_path, AI_MODEL, client)
-            else:
-                logger.error(
-                    "The provided path is neither a file nor a directory.")
-                return
 
-            # User verification and approval step
-            suggested_changes = get_all_suggested_changes()
-            if suggested_changes:
-                for change in suggested_changes:
-                    print(
-                        f"Current Name: {change['file_path']}\n"
-                        f"Suggested Name: {change['suggested_name']}\n"
-                    )
-                user_confirmation = input(
-                    "Approve rename? (yes/no): "
-                ).strip().lower()
-                if user_confirmation == 'yes':
-                    rename_files(suggested_changes)
-                    print("Files have been renamed.")
-                else:
-                    print("Renaming was canceled by the user.")
-            else:
-                print("No changes were suggested.")
+        if args.path:
+            process_path(args.path, AI_MODEL, client)
+            handle_suggested_changes()
         else:
             logger.error("Please provide a valid path to a file or directory.")
 
-    except (FileNotFoundError, PermissionError, ValueError) as e:
+    except (FileNotFoundError, PermissionError, ValueError, OSError) as e:
         logger.error("An error occurred: %s", e, exc_info=True)
-    except OSError as e:
-        logger.error("OS error occurred: %s", e, exc_info=True)
     except Exception as e:
         logger.critical("An unexpected error occurred: %s", e, exc_info=True)
     finally:
