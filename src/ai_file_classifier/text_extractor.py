@@ -33,6 +33,6 @@ def extract_text_from_txt(file_path: str) -> Optional[str]:
             logger.debug(f"Extracted text from TXT '{file_path}'")
             return content
     except Exception as e:
-        logger.error(f"Error extracting text from text file: {
-                     e}", exc_info=True)
+        logger.error(f"Error extracting text from text file: {e}",
+                     exc_info=True)
         return None
