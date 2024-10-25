@@ -1,10 +1,12 @@
+"""Module for recommending folder structures based on file categories."""
+
 import logging
 import sqlite3
 
 logger = logging.getLogger(__name__)
 
 
-def recommend_folder_structure(directory):
+def recommend_folder_structure():
     """
     Recommend a folder structure based on the file categories.
     """
@@ -18,4 +20,4 @@ def recommend_folder_structure(directory):
     # Display recommended structure
     logger.info("Recommended Folder Structure:")
     for category in categories:
-        logging.info(f"- {category}")
+        logger.info("- %s", category)

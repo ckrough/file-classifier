@@ -1,3 +1,5 @@
+"""Module for analyzing file content and extracting metadata."""
+
 import logging
 import os
 from typing import Optional, Tuple
@@ -13,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class Analysis(BaseModel):
+    """Represents the analyzed metadata of a file."""
     category: str
     vendor: str
     description: str
@@ -20,6 +23,16 @@ class Analysis(BaseModel):
 
 
 def standardize_analysis(analysis: Analysis) -> Analysis:
+    """
+    Standardize the analysis data by converting fields to lowercase and
+    replacing spaces with hyphens.
+
+    Args:
+        analysis (Analysis): The original analysis object.
+
+    Returns:
+        Analysis: A new Analysis object with standardized fields.
+    """
     return Analysis(
         category=analysis.category.lower().replace(' ', '-'),
         vendor=analysis.vendor.lower().replace(' ', '-'),
@@ -70,32 +83,33 @@ def analyze_file_content(file_path: str, model: str, client: OpenAI) -> \
             max_tokens=50
         )
 
-        logger.debug(f"Completion response: {completion}")
+        logger.debug("Completion response: %s", completion)
 
         response: Analysis = completion.choices[0].message
 
         # Add debug output for the recommended metadata
-        logger.debug(f"AI recommended metadata: {response.parsed}")
+        logger.debug("AI recommended metadata: %s", response.parsed)
 
         if hasattr(response, 'refusal') and response.refusal:
             raise ValueError(f"Refusal: {response.refusal}")
-        else:
-            analyzed_data: Analysis = standardize_analysis(response.parsed)
-            category: str = analyzed_data.category
-            vendor: str = analyzed_data.vendor
-            description: str = analyzed_data.description
-            date: str = analyzed_data.date
-            suggested_name: str = generate_filename(analyzed_data)
 
-            # Add debug output for the standardized metadata
-            logger.debug(f"Standardized metadata: {analyzed_data}")
+        analyzed_data: Analysis = standardize_analysis(response.parsed)
+        category: str = analyzed_data.category
+        vendor: str = analyzed_data.vendor
+        description: str = analyzed_data.description
+        date: str = analyzed_data.date
+        suggested_name: str = generate_filename(analyzed_data)
 
-            return suggested_name, category, vendor, description, date
+        # Add debug output for the standardized metadata
+        logger.debug("Standardized metadata: %s", analyzed_data)
+
+        return suggested_name, category, vendor, description, date
     except Exception as e:
-        raise RuntimeError(f"Error analyzing file content: {e}") from e
+        raise RuntimeError("Error analyzing file content: %s") from e
 
 
 def generate_filename(analysis: Analysis) -> str:
+    """Generate a standardized filename based on the analysis data."""
     category: str = analysis.category.lower().replace(' ', '-')
     vendor: str = analysis.vendor.lower().replace(' ', '-')
     description: str = analysis.description.lower().replace(' ', '-')

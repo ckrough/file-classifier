@@ -1,3 +1,5 @@
+"""Module for managing file inventory and cache operations."""
+
 import logging
 import sqlite3
 
@@ -27,7 +29,8 @@ def initialize_cache() -> None:
         ''')
         conn.commit()
         logger.debug("Cache database initialized successfully.")
-    except Exception as e:
-        logger.error(f"Error initializing cache database: {e}", exc_info=True)
+    except sqlite3.Error as e:
+        logger.error("Error initializing cache database: %s", e, exc_info=True)
     finally:
-        conn.close()
+        if 'conn' in locals():
+            conn.close()

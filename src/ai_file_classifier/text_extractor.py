@@ -1,3 +1,7 @@
+"""
+This module provides functions for extracting text from different file types.
+"""
+
 import logging
 from typing import Optional
 
@@ -16,11 +20,15 @@ def extract_text_from_pdf(file_path: str) -> Optional[str]:
             content: str = ""
             for page in reader.pages:
                 content += page.extract_text() + "\n"
-        logger.debug(f"Extracted text from PDF '{file_path}'")
+        logger.debug("Extracted text from PDF '%s'", file_path)
         return content
-    except Exception as e:
-        logger.error(f"Error extracting text from PDF: {e}", exc_info=True)
-        return None
+    except IOError as e:
+        logger.error("Error opening PDF file: %s", e, exc_info=True)
+    except pypdf.errors.PdfReadError as e:
+        logger.error("Error reading PDF file: %s", e, exc_info=True)
+    except ValueError as e:
+        logger.error("Value error in PDF extraction: %s", e, exc_info=True)
+    return None
 
 
 def extract_text_from_txt(file_path: str) -> Optional[str]:
@@ -29,10 +37,11 @@ def extract_text_from_txt(file_path: str) -> Optional[str]:
     """
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
-            content: str = file.read()
-            logger.debug(f"Extracted text from TXT '{file_path}'")
-            return content
-    except Exception as e:
-        logger.error(f"Error extracting text from text file: {
-                     e}", exc_info=True)
-        return None
+            content = file.read()
+        logger.debug("Extracted text from TXT '%s'", file_path)
+        return content
+    except IOError as e:
+        logger.error("Error opening text file: %s", e, exc_info=True)
+    except UnicodeDecodeError as e:
+        logger.error("Error decoding text file: %s", e, exc_info=True)
+    return None
