@@ -1,10 +1,8 @@
 ## Bugs
 - folder names are not plurized
-- calculate_md5 not used
 
 ## Improvements
 - categories need to be generalized
-- cache all changes before applying
 - build directory structure
 - update existing directory structure
 - move files to directory structure
