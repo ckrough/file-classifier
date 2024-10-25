@@ -21,6 +21,15 @@ class Analysis(BaseModel):
     date: Optional[str]
 
 
+def standardize_analysis(analysis: Analysis) -> Analysis:
+    return Analysis(
+        category=analysis.category.lower().replace(' ', '-'),
+        vendor=analysis.vendor.lower().replace(' ', '-'),
+        description=analysis.description.lower().replace(' ', '-'),
+        date=analysis.date if analysis.date else ''
+    )
+
+
 def analyze_file_content(file_path: str, model: str, client: OpenAI) -> \
         Tuple[Optional[str], Optional[str], Optional[str], Optional[str],
               Optional[str]]:
@@ -70,15 +79,28 @@ def analyze_file_content(file_path: str, model: str, client: OpenAI) -> \
         if hasattr(response, 'refusal') and response.refusal:
             raise ValueError(f"Refusal: {response.refusal}")
         else:
-            suggestion: Analysis = response.parsed
-            category: str = suggestion.category.lower().replace(' ', '-')
-            vendor: str = suggestion.vendor.lower().replace(' ', '-')
-            description: str = suggestion.description.lower().replace(' ', '-')
-            date: str = suggestion.date if suggestion.date else ''
-            suggested_name: str = (
-                f"{vendor}-{category}-{description}"
-                f"{'-' + date if date else ''}"
+            analyzed_data: Analysis = standardize_analysis(response.parsed)
+            category: str = (analyzed_data.category.lower().replace(' ', '-'))
+            vendor: str = (analyzed_data.vendor.lower().replace(' ', '-'))
+            description: str = (
+                analyzed_data.description.lower().replace(' ', '-')
             )
+            date: str = analyzed_data.date if analyzed_data.date else ''
+            suggested_name: str = generate_filename(analyzed_data)
             return suggested_name, category, vendor, description, date
     except Exception as e:
         raise RuntimeError(f"Error analyzing file content: {e}") from e
+
+
+def generate_filename(analysis: Analysis) -> str:
+    category: str = analysis.category.lower().replace(' ', '-')
+    vendor: str = analysis.vendor.lower().replace(' ', '-')
+    description: str = analysis.description.lower().replace(' ', '-')
+    date: str = analysis.date if analysis.date else ''
+
+    filename: str = (
+        f"{vendor}-{category}-{description}"
+        f"{'-' + date if date else ''}"
+    )
+
+    return filename
