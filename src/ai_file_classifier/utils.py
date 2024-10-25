@@ -81,10 +81,7 @@ def connect_to_db() -> sqlite3.Connection:
 def insert_or_update_file(
     file_path: str,
     suggested_name: str,
-    category: Optional[str] = None,
-    description: Optional[str] = None,
-    vendor: Optional[str] = None,
-    date: Optional[str] = None
+    metadata: Dict[str, Optional[str]]
 ) -> None:
     """
     Insert or update a file record in the cache with the given metadata.
@@ -92,10 +89,8 @@ def insert_or_update_file(
     Args:
         file_path (str): Path to the file.
         suggested_name (str): Suggested name for the file.
-        category (Optional[str]): File category.
-        description (Optional[str]): File description.
-        vendor (Optional[str]): File vendor.
-        date (Optional[str]): File date.
+        metadata (Dict[str, Optional[str]]): Dictionary containing additional
+            metadata fields (category, description, vendor, date).
     """
     conn: Optional[sqlite3.Connection] = None
     try:
@@ -106,7 +101,14 @@ def insert_or_update_file(
                 file_path, suggested_name, category, description, vendor, date
             )
             VALUES (?, ?, ?, ?, ?, ?)
-        ''', (file_path, suggested_name, category, description, vendor, date))
+        ''', (
+            file_path,
+            suggested_name,
+            metadata.get('category'),
+            metadata.get('description'),
+            metadata.get('vendor'),
+            metadata.get('date')
+        ))
         conn.commit()
         logger.debug(
             "File '%s' cache updated with suggested name '%s'.",
@@ -192,8 +194,13 @@ def process_file(file_path: str, model: str, client: Any) -> None:
             date = analyze_file_content(file_path, model, client)
         if suggested_name:
             logger.info("Suggested name for the file: %s", suggested_name)
-            insert_or_update_file(file_path, suggested_name,
-                                  category, description, vendor, date)
+            metadata = {
+                'category': category,
+                'description': description,
+                'vendor': vendor,
+                'date': date
+            }
+            insert_or_update_file(file_path, suggested_name, metadata)
         else:
             logger.error("Could not determine a suitable name for the file.")
     except RuntimeError as e:
