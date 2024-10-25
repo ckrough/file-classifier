@@ -93,8 +93,6 @@ def main() -> None:
 
     except (FileNotFoundError, PermissionError, ValueError, OSError) as e:
         logger.error("An error occurred: %s", e, exc_info=True)
-    except Exception as e:
-        logger.critical("An unexpected error occurred: %s", e, exc_info=True)
     finally:
         delete_cache()
 
