@@ -34,11 +34,10 @@ def is_supported_filetype(file_path: str) -> bool:
         import magic
         mime = magic.Magic(mime=True)
         mimetype: str = mime.from_file(file_path)
-        logger.debug(f"Detected MIME type for file '{file_path}': {mimetype}")
+        logger.debug("Detected MIME type for file '%s': %s", file_path, mimetype)
         return mimetype in supported_mimetypes
     except Exception as e:
-        logger.error(f"Error detecting MIME type for file '{
-                     file_path}': {e}", exc_info=True)
+        logger.error("Error detecting MIME type for file '%s': %s", file_path, e, exc_info=True)
         return False
 
 
@@ -52,8 +51,7 @@ def calculate_md5(file_path: str) -> Optional[str]:
             for chunk in iter(lambda: f.read(4096), b""):
                 hash_md5.update(chunk)
     except Exception as e:
-        logger.error(f"Error calculating MD5 for file '{
-                     file_path}': {e}", exc_info=True)
+        logger.error("Error calculating MD5 for file '%s': %s", file_path, e, exc_info=True)
         return None
     return hash_md5.hexdigest()
 
@@ -86,11 +84,10 @@ def insert_or_update_file(
             VALUES (?, ?, ?, ?, ?, ?)
         ''', (file_path, suggested_name, category, description, vendor, date))
         conn.commit()
-        logger.debug(f"File '{file_path}' cache updated with suggested name '{
-                    suggested_name}'.")
+        logger.debug("File '%s' cache updated with suggested name '%s'.",
+                     file_path, suggested_name)
     except Exception as e:
-        logger.error(f"Error inserting or updating file '{
-                     file_path}': {e}", exc_info=True)
+        logger.error("Error inserting or updating file '%s': %s", file_path, e, exc_info=True)
     finally:
         conn.close()
 
@@ -110,10 +107,10 @@ def get_all_suggested_changes() -> List[Dict[str, str]]:
         changes: List[Dict[str, str]] = [{'file_path': row[0],
                                           'suggested_name': row[1]}
                                          for row in cursor.fetchall()]
-        logger.debug(f"Retrieved {len(changes)} suggested changes from cache.")
+        logger.debug("Retrieved %d suggested changes from cache.", len(changes))
         return changes
     except Exception as e:
-        logger.error(f"Error retrieving suggested changes: {e}", exc_info=True)
+        logger.error("Error retrieving suggested changes: %s", e, exc_info=True)
         return []
     finally:
         conn.close()
@@ -131,10 +128,9 @@ def rename_files(suggested_changes: List[Dict[str, str]]) -> None:
             directory: str = os.path.dirname(file_path)
             new_path: str = os.path.join(directory, f"{suggested_name}{ext}")
             os.rename(file_path, new_path)
-            logger.info(f"File '{file_path}' renamed to '{new_path}'.")
+            logger.info("File '%s' renamed to '%s'.", file_path, new_path)
         except Exception as e:
-            logger.error(f"Error renaming file '{file_path}' to '{
-                         suggested_name}': {e}", exc_info=True)
+            logger.error("Error renaming file '%s' to '%s': %s", file_path, suggested_name, e, exc_info=True)
 
 
 def process_file(file_path: str, model: str, client: Any) -> None:
@@ -142,22 +138,22 @@ def process_file(file_path: str, model: str, client: Any) -> None:
     Processes a single file by analyzing its content and caching metadata.
     """
     if not os.path.exists(file_path):
-        logger.error(f"The file '{file_path}' does not exist.")
+        logger.error("The file '%s' does not exist.", file_path)
         return
 
     if not os.path.isfile(file_path):
-        logger.error(f"The path '{file_path}' is not a file.")
+        logger.error("The path '%s' is not a file.", file_path)
         return
 
     if not is_supported_filetype(file_path):
-        logger.error(f"The file '{file_path}' is not a supported file type.")
+        logger.error("The file '%s' is not a supported file type.", file_path)
         return
 
     try:
         suggested_name, category, vendor, description, \
             date = analyze_file_content(file_path, model, client)
         if suggested_name:
-            logger.info(f"Suggested name for the file: {suggested_name}")
+            logger.info("Suggested name for the file: %s", suggested_name)
             insert_or_update_file(file_path, suggested_name,
                                   category, description, vendor, date)
         else:

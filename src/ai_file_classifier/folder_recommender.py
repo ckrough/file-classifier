@@ -18,4 +18,4 @@ def recommend_folder_structure(directory):
     # Display recommended structure
     logger.info("Recommended Folder Structure:")
     for category in categories:
-        logging.info(f"- {category}")
+        logger.info("- %s", category)

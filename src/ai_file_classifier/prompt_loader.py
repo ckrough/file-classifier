@@ -13,5 +13,5 @@ def load_and_format_prompt(file_path: str, **kwargs: Any) -> str:
             prompt: str = file.read()
             return prompt.format(**kwargs)
     except Exception as e:
-        logger.error(f"Error loading or formatting prompt from file: {e}")
+        logger.error("Error loading or formatting prompt from file: %s", e)
         return ""

@@ -29,7 +29,7 @@ def test_analyze_file_content():
         assert isinstance(description, str)
         assert isinstance(date, str) or date is None
     except Exception as e:
-        logger.error(f"Test failed: {e}", exc_info=True)
+        logger.error("Test failed: %s", e, exc_info=True)
     finally:
         # Clean up the temporary file
         os.remove(temp_txt_file_path)

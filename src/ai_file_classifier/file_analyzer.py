@@ -70,15 +70,15 @@ def analyze_file_content(file_path: str, model: str, client: OpenAI) -> \
             max_tokens=50
         )
 
-        logger.debug(f"Completion response: {completion}")
+        logger.debug("Completion response: %s", completion)
 
         response: Analysis = completion.choices[0].message
 
         # Add debug output for the recommended metadata
-        logger.debug(f"AI recommended metadata: {response.parsed}")
+        logger.debug("AI recommended metadata: %s", response.parsed)
 
         if hasattr(response, 'refusal') and response.refusal:
-            raise ValueError(f"Refusal: {response.refusal}")
+            raise ValueError("Refusal: %s", response.refusal)
         else:
             analyzed_data: Analysis = standardize_analysis(response.parsed)
             category: str = analyzed_data.category
@@ -88,11 +88,11 @@ def analyze_file_content(file_path: str, model: str, client: OpenAI) -> \
             suggested_name: str = generate_filename(analyzed_data)
 
             # Add debug output for the standardized metadata
-            logger.debug(f"Standardized metadata: {analyzed_data}")
+            logger.debug("Standardized metadata: %s", analyzed_data)
 
             return suggested_name, category, vendor, description, date
     except Exception as e:
-        raise RuntimeError(f"Error analyzing file content: {e}") from e
+        raise RuntimeError("Error analyzing file content: %s") from e
 
 
 def generate_filename(analysis: Analysis) -> str:

@@ -24,7 +24,7 @@ def test_extract_text_from_txt():
         result = extract_text_from_txt(temp_txt_file_path)
         assert result == "This is a sample text for testing."
     except Exception as e:
-        logger.error(f"Test failed: {e}", exc_info=True)
+        logger.error("Test failed: %s", e, exc_info=True)
     finally:
         # Clean up the temporary file
         os.remove(temp_txt_file_path)
@@ -49,7 +49,7 @@ def test_extract_text_from_pdf():
         result = extract_text_from_pdf(temp_pdf_file_path)
         assert "This is a sample text for testing." in result
     except Exception as e:
-        logger.error(f"Test failed: {e}", exc_info=True)
+        logger.error("Test failed: %s", e, exc_info=True)
     finally:
         # Clean up the temporary file
         os.remove(temp_pdf_file_path)

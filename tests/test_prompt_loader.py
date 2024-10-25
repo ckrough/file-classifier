@@ -27,7 +27,7 @@ def test_load_and_format_prompt():
         result = load_and_format_prompt(temp_prompt_file_path)
         assert result == ""
     except Exception as e:
-        logger.error(f"Test failed: {e}", exc_info=True)
+        logger.error("Test failed: %s", e, exc_info=True)
     finally:
         # Clean up the temporary file
         os.remove(temp_prompt_file_path)

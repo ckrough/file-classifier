@@ -59,7 +59,7 @@ def test_is_supported_filetype():
             temp_unsupported_file_path = temp_unsupported_file.name
             assert is_supported_filetype(temp_unsupported_file_path) is False
     except Exception as e:
-        logger.error(f"Test failed: {e}", exc_info=True)
+        logger.error("Test failed: %s", e, exc_info=True)
     finally:
         # Clean up the temporary files
         if os.path.exists(temp_txt_file_path):
@@ -97,7 +97,7 @@ def test_insert_or_update_file():
         assert record[6] == date
         conn.close()
     except Exception as e:
-        logger.error(f"Test failed: {e}", exc_info=True)
+        logger.error("Test failed: %s", e, exc_info=True)
 
 
 if __name__ == "__main__":
