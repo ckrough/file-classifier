@@ -7,8 +7,10 @@ import os
 import sqlite3
 from typing import Any, Dict, List, Optional
 
-from src.config.cache_config import DB_FILE
+import magic
+
 from src.ai_file_classifier.file_analyzer import analyze_file_content
+from src.config.cache_config import DB_FILE
 
 logger = logging.getLogger(__name__)
 
@@ -39,10 +41,10 @@ def is_supported_filetype(file_path: str) -> bool:
     """
     supported_mimetypes: List[str] = ["text/plain", "application/pdf"]
     try:
-        import magic
         mime = magic.Magic(mime=True)
         mimetype: str = mime.from_file(file_path)
-        logger.debug("Detected MIME type for file '%s': %s", file_path, mimetype)
+        logger.debug("Detected MIME type for file '%s': %s",
+                     file_path, mimetype)
         return mimetype in supported_mimetypes
     except ImportError:
         logger.error("Failed to import 'magic' module", exc_info=True)
@@ -63,7 +65,8 @@ def calculate_md5(file_path: str) -> Optional[str]:
             for chunk in iter(lambda: f.read(4096), b""):
                 hash_md5.update(chunk)
     except (IOError, OSError) as e:
-        logger.error("Error reading file '%s': %s", file_path, str(e), exc_info=True)
+        logger.error("Error reading file '%s': %s", file_path, str(e),
+                     exc_info=True)
         return None
     return hash_md5.hexdigest()
 
@@ -138,10 +141,12 @@ def get_all_suggested_changes() -> List[Dict[str, str]]:
         changes: List[Dict[str, str]] = [{'file_path': row[0],
                                           'suggested_name': row[1]}
                                          for row in cursor.fetchall()]
-        logger.debug("Retrieved %d suggested changes from cache.", len(changes))
+        logger.debug("Retrieved %d suggested changes from cache.",
+                     len(changes))
         return changes
     except sqlite3.Error as e:
-        logger.error("SQLite error retrieving suggested changes: %s", str(e), exc_info=True)
+        logger.error("SQLite error retrieving suggested changes: %s", str(e),
+                     exc_info=True)
         return []
     finally:
         if conn:
@@ -156,13 +161,14 @@ def rename_files(suggested_changes: List[Dict[str, str]]) -> None:
         file_path: str = change['file_path']
         suggested_name: str = change['suggested_name']
         try:
-            base, ext = os.path.splitext(file_path)
+            _, ext = os.path.splitext(file_path)
             directory: str = os.path.dirname(file_path)
             new_path: str = os.path.join(directory, f"{suggested_name}{ext}")
             os.rename(file_path, new_path)
             logger.info("File '%s' renamed to '%s'.", file_path, new_path)
         except (OSError, IOError) as e:
-            logger.error("Error renaming file '%s' to '%s': %s", file_path, suggested_name, str(e), exc_info=True)
+            logger.error("Error renaming file '%s' to '%s': %s",
+                         file_path, suggested_name, str(e), exc_info=True)
 
 
 def process_file(file_path: str, model: str, client: Any) -> None:

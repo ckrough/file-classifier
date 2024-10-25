@@ -1,8 +1,6 @@
 """
-This module provides functionality for loading and formatting prompts from files.
+This module provides functionality for loading and formatting AI prompts.
 
-It includes a function to read a prompt from a file, format it with given
-parameters, and handle potential errors during the process.
 """
 
 import logging
@@ -29,7 +27,8 @@ def load_and_format_prompt(file_path: str, **kwargs: Any) -> str:
     except FileNotFoundError:
         logger.error("Prompt file not found: %s", file_path)
     except PermissionError:
-        logger.error("Permission denied when accessing prompt file: %s", file_path)
+        logger.error("Permission denied when accessing prompt file: %s",
+                     file_path)
     except IOError as e:
         logger.error("IO error when reading prompt file: %s", e)
     except KeyError as e:

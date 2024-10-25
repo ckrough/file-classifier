@@ -5,6 +5,7 @@ import os
 import tempfile
 
 import pytest
+from fpdf import FPDF
 
 from src.ai_file_classifier.text_extractor import (extract_text_from_pdf,
                                                    extract_text_from_txt)
@@ -38,9 +39,10 @@ def test_extract_text_from_pdf():
     """
     Test the extraction of text from a PDF file.
     """
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf", mode='wb') as temp_pdf_file:
+    with tempfile.NamedTemporaryFile(
+        delete=False, suffix=".pdf", mode='wb'
+    ) as temp_pdf_file:
         # Create a simple PDF file for testing
-        from fpdf import FPDF
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", size=12)

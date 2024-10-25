@@ -6,7 +6,7 @@ import sqlite3
 logger = logging.getLogger(__name__)
 
 
-def recommend_folder_structure(directory):
+def recommend_folder_structure():
     """
     Recommend a folder structure based on the file categories.
     """

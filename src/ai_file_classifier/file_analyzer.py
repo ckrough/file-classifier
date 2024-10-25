@@ -91,7 +91,7 @@ def analyze_file_content(file_path: str, model: str, client: OpenAI) -> \
         logger.debug("AI recommended metadata: %s", response.parsed)
 
         if hasattr(response, 'refusal') and response.refusal:
-            raise ValueError("Refusal: %s", response.refusal)
+            raise ValueError(f"Refusal: {response.refusal}")
         else:
             analyzed_data: Analysis = standardize_analysis(response.parsed)
             category: str = analyzed_data.category

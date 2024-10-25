@@ -55,10 +55,12 @@ def test_is_supported_filetype():
         assert is_supported_filetype(temp_txt_file_path) is True
 
         # Test if an unsupported file type returns False
-        with tempfile.NamedTemporaryFile(delete=False,
-                                         suffix=".unsupported",
-                                         mode='w',
-                                         encoding='utf-8') as temp_unsupported_file:
+        with tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=".unsupported",
+            mode='w',
+            encoding='utf-8'
+        ) as temp_unsupported_file:
             temp_unsupported_file.write("This is an unsupported file type.")
             temp_unsupported_file_path = temp_unsupported_file.name
             assert is_supported_filetype(temp_unsupported_file_path) is False
@@ -69,7 +71,11 @@ def test_is_supported_filetype():
                 try:
                     os.remove(file_path)
                 except OSError as e:
-                    logger.warning("Failed to remove temporary file %s: %s", file_path, str(e))
+                    logger.warning(
+                        "Failed to remove temporary file %s: %s",
+                        file_path,
+                        str(e)
+                    )
 
 
 if __name__ == "__main__":
