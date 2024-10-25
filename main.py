@@ -1,3 +1,12 @@
+"""
+Main module for the AI File Classifier application.
+
+This module contains the main entry point for the application, which processes
+files or directories to suggest and apply file renaming based on AI analysis.
+It handles command-line arguments, sets up logging, and manages the application
+lifecycle including cleanup on exit.
+"""
+
 import atexit
 import logging
 import os
@@ -27,13 +36,14 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> None:
+    """Execute the main application logic for AI File Classifier."""
     logger.info("Application started")
 
     # Register delete_cache to be called upon exit
     atexit.register(delete_cache)
 
     # Handle termination signals to clean up
-    def handle_signal(signum: int, frame: Any) -> None:
+    def handle_signal(_: int, __: Any) -> None:
         delete_cache()
         sys.exit(0)
 
@@ -82,8 +92,12 @@ def main() -> None:
         else:
             logger.error("Please provide a valid path to a file or directory.")
 
+    except (FileNotFoundError, PermissionError, ValueError) as e:
+        logger.error("An error occurred: %s", e, exc_info=True)
+    except OSError as e:
+        logger.error("OS error occurred: %s", e, exc_info=True)
     except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}", exc_info=True)
+        logger.critical("An unexpected error occurred: %s", e, exc_info=True)
     finally:
         delete_cache()
 
