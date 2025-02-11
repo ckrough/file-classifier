@@ -27,3 +27,4 @@ dist/
 .vscode/
 sample-documents/
 file_cache.db
+.aider*
