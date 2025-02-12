@@ -14,7 +14,6 @@ import signal
 import sys
 
 from dotenv import load_dotenv
-from openai import OpenAI
 
 from src.config.cache_config import delete_cache
 from src.ai_file_classifier.file_inventory import initialize_cache
@@ -23,6 +22,7 @@ from src.ai_file_classifier.utils import (get_all_suggested_changes,
                                           is_supported_filetype, process_file,
                                           rename_files)
 from src.config.logging_config import setup_logging
+from src.ai_file_classifier.ai_client import AIClient, OpenAIClient
 
 # Load environment variables
 load_dotenv()
@@ -34,7 +34,7 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 
-def process_path(path: str, ai_model: str, client: OpenAI) -> None:
+def process_path(path: str, ai_model: str, client: AIClient) -> None:
     """Process a single file or directory."""
     if os.path.isfile(path):
         process_file(path, ai_model, client)
@@ -44,7 +44,7 @@ def process_path(path: str, ai_model: str, client: OpenAI) -> None:
         logger.error("The provided path is neither a file nor a directory.")
 
 
-def process_directory(directory: str, ai_model: str, client: OpenAI) -> None:
+def process_directory(directory: str, ai_model: str, client: AIClient) -> None:
     """Process all supported files in a directory."""
     for root, _, files in os.walk(directory):
         for file in files:
@@ -80,10 +80,12 @@ def main() -> None:
     signal.signal(signal.SIGINT, lambda s, f: sys.exit(0))
     signal.signal(signal.SIGTERM, lambda s, f: sys.exit(0))
 
-    client: OpenAI = OpenAI()
     try:
         args = get_user_arguments()
         initialize_cache()
+
+        # Initialize the AI client
+        client: AIClient = OpenAIClient()
 
         if args.path:
             process_path(args.path, AI_MODEL, client)
