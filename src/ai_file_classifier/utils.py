@@ -26,6 +26,11 @@ def get_user_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--auto-rename", action="store_true", help="Always rename the file[s]"
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Execute a dry run without renaming files",
+    )
     return parser.parse_args()
 
 
@@ -43,15 +48,13 @@ def is_supported_filetype(file_path: str) -> bool:
     try:
         mime = magic.Magic(mime=True)
         mimetype: str = mime.from_file(file_path)
-        logger.debug("Detected MIME type for file '%s': %s",
-                     file_path, mimetype)
+        logger.debug("Detected MIME type for file '%s': %s", file_path, mimetype)
         return mimetype in supported_mimetypes
     except ImportError:
         logger.error("Failed to import 'magic' module", exc_info=True)
         return False
     except (IOError, OSError) as e:
-        logger.error("Error accessing file '%s': %s", file_path, str(e),
-                     exc_info=True)
+        logger.error("Error accessing file '%s': %s", file_path, str(e), exc_info=True)
         return False
 
 
@@ -61,12 +64,11 @@ def calculate_md5(file_path: str) -> Optional[str]:
     """
     hash_md5 = hashlib.md5()
     try:
-        with open(file_path, 'rb') as f:
+        with open(file_path, "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
                 hash_md5.update(chunk)
     except (IOError, OSError) as e:
-        logger.error("Error reading file '%s': %s", file_path, str(e),
-                     exc_info=True)
+        logger.error("Error reading file '%s': %s", file_path, str(e), exc_info=True)
         return None
     return hash_md5.hexdigest()
 
@@ -79,9 +81,7 @@ def connect_to_db() -> sqlite3.Connection:
 
 
 def insert_or_update_file(
-    file_path: str,
-    suggested_name: str,
-    metadata: Dict[str, Optional[str]]
+    file_path: str, suggested_name: str, metadata: Dict[str, Optional[str]]
 ) -> None:
     """
     Insert or update a file record in the cache with the given metadata.
@@ -96,31 +96,34 @@ def insert_or_update_file(
     try:
         conn = connect_to_db()
         cursor: sqlite3.Cursor = conn.cursor()
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT OR REPLACE INTO files (
                 file_path, suggested_name, category, description, vendor, date
             )
             VALUES (?, ?, ?, ?, ?, ?)
-        ''', (
-            file_path,
-            suggested_name,
-            metadata.get('category'),
-            metadata.get('description'),
-            metadata.get('vendor'),
-            metadata.get('date')
-        ))
+        """,
+            (
+                file_path,
+                suggested_name,
+                metadata.get("category"),
+                metadata.get("description"),
+                metadata.get("vendor"),
+                metadata.get("date"),
+            ),
+        )
         conn.commit()
         logger.debug(
             "File '%s' cache updated with suggested name '%s'.",
             file_path,
-            suggested_name
+            suggested_name,
         )
     except sqlite3.Error as e:
         logger.error(
             "SQLite error inserting or updating file '%s': %s",
             file_path,
             str(e),
-            exc_info=True
+            exc_info=True,
         )
     finally:
         if conn:
@@ -135,20 +138,22 @@ def get_all_suggested_changes() -> List[Dict[str, str]]:
     try:
         conn = connect_to_db()
         cursor: sqlite3.Cursor = conn.cursor()
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT file_path, suggested_name
             FROM files
             WHERE suggested_name IS NOT NULL
-        ''')
-        changes: List[Dict[str, str]] = [{'file_path': row[0],
-                                          'suggested_name': row[1]}
-                                         for row in cursor.fetchall()]
-        logger.debug("Retrieved %d suggested changes from cache.",
-                     len(changes))
+        """
+        )
+        changes: List[Dict[str, str]] = [
+            {"file_path": row[0], "suggested_name": row[1]} for row in cursor.fetchall()
+        ]
+        logger.debug("Retrieved %d suggested changes from cache.", len(changes))
         return changes
     except sqlite3.Error as e:
-        logger.error("SQLite error retrieving suggested changes: %s", str(e),
-                     exc_info=True)
+        logger.error(
+            "SQLite error retrieving suggested changes: %s", str(e), exc_info=True
+        )
         return []
     finally:
         if conn:
@@ -160,8 +165,8 @@ def rename_files(suggested_changes: List[Dict[str, str]]) -> None:
     Renames files in bulk based on the approved suggested changes.
     """
     for change in suggested_changes:
-        file_path: str = change['file_path']
-        suggested_name: str = change['suggested_name']
+        file_path: str = change["file_path"]
+        suggested_name: str = change["suggested_name"]
         try:
             _, ext = os.path.splitext(file_path)
             directory: str = os.path.dirname(file_path)
@@ -169,8 +174,13 @@ def rename_files(suggested_changes: List[Dict[str, str]]) -> None:
             os.rename(file_path, new_path)
             logger.info("File '%s' renamed to '%s'.", file_path, new_path)
         except (OSError, IOError) as e:
-            logger.error("Error renaming file '%s' to '%s': %s",
-                         file_path, suggested_name, str(e), exc_info=True)
+            logger.error(
+                "Error renaming file '%s' to '%s': %s",
+                file_path,
+                suggested_name,
+                str(e),
+                exc_info=True,
+            )
 
 
 def process_file(file_path: str, model: str, client: Any) -> None:
@@ -190,15 +200,16 @@ def process_file(file_path: str, model: str, client: Any) -> None:
         return
 
     try:
-        suggested_name, category, vendor, description, \
-            date = analyze_file_content(file_path, model, client)
+        suggested_name, category, vendor, description, date = analyze_file_content(
+            file_path, model, client
+        )
         if suggested_name:
             logger.info("Suggested name for the file: %s", suggested_name)
             metadata = {
-                'category': category,
-                'description': description,
-                'vendor': vendor,
-                'date': date
+                "category": category,
+                "description": description,
+                "vendor": vendor,
+                "date": date,
             }
             insert_or_update_file(file_path, suggested_name, metadata)
         else:
