@@ -8,7 +8,7 @@ from src.ai_file_classifier.models import Analysis
 
 class AIClient(ABC):
     """Abstract base class for AI clients."""
-    # pylint: disable=too-few-public-methods 
+    # pylint: disable=too-few-public-methods
 
     @abstractmethod
     def analyze_content(
@@ -30,7 +30,7 @@ class AIClient(ABC):
 
 class OpenAIClient(AIClient):
     """Concrete implementation of AIClient using OpenAI."""
-    # pylint: disable=too-few-public-methods 
+    # pylint: disable=too-few-public-methods
 
     def __init__(self):
         """Initialize the OpenAI client with the API key from environment variables."""
