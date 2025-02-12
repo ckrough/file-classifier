@@ -1,14 +1,9 @@
+"""Module for AI Client Abstractions."""
+
 from abc import ABC, abstractmethod
 import os
 import openai
-from typing import TYPE_CHECKING
 from src.ai_file_classifier.models import Analysis
-
-if TYPE_CHECKING:
-    from src.ai_file_classifier.models import Analysis
-
-
-"""Module for AI Client Abstractions."""
 
 
 class AIClient(ABC):
