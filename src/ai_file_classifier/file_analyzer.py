@@ -4,22 +4,15 @@ import logging
 import os
 from typing import Optional, Tuple
 
-from openai import OpenAI
-from pydantic import BaseModel
-
+from src.ai_file_classifier.ai_client import AIClient
+from src.ai_file_classifier.models import Analysis
 from src.ai_file_classifier.prompt_loader import load_and_format_prompt
-from src.ai_file_classifier.text_extractor import (extract_text_from_pdf,
-                                                   extract_text_from_txt)
+from src.ai_file_classifier.text_extractor import (
+    extract_text_from_pdf,
+    extract_text_from_txt,
+)
 
 logger = logging.getLogger(__name__)
-
-
-class Analysis(BaseModel):
-    """Represents the analyzed metadata of a file."""
-    category: str
-    vendor: str
-    description: str
-    date: Optional[str]
 
 
 def standardize_analysis(analysis: Analysis) -> Analysis:
@@ -41,19 +34,30 @@ def standardize_analysis(analysis: Analysis) -> Analysis:
     )
 
 
-def analyze_file_content(file_path: str, model: str, client: OpenAI) -> \
+def analyze_file_content(file_path: str, model: str, client: AIClient) -> \
         Tuple[Optional[str], Optional[str], Optional[str], Optional[str],
               Optional[str]]:
     """
     Analyzes the content of a file to determine its context and purpose.
     Returns suggested name, category, vendor, description, and date.
+
+    Args:
+        file_path (str): The path to the file to analyze.
+        model (str): The AI model to use for analysis.
+        client (AIClient): The AI client to use for analysis.
+
+    Returns:
+        Tuple containing suggested_name, category, vendor, description, and date.
     """
     try:
         # Extract content based on file type
         if file_path.lower().endswith('.pdf'):
-            content: str = extract_text_from_pdf(file_path)
+            content: Optional[str] = extract_text_from_pdf(file_path)
         else:
-            content: str = extract_text_from_txt(file_path)
+            content: Optional[str] = extract_text_from_txt(file_path)
+
+        if content is None:
+            raise ValueError("Failed to extract content from the file.")
 
         # Load prompts
         system_prompt: str = load_and_format_prompt(
@@ -67,33 +71,16 @@ def analyze_file_content(file_path: str, model: str, client: OpenAI) -> \
         )
 
         # Make API request to analyze content
-        completion: OpenAI = client.beta.chat.completions.parse(
+        response: Analysis = client.analyze_content(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
             model=model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": system_prompt
-                },
-                {
-                    "role": "user",
-                    "content": user_prompt
-                }
-            ],
-            response_format=Analysis,
             max_tokens=50
         )
 
-        logger.debug("Completion response: %s", completion)
+        logger.debug("AI recommended metadata: %s", response)
 
-        response: Analysis = completion.choices[0].message
-
-        # Add debug output for the recommended metadata
-        logger.debug("AI recommended metadata: %s", response.parsed)
-
-        if hasattr(response, 'refusal') and response.refusal:
-            raise ValueError(f"Refusal: {response.refusal}")
-
-        analyzed_data: Analysis = standardize_analysis(response.parsed)
+        analyzed_data: Analysis = standardize_analysis(response)
         category: str = analyzed_data.category
         vendor: str = analyzed_data.vendor
         description: str = analyzed_data.description
@@ -105,7 +92,7 @@ def analyze_file_content(file_path: str, model: str, client: OpenAI) -> \
 
         return suggested_name, category, vendor, description, date
     except Exception as e:
-        raise RuntimeError("Error analyzing file content: %s") from e
+        raise RuntimeError("Error analyzing file content") from e
 
 
 def generate_filename(analysis: Analysis) -> str:
