@@ -17,10 +17,13 @@ from dotenv import load_dotenv
 
 from src.config.cache_config import delete_cache
 from src.ai_file_classifier.file_inventory import initialize_cache
-from src.ai_file_classifier.utils import (get_all_suggested_changes,
-                                          get_user_arguments,
-                                          is_supported_filetype, process_file,
-                                          rename_files)
+from src.ai_file_classifier.utils import (
+    get_all_suggested_changes,
+    get_user_arguments,
+    is_supported_filetype,
+    process_file,
+    rename_files,
+)
 from src.config.logging_config import setup_logging
 from src.ai_file_classifier.ai_client import AIClient, OpenAIClient
 
@@ -28,7 +31,6 @@ from src.ai_file_classifier.ai_client import AIClient, OpenAIClient
 load_dotenv()
 AI_MODEL: str = os.getenv("AI_MODEL", "gpt-4o-mini")
 DEBUG_MODE: bool = os.getenv("DEBUG_MODE", "false").lower() == "true"
-
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -53,7 +55,7 @@ def process_directory(directory: str, ai_model: str, client: AIClient) -> None:
                 process_file(file_path, ai_model, client)
 
 
-def handle_suggested_changes() -> None:
+def handle_suggested_changes(dry_run: bool) -> None:
     """Handle user verification and approval of suggested changes."""
     suggested_changes = get_all_suggested_changes()
     if not suggested_changes:
@@ -64,8 +66,12 @@ def handle_suggested_changes() -> None:
         print(f"Current Name: {change['file_path']}")
         print(f"Suggested Name: {change['suggested_name']}\n")
 
+    if dry_run:
+        print("Dry-run mode enabled. No changes will be made.")
+        return
+
     user_confirmation = input("Approve rename? (yes/no): ").strip().lower()
-    if user_confirmation == 'yes':
+    if user_confirmation == "yes":
         rename_files(suggested_changes)
         print("Files have been renamed.")
     else:
@@ -89,7 +95,7 @@ def main() -> None:
 
         if args.path:
             process_path(args.path, AI_MODEL, client)
-            handle_suggested_changes()
+            handle_suggested_changes(dry_run=args.dry_run)
         else:
             logger.error("Please provide a valid path to a file or directory.")
 
