@@ -36,6 +36,10 @@ def load_and_format_prompt(file_path: str, **kwargs: Any) -> str:
     # Clean and prepare the prompt string.
     prompt = ' '.join(prompt.split())
 
+    # If no formatting arguments are provided, return the prompt as-is.
+    if not kwargs:
+        return prompt
+
     # Format the prompt with provided keyword arguments.
     try:
         formatted_prompt = prompt.format(**kwargs)
