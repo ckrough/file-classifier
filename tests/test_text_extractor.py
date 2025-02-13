@@ -36,5 +36,37 @@ def test_extract_text_from_pdf(tmp_path):
     assert "This is a sample text for testing." in result
 
 
+def test_extract_text_from_nonexistent_txt(tmp_path, caplog):
+    """
+    Test that extraction from a non-existent TXT file returns None and logs an error.
+    """
+    file_path = tmp_path / "nonexistent.txt"
+    result = extract_text_from_txt(str(file_path))
+    assert result is None
+    assert any("Error opening text file:" in record.message for record in caplog.records)
+
+
+def test_extract_text_from_nonexistent_pdf(tmp_path, caplog):
+    """
+    Test that extraction from a non-existent PDF file returns None and logs an error.
+    """
+    file_path = tmp_path / "nonexistent.pdf"
+    result = extract_text_from_pdf(str(file_path))
+    assert result is None
+    assert any("Error opening PDF file:" in record.message for record in caplog.records)
+
+
+def test_extract_text_from_txt_invalid_encoding(tmp_path, caplog):
+    """
+    Test that extraction from a TXT file with invalid encoding returns None and logs an error.
+    """
+    file_path = tmp_path / "invalid.txt"
+    # Write bytes that are not valid UTF-8
+    file_path.write_bytes(b'\xff\xfe\xfa')
+    result = extract_text_from_txt(str(file_path))
+    assert result is None
+    assert any("Error decoding text file:" in record.message for record in caplog.records)
+
+
 if __name__ == "__main__":
     pytest.main()
