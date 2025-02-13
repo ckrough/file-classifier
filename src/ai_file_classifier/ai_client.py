@@ -20,8 +20,6 @@ from pydantic import ValidationError
 from openai import OpenAI, OpenAIError
 
 from src.ai_file_classifier.models import Analysis
-from src.config.logging_config import setup_logging
-
 __all__ = ["AIClient", "OpenAIClient"]
 
 logger = logging.getLogger(__name__)
@@ -107,7 +105,9 @@ class OpenAIClient(AIClient):
                 max_tokens=max_tokens,
             )
 
-            if not response.choices or not hasattr(response.choices[0], "message") or not getattr(response.choices[0].message, "content", None):
+            if (not response.choices or 
+                not hasattr(response.choices[0], "message") or 
+                not getattr(response.choices[0].message, "content", None)):
                 logger.error("Invalid response structure received from OpenAI API: %s", response)
                 raise RuntimeError("Invalid response structure received from OpenAI API.")
 
