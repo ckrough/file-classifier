@@ -25,45 +25,30 @@ def load_and_format_prompt(file_path: str, **kwargs: Any) -> str:
     Returns:
         str: The formatted prompt or an empty string if an error occurs.
     """
-    # Read the prompt file.
+    formatted_prompt = ""
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
-            prompt: str = file.read().strip()
+            prompt = file.read().strip()
+        prompt = ' '.join(prompt.split())
+        if kwargs:
+            formatted_prompt = prompt.format(**kwargs)
+        else:
+            formatted_prompt = prompt
     except PermissionError as err:
         logger.error("Permission denied when accessing prompt file %s: %s", file_path, err)
-        return ""
     except (IOError, OSError) as err:
         logger.error("Error reading prompt file %s: %s", file_path, err)
-        return ""
-
-    # Clean and prepare the prompt string.
-    prompt = ' '.join(prompt.split())
-
-    # If no formatting arguments are provided, return the prompt as-is.
-    if not kwargs:
-        return prompt
-
-    # Format the prompt with provided keyword arguments.
-    try:
-        formatted_prompt = prompt.format(**kwargs)
     except KeyError as ke:
         missing_key = ke.args[0]
-        logger.error(
-            "Missing required keyword argument '%s' in prompt file %s", missing_key, file_path
-        )
-        return ""
+        logger.error("Missing required keyword argument '%s' in prompt file %s", missing_key, file_path)
     except ValueError as ve:
-        # Likely due to unescaped literal braces in a prompt file intended as JSON or similar.
         logger.error(
-            "Value error formatting prompt from %s: %s. "
-            "Ensure that literal braces are escaped (i.e. use double braces '{{' and '}}').",
+            "Value error formatting prompt from %s: %s. Ensure that literal braces are escaped (i.e. use double braces '{{' and '}}').",
             file_path,
             ve,
         )
-        return ""
     except (TypeError, AttributeError) as e:
         logger.error("Unexpected error formatting prompt from %s: %s", file_path, e)
         logger.debug("Prompt content: %r, Arguments: %r", prompt, kwargs)
-        return ""
 
     return formatted_prompt
