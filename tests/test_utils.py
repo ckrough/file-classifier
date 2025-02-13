@@ -4,7 +4,6 @@ import hashlib
 import logging
 import os
 import sys
-import tempfile
 import sqlite3
 from unittest import mock
 
