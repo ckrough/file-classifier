@@ -65,7 +65,7 @@ def analyze_file_content(
             content: Optional[str] = extract_text_from_txt(file_path)
 
         if content is None:
-            raise ValueError("Failed to extract content from the file.")
+            raise ValueError(f"Failed to extract content from file: {file_path}")
 
         # Load prompts
         system_prompt: str = load_and_format_prompt(
@@ -85,7 +85,6 @@ def analyze_file_content(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             model=model,
-            max_tokens=50
         )
 
         logger.debug("AI recommended metadata: %s", response)
@@ -108,9 +107,9 @@ def analyze_file_content(
 
 def generate_filename(analysis: Analysis) -> str:
     """Generate a standardized filename based on the analysis data."""
-    category: str = analysis.category.lower().replace(' ', '-')
-    vendor: str = analysis.vendor.lower().replace(' ', '-')
-    description: str = analysis.description.lower().replace(' ', '-')
+    category: str = analysis.category
+    vendor: str = analysis.vendor
+    description: str = analysis.description
     date: str = analysis.date if analysis.date else ''
 
     filename: str = f"{vendor}-{category}-{description}"

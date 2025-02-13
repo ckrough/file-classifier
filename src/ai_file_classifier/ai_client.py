@@ -20,8 +20,6 @@ from pydantic import ValidationError
 from openai import OpenAI, OpenAIError
 
 from src.ai_file_classifier.models import Analysis
-from src.config.logging_config import setup_logging
-
 __all__ = ["AIClient", "OpenAIClient"]
 
 logger = logging.getLogger(__name__)
@@ -62,7 +60,6 @@ class OpenAIClient(AIClient):
 
     def __init__(self, api_key: Optional[str] = None):
         """Initialize the OpenAI client with the API key from environment variables."""
-        setup_logging()
         if not api_key:
             api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
@@ -77,7 +74,7 @@ class OpenAIClient(AIClient):
         system_prompt: str,
         user_prompt: str,
         model: str,
-        max_tokens: Optional[int] = 50
+        max_tokens: Optional[int] = None
     ) -> Analysis:
         """
         Analyze the content using OpenAI's ChatCompletion API.
@@ -86,7 +83,8 @@ class OpenAIClient(AIClient):
             system_prompt (str): The system prompt for the AI.
             user_prompt (str): The user prompt for the AI.
             model (str): The AI model to use (e.g., 'gpt-4').
-            max_tokens (int, optional): The maximum number of tokens for the response. Defaults to 50.
+            max_tokens (int, optional): The maximum number of tokens for the response. If not provided,
+                defaults to the value of the OPENAI_MAX_TOKENS environment variable (default: 50).
 
         Returns:
             Analysis: The analyzed metadata of the file.
@@ -96,7 +94,14 @@ class OpenAIClient(AIClient):
         """
         try:
             if max_tokens is None:
-                max_tokens = int(os.getenv("OPENAI_MAX_TOKENS", "50"))
+                try:
+                    max_tokens = int(os.getenv("OPENAI_MAX_TOKENS", "50"))
+                except ValueError as ve:
+                    logger.error(
+                        "Invalid OPENAI_MAX_TOKENS environment variable value: %s",
+                        os.getenv("OPENAI_MAX_TOKENS")
+                    )
+                    raise ValueError("OPENAI_MAX_TOKENS must be an integer.") from ve
 
             response = self.client.chat.completions.create(
                 model=model,
@@ -108,7 +113,14 @@ class OpenAIClient(AIClient):
                 max_tokens=max_tokens,
             )
 
-            # Assuming response is already a dictionary
+            # Verify that the API response contains a valid message with content.
+            if (not response.choices or
+                not hasattr(response.choices[0], "message") or
+                not getattr(response.choices[0].message, "content", None)):
+                logger.error("Invalid response structure received from OpenAI API: %s", response)
+                raise RuntimeError("Invalid response structure received from OpenAI API.")
+
+            # Process the validated response
             json_content = response.choices[0].message.content
             analysis = Analysis.model_validate_json(json_content)
             return analysis

@@ -10,12 +10,11 @@ def recommend_folder_structure():
     """
     Recommend a folder structure based on the file categories.
     """
-    conn = sqlite3.connect('file_cache.db')
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT DISTINCT category FROM files WHERE category IS NOT NULL")
-    categories = [row[0] for row in cursor.fetchall()]
-    conn.close()
+    with sqlite3.connect('file_cache.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT DISTINCT category FROM files WHERE category IS NOT NULL")
+        categories = [row[0] for row in cursor.fetchall()]
 
     # Display recommended structure
     logger.info("Recommended Folder Structure:")
