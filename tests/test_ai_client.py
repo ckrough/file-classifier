@@ -61,23 +61,22 @@ def test_analyze_content_success(mock_create):
     Test that analyze_content successfully returns an Analysis object with correct data.
     """
     mock_response = MagicMock()
-    # Create a mock message with 'content' as a JSON string
-    mock_message = MagicMock()
-    mock_message.content = json.dumps({
+    # Create a mock message with a 'function_call' attribute that has 'arguments' as a JSON string
+    mock_function_call = MagicMock()
+    mock_function_call.arguments = json.dumps({
         "category": "Document",
         "vendor": "OpenAI",
         "description": "An analysis of the document content.",
         "date": "2023-10-01"
     })
-
-    # Ensure that accessing message["content"] returns the same JSON string
-    mock_message.__getitem__.return_value = mock_message.content
+    mock_message = MagicMock()
+    mock_message.function_call = mock_function_call
 
     # Assign the mock message to choices
     mock_response.choices = [MagicMock(message=mock_message)]
     mock_create.return_value = mock_response
 
-    client = OpenAIClient()
+    client = OpenAIClient(api_key="test_api_key")
     analysis = client.analyze_content("system prompt", "user prompt", "model-name")
     mock_create.assert_called_once()
     assert analysis.category == "Document"

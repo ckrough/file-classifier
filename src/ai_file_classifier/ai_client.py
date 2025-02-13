@@ -14,6 +14,7 @@ Classes:
 import os
 import logging
 from abc import ABC, abstractmethod
+import json
 from typing import Optional
 
 from pydantic import ValidationError
@@ -103,26 +104,42 @@ class OpenAIClient(AIClient):
                     )
                     raise ValueError("OPENAI_MAX_TOKENS must be an integer.") from ve
 
+            functions = [
+                {
+                    "name": "parse_analysis",
+                    "description": "Parses file content analysis into a structured format.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "category": {"type": "string", "description": "File category"},
+                            "vendor": {"type": "string", "description": "File vendor"},
+                            "description": {"type": "string", "description": "File description"},
+                            "date": {"type": "string", "description": "File date (optional)"}
+                        },
+                        "required": ["category", "vendor", "description"]
+                    }
+                }
+            ]
+
             response = self.client.chat.completions.create(
                 model=model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                response_format={"type": "json_object"},
+                functions=functions,
+                function_call={"name": "parse_analysis"},
                 max_tokens=max_tokens,
             )
 
-            # Verify that the API response contains a valid message with content.
-            if (not response.choices or
-                not hasattr(response.choices[0], "message") or
-                not getattr(response.choices[0].message, "content", None)):
-                logger.error("Invalid response structure received from OpenAI API: %s", response)
-                raise RuntimeError("Invalid response structure received from OpenAI API.")
+            # Retrieve the structured output from the function call field
+            function_call_resp = response.choices[0].message.function_call
+            if not function_call_resp or not hasattr(function_call_resp, "arguments"):
+                logger.error("Structured output not provided by API: %s", response)
+                raise RuntimeError("Structured output not provided by API.")
 
-            # Process the validated response
-            json_content = response.choices[0].message.content
-            analysis = Analysis.model_validate_json(json_content)
+            arguments = json.loads(function_call_resp.arguments)
+            analysis = Analysis.parse_obj(arguments)
             return analysis
         except ValidationError as ve:
             logger.error(
