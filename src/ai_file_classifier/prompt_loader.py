@@ -48,7 +48,7 @@ def load_and_format_prompt(file_path: str, **kwargs: Any) -> str:
         logger.error(
             "Missing required keyword argument '%s' in prompt file %s", missing_key, file_path
         )
-        return ""
+        raise
     except ValueError as ve:
         # Likely due to unescaped literal braces in a prompt file intended as JSON or similar.
         logger.error(
@@ -57,10 +57,10 @@ def load_and_format_prompt(file_path: str, **kwargs: Any) -> str:
             file_path,
             ve,
         )
-        return ""
+        raise
     except (TypeError, AttributeError) as e:
         logger.error("Unexpected error formatting prompt from %s: %s", file_path, e)
         logger.debug("Prompt content: %r, Arguments: %r", prompt, kwargs)
-        return ""
+        raise
 
     return formatted_prompt
