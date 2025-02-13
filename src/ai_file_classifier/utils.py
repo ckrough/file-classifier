@@ -1,16 +1,46 @@
-"""Utility functions for the AI File Classifier application."""
+"""
+Utility functions for the AI File Classifier application.
+
+This module provides a suite of helper functions that facilitate file analysis,
+caching, and file operations. It includes functionalities such as parsing user
+arguments, validating file types, calculating file hashes, interacting with the
+SQLite database, and renaming files based on suggested changes.
+
+Functions:
+    get_user_arguments: Parses command line arguments provided by the user.
+    is_supported_filetype: Validates if a file is of a supported type.
+    calculate_md5: Calculates the MD5 hash of a given file.
+    connect_to_db: Connects to the SQLite database.
+    insert_or_update_file: Inserts or updates file records in the cache.
+    get_all_suggested_changes: Retrieves all files with suggested name changes.
+    rename_files: Renames files based on approved suggested changes.
+    process_file: Processes a single file by analyzing its content and caching metadata.
+"""
 
 import argparse
 import hashlib
 import logging
 import os
 import sqlite3
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import magic
 
 from src.ai_file_classifier.file_analyzer import analyze_file_content
 from src.config.cache_config import DB_FILE
+
+from src.ai_file_classifier.ai_client import AIClient
+
+__all__ = [
+    "get_user_arguments",
+    "is_supported_filetype",
+    "calculate_md5",
+    "connect_to_db",
+    "insert_or_update_file",
+    "get_all_suggested_changes",
+    "rename_files",
+    "process_file",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +48,12 @@ logger = logging.getLogger(__name__)
 def get_user_arguments() -> argparse.Namespace:
     """
     Parses command line arguments provided by the user.
+
+    Args:
+        None
+
+    Returns:
+        argparse.Namespace: The parsed command line arguments.
     """
     parser = argparse.ArgumentParser(description="File Analyzer Application")
     parser.add_argument(
@@ -61,6 +97,12 @@ def is_supported_filetype(file_path: str) -> bool:
 def calculate_md5(file_path: str) -> Optional[str]:
     """
     Calculates the MD5 hash of the given file.
+
+    Args:
+        file_path (str): Path to the file.
+
+    Returns:
+        Optional[str]: The MD5 hash of the file, or None if an error occurs.
     """
     hash_md5 = hashlib.md5()
     try:
@@ -76,6 +118,9 @@ def calculate_md5(file_path: str) -> Optional[str]:
 def connect_to_db() -> sqlite3.Connection:
     """
     Connects to the SQLite database and returns the connection object.
+
+    Returns:
+        sqlite3.Connection: The SQLite database connection object.
     """
     return sqlite3.connect(DB_FILE)
 
@@ -91,6 +136,9 @@ def insert_or_update_file(
         suggested_name (str): Suggested name for the file.
         metadata (Dict[str, Optional[str]]): Dictionary containing additional
             metadata fields (category, description, vendor, date).
+
+    Returns:
+        None
     """
     conn: Optional[sqlite3.Connection] = None
     try:
@@ -134,6 +182,9 @@ def insert_or_update_file(
 def get_all_suggested_changes() -> List[Dict[str, str]]:
     """
     Retrieves all files with suggested changes from the SQLite database.
+
+    Returns:
+        List[Dict[str, str]]: A list of dictionaries containing file paths and suggested names.
     """
     conn: Optional[sqlite3.Connection] = None
     try:
@@ -164,6 +215,12 @@ def get_all_suggested_changes() -> List[Dict[str, str]]:
 def rename_files(suggested_changes: List[Dict[str, str]]) -> None:
     """
     Renames files in bulk based on the approved suggested changes.
+
+    Args:
+        suggested_changes (List[Dict[str, str]]): A list of dictionaries containing file paths and suggested names.
+
+    Returns:
+        None
     """
     for change in suggested_changes:
         file_path: str = change["file_path"]
@@ -185,9 +242,17 @@ def rename_files(suggested_changes: List[Dict[str, str]]) -> None:
             raise
 
 
-def process_file(file_path: str, model: str, client: Any) -> None:
+def process_file(file_path: str, model: str, client: AIClient) -> None:
     """
     Processes a single file by analyzing its content and caching metadata.
+
+    Args:
+        file_path (str): Path to the file.
+        model (str): The model to use for file analysis.
+        client (AIClient): The AI client used for file analysis.
+
+    Returns:
+        None
     """
     if not os.path.exists(file_path):
         logger.error("The file '%s' does not exist.", file_path)

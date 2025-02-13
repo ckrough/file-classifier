@@ -34,9 +34,17 @@ def standardize_analysis(analysis: Analysis) -> Analysis:
     )
 
 
-def analyze_file_content(file_path: str, model: str, client: AIClient) -> \
-        Tuple[Optional[str], Optional[str], Optional[str], Optional[str],
-              Optional[str]]:
+def analyze_file_content(
+    file_path: str,
+    model: str,
+    client: AIClient
+) -> Tuple[
+    Optional[str],
+    Optional[str],
+    Optional[str],
+    Optional[str],
+    Optional[str]
+]:
     """
     Analyzes the content of a file to determine its context and purpose.
     Returns suggested name, category, vendor, description, and date.
@@ -93,7 +101,8 @@ def analyze_file_content(file_path: str, model: str, client: AIClient) -> \
         logger.debug("Standardized metadata: %s", analyzed_data)
 
         return suggested_name, category, vendor, description, date
-    except Exception as e:
+    except (ValueError, FileNotFoundError) as e:
+        logger.error("Failed to analyze file content: %s", e)
         raise RuntimeError("Error analyzing file content") from e
 
 
@@ -104,9 +113,8 @@ def generate_filename(analysis: Analysis) -> str:
     description: str = analysis.description.lower().replace(' ', '-')
     date: str = analysis.date if analysis.date else ''
 
-    filename: str = (
-        f"{vendor}-{category}-{description}"
-        f"{'-' + date if date else ''}"
-    )
+    filename: str = f"{vendor}-{category}-{description}"
+    if date:
+        filename += f"-{date}"
 
     return filename

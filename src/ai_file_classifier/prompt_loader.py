@@ -1,12 +1,17 @@
 """
-This module provides functionality for loading and formatting AI prompts.
+Module for loading and formatting AI prompts.
 
+This module provides the `load_and_format_prompt` function, which loads a prompt template
+from a specified file and formats it with the provided keyword arguments. It includes
+robust error handling to ensure graceful failure and informative logging in case of issues.
 """
 
 import logging
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["load_and_format_prompt"]
 
 
 def load_and_format_prompt(file_path: str, **kwargs: Any) -> str:
@@ -31,10 +36,6 @@ def load_and_format_prompt(file_path: str, **kwargs: Any) -> str:
                      file_path)
     except IOError as e:
         logger.error("IO error when reading prompt file: %s", e)
-    except KeyError as e:
-        logger.error("Missing key in format arguments: %s", e)
-    except ValueError as e:
-        logger.error("Invalid format string in prompt file: %s", e)
-    except (TypeError, AttributeError) as e:
+    except (KeyError, ValueError, TypeError, AttributeError) as e:
         logger.error("Unexpected error loading or formatting prompt: %s", e)
     return ""

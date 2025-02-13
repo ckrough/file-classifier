@@ -1,8 +1,14 @@
 """
 Module for AI Client Abstractions.
 
-This module provides abstract and concrete implementations of AI clients
-for analyzing file content using various AI models.
+This module defines the abstract base class `AIClient` and its concrete
+implementation `OpenAIClient`. These classes are responsible for interfacing
+with AI models to analyze file content. The `OpenAIClient` utilizes OpenAI's APIs
+to perform content analysis based on provided prompts and models.
+
+Classes:
+    AIClient: Abstract base class outlining the interface for AI clients.
+    OpenAIClient: Concrete implementation of AIClient using OpenAI's services.
 """
 
 import os
@@ -16,6 +22,8 @@ from openai import OpenAI, OpenAIError
 from src.ai_file_classifier.models import Analysis
 from src.config.logging_config import setup_logging
 
+__all__ = ["AIClient", "OpenAIClient"]
+
 logger = logging.getLogger(__name__)
 
 
@@ -23,6 +31,7 @@ class AIClient(ABC):
     """Abstract base class for AI clients."""
 
     # pylint: disable=too-few-public-methods
+    # This class intentionally has few public methods as it serves as an interface.
 
     @abstractmethod
     def analyze_content(
@@ -51,7 +60,7 @@ class OpenAIClient(AIClient):
 
     # pylint: disable=too-few-public-methods
 
-    def __init__(self, api_key: str = None):
+    def __init__(self, api_key: Optional[str] = None):
         """Initialize the OpenAI client with the API key from environment variables."""
         setup_logging()
         if not api_key:
@@ -64,7 +73,11 @@ class OpenAIClient(AIClient):
         self.client = OpenAI(api_key=api_key)
 
     def analyze_content(
-        self, system_prompt: str, user_prompt: str, model: str, max_tokens: int = 50
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        model: str,
+        max_tokens: Optional[int] = 50
     ) -> Analysis:
         """
         Analyze the content using OpenAI's ChatCompletion API.

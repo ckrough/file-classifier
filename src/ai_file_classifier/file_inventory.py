@@ -1,4 +1,10 @@
-"""Module for managing file inventory and cache operations."""
+"""
+Module for managing file inventory and cache operations.
+
+This module handles the initialization and management of the SQLite cache database.
+It provides functions to create necessary tables and ensure the cache is properly set up.
+Logging is utilized to track the initialization process and handle any errors that may occur.
+"""
 
 import logging
 import sqlite3
@@ -14,23 +20,20 @@ def initialize_cache() -> None:
     table if it does not exist.
     """
     try:
-        conn: sqlite3.Connection = sqlite3.connect(DB_FILE)
-        cursor: sqlite3.Cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS files (
-                id INTEGER PRIMARY KEY,
-                file_path TEXT UNIQUE,
-                category TEXT,
-                description TEXT,
-                vendor TEXT,
-                date TEXT,
-                suggested_name TEXT
-            )
-        ''')
-        conn.commit()
-        logger.debug("Cache database initialized successfully.")
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor: sqlite3.Cursor = conn.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS files (
+                    id INTEGER PRIMARY KEY,
+                    file_path TEXT UNIQUE,
+                    category TEXT,
+                    description TEXT,
+                    vendor TEXT,
+                    date TEXT,
+                    suggested_name TEXT
+                )
+            ''')
+            conn.commit()
+            logger.debug("Cache database initialized successfully.")
     except sqlite3.Error as e:
         logger.error("Error initializing cache database: %s", e, exc_info=True)
-    finally:
-        if 'conn' in locals():
-            conn.close()
