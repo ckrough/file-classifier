@@ -27,8 +27,18 @@ def load_and_format_prompt(file_path: str, **kwargs: Any) -> str:
     """
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
-            prompt: str = file.read()
-        return prompt.format(**kwargs)
+            prompt: str = file.read().strip()
+        
+        # Clean and prepare the prompt string
+        prompt = ' '.join(prompt.split())
+        
+        try:
+            return prompt.format(**kwargs)
+        except KeyError as ke:
+            logger.error("Missing required keyword argument in prompt: %s", ke)
+        except (ValueError, TypeError, AttributeError) as e:
+            logger.error("Error formatting prompt: %s", e)
+            logger.debug("Prompt content: %r, Arguments: %r", prompt, kwargs)
     except FileNotFoundError:
         logger.error("Prompt file not found: %s", file_path)
     except PermissionError:
@@ -36,6 +46,5 @@ def load_and_format_prompt(file_path: str, **kwargs: Any) -> str:
                      file_path)
     except IOError as e:
         logger.error("IO error when reading prompt file: %s", e)
-    except (KeyError, ValueError, TypeError, AttributeError) as e:
-        logger.error("Unexpected error loading or formatting prompt: %s", e)
+    
     return ""
