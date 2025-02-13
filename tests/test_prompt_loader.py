@@ -35,7 +35,7 @@ def test_load_prompt_permission_error(monkeypatch, tmp_path, caplog):
     # Patch open to simulate a PermissionError.
     def fake_open(*args, **kwargs):
         raise PermissionError("Fake permission error")
-    monkeypatch.setattr("src.ai_file_classifier.prompt_loader.open", fake_open)
+    monkeypatch.setattr("builtins.open", fake_open)
     prompt_file: Path = tmp_path / "prompt.txt"
     prompt_file.write_text("Hello, {name}!", encoding="utf-8")
     # Call the function; it should handle the PermissionError and return an empty string.
