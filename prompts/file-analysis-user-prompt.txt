@@ -1,45 +1,5 @@
-Analyze the provided file content and filename to determine specific attributes for classification.
-
-1. **Category**: Choose a single concise industry recognized word that best describes the type of document.
-2. **Vendor**: Choose a single concise word that best identifies the company or entity relevant to the content.
-3. **Description**: Craft a general and industry recognized concise description, not exceeding three words, summarizing the content's theme without listing detailed items.
-4. **Date**: Extract the effective date of the action being described in the content, formatted in ISO 8601 (YYYYMMDD). If unavailable, leave this blank.
-
-Utilize the filename for context if it offers useful insights into the document.
-
-# Examples
-
-- **Input:**
-  - Filename: invoice12345.pdf
-  - Content: "Invoice from John's Window Cleaning for services rendered on May 10, 2022."
-  
-  **Output:**
-  "category"="invoice"
-  "vendor"="johns"
-  "description"="window-cleaning"
-  "date"="20220510"
-
-- **Input:**
-  - Filename: groceries_receipt.txt
-  - Content: "Thank you for shopping at ACME Markets. Items: bananas, apples, milk."
-
-  **Output:**
-  "category"="receipt"
-  "vendor"="ACME"
-  "description"="groceries"
-  "date"=""
-
-# Notes
-
-- Focus on prominent details within the content.
-- If multiple dates exist, select the most relevant one based on the timing of the action in the context.
-- Use the filename as additional evidence for categorization and context if necessary.
-- structure your response in JSON format
-
-# file name and content
-
-## name
+Filename: 
 {filename}
 
-## content
+Content:
 {content}

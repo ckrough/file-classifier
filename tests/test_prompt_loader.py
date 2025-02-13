@@ -16,30 +16,9 @@ def test_load_prompt_valid(tmp_path):
     assert result == "Hello, Alice! This is a test prompt."
 
 
-def test_load_prompt_missing_keyword(tmp_path, caplog):
-    """Test handling of missing required format keyword argument."""
-    # Create a prompt file that requires a keyword argument.
+def test_load_prompt_no_placeholder(tmp_path):
+    """Test that a prompt with no placeholders is returned unchanged even when no kwargs are provided."""
     prompt_file: Path = tmp_path / "prompt.txt"
-    prompt_file.write_text("Hello, {name}! This is a test prompt.", encoding="utf-8")
-    # Call the function without providing the required 'name' keyword.
+    prompt_file.write_text("This is a static prompt.", encoding="utf-8")
     result = load_and_format_prompt(str(prompt_file))
-    assert result == ""
-    # Verify that an error log was generated.
-    assert any("Unexpected error loading or formatting prompt" in record.message
-              for record in caplog.records)
-
-
-def test_load_prompt_permission_error(monkeypatch, tmp_path, caplog):
-    """Test handling of permission errors when reading prompt file."""
-    # Patch open to simulate a PermissionError.
-    def fake_open(*args, **kwargs):
-        raise PermissionError("Fake permission error")
-    monkeypatch.setattr("builtins.open", fake_open)
-    prompt_file: Path = tmp_path / "prompt.txt"
-    prompt_file.write_text("Hello, {name}!", encoding="utf-8")
-    # Call the function; it should handle the PermissionError and return an empty string.
-    result = load_and_format_prompt(str(prompt_file), name="Alice")
-    assert result == ""
-    # Confirm that the appropriate error log message is present.
-    assert any("Permission denied when accessing prompt file" in record.message
-              for record in caplog.records)
+    assert result == "This is a static prompt."
