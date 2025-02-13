@@ -2,7 +2,7 @@
 
 import hashlib
 import logging
-import os
+import os  # pylint: disable=unused-import
 import sys
 import sqlite3
 from unittest import mock
