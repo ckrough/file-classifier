@@ -1,9 +1,12 @@
-import pytest
+"""Unit tests for the AIClient implementations."""
+
 import json
 from unittest.mock import patch, MagicMock
-from src.ai_file_classifier.ai_client import OpenAIClient
+
+import pytest
 from openai import OpenAIError
-from src.ai_file_classifier.models import Analysis
+
+from src.ai_file_classifier.ai_client import OpenAIClient
 
 
 @patch("src.config.logging_config.os.getenv")
@@ -84,7 +87,8 @@ def test_analyze_content_success(mock_create):
 
 
 @patch("openai.resources.chat.Completions.create", side_effect=OpenAIError("API Error"))
-def test_analyze_content_exception(mock_create):
+def test_analyze_content_exception(_mock_create):
+    """Test that analyze_content raises RuntimeError when OpenAI API fails."""
     client = OpenAIClient()
     with pytest.raises(RuntimeError) as excinfo:
         client.analyze_content("system prompt", "user prompt", "model-name")
