@@ -28,10 +28,9 @@ def load_and_format_prompt(file_path: str, **kwargs: Any) -> str:
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
             prompt: str = file.read().strip()
-        
+
         # Clean and prepare the prompt string
         prompt = ' '.join(prompt.split())
-        
         try:
             return prompt.format(**kwargs)
         except KeyError as ke:
@@ -46,5 +45,5 @@ def load_and_format_prompt(file_path: str, **kwargs: Any) -> str:
                      file_path)
     except IOError as e:
         logger.error("IO error when reading prompt file: %s", e)
-    
+
     return ""
