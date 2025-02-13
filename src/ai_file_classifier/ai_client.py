@@ -83,7 +83,8 @@ class OpenAIClient(AIClient):
             system_prompt (str): The system prompt for the AI.
             user_prompt (str): The user prompt for the AI.
             model (str): The AI model to use (e.g., 'gpt-4').
-            max_tokens (int, optional): The maximum number of tokens for the response. If not provided, defaults to the value of the OPENAI_MAX_TOKENS environment variable (default: 50).
+            max_tokens (int, optional): The maximum number of tokens for the response. If not provided,
+                defaults to the value of the OPENAI_MAX_TOKENS environment variable (default: 50).
 
         Returns:
             Analysis: The analyzed metadata of the file.
@@ -96,7 +97,10 @@ class OpenAIClient(AIClient):
                 try:
                     max_tokens = int(os.getenv("OPENAI_MAX_TOKENS", "50"))
                 except ValueError as ve:
-                    logger.error("Invalid OPENAI_MAX_TOKENS environment variable value: %s", os.getenv("OPENAI_MAX_TOKENS"))
+                    logger.error(
+                        "Invalid OPENAI_MAX_TOKENS environment variable value: %s",
+                        os.getenv("OPENAI_MAX_TOKENS")
+                    )
                     raise ValueError("OPENAI_MAX_TOKENS must be an integer.") from ve
 
             response = self.client.chat.completions.create(
