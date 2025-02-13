@@ -3,7 +3,7 @@ This module contains unit tests for the prompt_loader module.
 """
 
 from pathlib import Path
-import pytest
+import pytest  # pylint: disable=unused-import
 from src.ai_file_classifier.prompt_loader import load_and_format_prompt
 
 
