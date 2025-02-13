@@ -29,16 +29,15 @@ def load_and_format_prompt(file_path: str, **kwargs: Any) -> str:
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
             prompt: str = file.read().strip()
+    except PermissionError as err:
+        logger.error("Permission denied when accessing prompt file %s: %s", file_path, err)
+        return ""
     except (IOError, OSError) as err:
         logger.error("Error reading prompt file %s: %s", file_path, err)
         return ""
 
     # Clean and prepare the prompt string.
     prompt = ' '.join(prompt.split())
-
-    # If no formatting arguments are provided, return the prompt as-is.
-    if not kwargs:
-        return prompt
 
     # Format the prompt with provided keyword arguments.
     try:

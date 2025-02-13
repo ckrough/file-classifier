@@ -14,3 +14,11 @@ def test_load_prompt_valid(tmp_path):
     # Call the function with the required formatting argument.
     result = load_and_format_prompt(str(prompt_file), name="Alice")
     assert result == "Hello, Alice! This is a test prompt."
+
+
+def test_load_prompt_no_placeholder(tmp_path):
+    """Test that a prompt with no placeholders is returned unchanged even when no kwargs are provided."""
+    prompt_file: Path = tmp_path / "prompt.txt"
+    prompt_file.write_text("This is a static prompt.", encoding="utf-8")
+    result = load_and_format_prompt(str(prompt_file))
+    assert result == "This is a static prompt."
