@@ -1,8 +1,7 @@
-import os
-import sys
-import pytest
-from unittest import mock
+"""Unit tests for cache configuration utilities."""
 
+
+from unittest import mock
 from src.config.cache_config import delete_cache, handle_signal, DB_FILE
 
 
