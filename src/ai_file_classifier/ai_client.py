@@ -105,8 +105,8 @@ class OpenAIClient(AIClient):
                 max_tokens=max_tokens,
             )
 
-            if (not response.choices or 
-                not hasattr(response.choices[0], "message") or 
+            if (not response.choices or
+                not hasattr(response.choices[0], "message") or
                 not getattr(response.choices[0].message, "content", None)):
                 logger.error("Invalid response structure received from OpenAI API: %s", response)
                 raise RuntimeError("Invalid response structure received from OpenAI API.")
