@@ -2,47 +2,48 @@
 This module contains unit tests for the prompt_loader module.
 """
 
-import logging
-import os
-import tempfile
-
 import pytest
-
+from pathlib import Path
 from src.ai_file_classifier.prompt_loader import load_and_format_prompt
 
-logger = logging.getLogger(__name__)
+
+def test_load_prompt_valid(tmp_path):
+    # Create a temporary prompt file with proper formatting.
+    prompt_file: Path = tmp_path / "prompt.txt"
+    prompt_file.write_text("Hello, {name}! This is a test prompt.", encoding="utf-8")
+    
+    # Call the function with the required formatting argument.
+    result = load_and_format_prompt(str(prompt_file), name="Alice")
+    assert result == "Hello, Alice! This is a test prompt."
 
 
-def test_load_and_format_prompt():
-    """
-    Test the loading and formatting of a prompt from a file.
-    """
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w',
-                                     encoding='utf-8') as temp_prompt_file:
-        temp_prompt_file.write("Hello, {name}! This is a test prompt.")
-        temp_prompt_file_path = temp_prompt_file.name
-
-    try:
-        # Test loading and formatting with valid keyword arguments
-        result = load_and_format_prompt(temp_prompt_file_path, name="Alice")
-        assert result == "Hello, Alice! This is a test prompt."
-
-        # Test loading and formatting with missing keyword arguments
-        result = load_and_format_prompt(temp_prompt_file_path)
-        assert result == ""
-    except FileNotFoundError:
-        logger.error("Test failed: Prompt file not found.")
-    except PermissionError:
-        logger.error("Test failed: Permission denied accessing prompt file.")
-    except KeyError as e:
-        logger.error("Test failed: Missing key in prompt format string: %s", e)
-    finally:
-        # Clean up the temporary file
-        try:
-            os.remove(temp_prompt_file_path)
-        except OSError as e:
-            logger.warning("Failed to remove temporary file: %s", e)
+def test_load_prompt_missing_keyword(tmp_path, caplog):
+    # Create a prompt file that requires a keyword argument.
+    prompt_file: Path = tmp_path / "prompt.txt"
+    prompt_file.write_text("Hello, {name}! This is a test prompt.", encoding="utf-8")
+    
+    # Call the function without providing the required 'name' keyword.
+    result = load_and_format_prompt(str(prompt_file))
+    assert result == ""
+    
+    # Verify that an error log was generated.
+    assert any("Unexpected error loading or formatting prompt" in record.message 
+               for record in caplog.records)
 
 
-if __name__ == "__main__":
-    pytest.main()
+def test_load_prompt_permission_error(monkeypatch, tmp_path, caplog):
+    # Patch open to simulate a PermissionError.
+    def fake_open(*args, **kwargs):
+        raise PermissionError("Fake permission error")
+    monkeypatch.setattr("src.ai_file_classifier.prompt_loader.open", fake_open)
+    
+    prompt_file: Path = tmp_path / "prompt.txt"
+    prompt_file.write_text("Hello, {name}!", encoding="utf-8")
+    
+    # Call the function; it should handle the PermissionError and return an empty string.
+    result = load_and_format_prompt(str(prompt_file), name="Alice")
+    assert result == ""
+    
+    # Confirm that the appropriate error log message is present.
+    assert any("Permission denied when accessing prompt file" in record.message 
+               for record in caplog.records)
