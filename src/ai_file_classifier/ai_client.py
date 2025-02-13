@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from pydantic import ValidationError
-import openai
+from openai import OpenAI, OpenAIError
 
 from src.ai_file_classifier.models import Analysis
 from src.config.logging_config import setup_logging
@@ -64,7 +64,7 @@ class OpenAIClient(AIClient):
                 "OPENAI_API_KEY not provided or set in environment variables."
             )
             raise ValueError("OPENAI_API_KEY must be provided.")
-        openai.api_key = api_key
+        self.client = OpenAI(api_key=api_key)
 
     def analyze_content(
         self, system_prompt: str, user_prompt: str, model: str, max_tokens: int = 50
@@ -86,33 +86,25 @@ class OpenAIClient(AIClient):
         """
         try:
 
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model=model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
+                response_format={"type": "json_object"},
                 max_tokens=max_tokens,
             )
 
-            content = response.choices[0].message["content"]
-
-            # Optional: Validate JSON structure before parsing
-            try:
-                json_content = json.loads(content)
-            except json.JSONDecodeError as json_err:
-                logger.error("Invalid JSON format in OpenAI response: %s", json_err)
-                raise RuntimeError(
-                    "Invalid JSON format in OpenAI response."
-                ) from json_err
-
-            analysis = Analysis.parse_obj(json_content)
+            # Assuming response is already a dictionary
+            json_content = response.choices[0].message.content
+            analysis = Analysis.model_validate_json(json_content)    
             return analysis
         except ValidationError as ve:
             logger.error(
                 "Validation error while parsing Analysis: %s", ve, exc_info=True
             )
             raise RuntimeError("Validation error while parsing Analysis.") from ve
-        except openai.error.OpenAIError as e:
+        except OpenAIError as e:
             logger.exception("Error communicating with OpenAI API.")
             raise RuntimeError("Error communicating with OpenAI API.") from e

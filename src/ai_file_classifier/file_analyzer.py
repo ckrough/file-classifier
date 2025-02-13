@@ -63,12 +63,14 @@ def analyze_file_content(file_path: str, model: str, client: AIClient) -> \
         system_prompt: str = load_and_format_prompt(
             'prompts/file-analysis-system-prompt.txt'
         )
+        logger.debug("System prompt loaded: %s", system_prompt)
 
         user_prompt: str = load_and_format_prompt(
             'prompts/file-analysis-user-prompt.txt',
             filename=os.path.basename(file_path),
             content=content
         )
+        logger.debug("User prompt loaded: %s", user_prompt)
 
         # Make API request to analyze content
         response: Analysis = client.analyze_content(
