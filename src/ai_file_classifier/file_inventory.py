@@ -11,6 +11,18 @@ import sqlite3
 
 from src.config.cache_config import DB_FILE
 
+CREATE_FILES_TABLE_SQL = '''
+    CREATE TABLE IF NOT EXISTS files (
+        id INTEGER PRIMARY KEY,
+        file_path TEXT UNIQUE,
+        category TEXT,
+        description TEXT,
+        vendor TEXT,
+        date TEXT,
+        suggested_name TEXT
+    )
+'''
+
 logger = logging.getLogger(__name__)
 
 
@@ -22,18 +34,8 @@ def initialize_cache() -> None:
     try:
         with sqlite3.connect(DB_FILE) as conn:
             cursor: sqlite3.Cursor = conn.cursor()
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS files (
-                    id INTEGER PRIMARY KEY,
-                    file_path TEXT UNIQUE,
-                    category TEXT,
-                    description TEXT,
-                    vendor TEXT,
-                    date TEXT,
-                    suggested_name TEXT
-                )
-            ''')
+            cursor.execute(CREATE_FILES_TABLE_SQL)
             conn.commit()
             logger.debug("Cache database initialized successfully.")
     except sqlite3.Error as e:
-        logger.error("Error initializing cache database: %s", e, exc_info=True)
+        logger.error("Error initializing cache database (%s): %s", DB_FILE, e, exc_info=True)
