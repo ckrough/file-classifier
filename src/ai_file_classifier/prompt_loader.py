@@ -29,7 +29,7 @@ def load_and_format_prompt(file_path: str, **kwargs: Any) -> str:
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
             prompt: str = file.read().strip()
-    except Exception as err:
+    except (IOError, OSError) as err:
         logger.error("Error reading prompt file %s: %s", file_path, err)
         return ""
 
@@ -48,12 +48,13 @@ def load_and_format_prompt(file_path: str, **kwargs: Any) -> str:
     except ValueError as ve:
         # Likely due to unescaped literal braces in a prompt file intended as JSON or similar.
         logger.error(
-            "Value error formatting prompt from %s: %s. Ensure that literal braces are escaped (i.e. use double braces '{{' and '}}').",
+            "Value error formatting prompt from %s: %s. "
+            "Ensure that literal braces are escaped (i.e. use double braces '{{' and '}}').",
             file_path,
             ve,
         )
         return ""
-    except Exception as e:
+    except (TypeError, AttributeError) as e:
         logger.error("Unexpected error formatting prompt from %s: %s", file_path, e)
         logger.debug("Prompt content: %r, Arguments: %r", prompt, kwargs)
         return ""
