@@ -25,25 +25,29 @@ def load_and_format_prompt(file_path: str, **kwargs: Any) -> str:
     Returns:
         str: The formatted prompt or an empty string if an error occurs.
     """
+    # Read the prompt file.
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
             prompt: str = file.read().strip()
+    except Exception as err:
+        logger.error("Error reading prompt file %s: %s", file_path, err)
+        raise
 
-        # Clean and prepare the prompt string
-        prompt = ' '.join(prompt.split())
-        try:
-            return prompt.format(**kwargs)
-        except KeyError as ke:
-            logger.error("Missing required keyword argument in prompt: %s", ke)
-        except (ValueError, TypeError, AttributeError) as e:
-            logger.error("Error formatting prompt: %s", e)
-            logger.debug("Prompt content: %r, Arguments: %r", prompt, kwargs)
-    except FileNotFoundError:
-        logger.error("Prompt file not found: %s", file_path)
-    except PermissionError:
-        logger.error("Permission denied when accessing prompt file: %s",
-                     file_path)
-    except IOError as e:
-        logger.error("IO error when reading prompt file: %s", e)
+    # Clean and prepare the prompt string.
+    prompt = ' '.join(prompt.split())
 
-    return ""
+    # Format the prompt with provided keyword arguments.
+    try:
+        formatted_prompt = prompt.format(**kwargs)
+    except KeyError as ke:
+        missing_key = ke.args[0]
+        logger.error(
+            "Missing required keyword argument '%s' in prompt file %s", missing_key, file_path
+        )
+        raise
+    except Exception as e:
+        logger.error("Unexpected error formatting prompt from %s: %s", file_path, e)
+        logger.debug("Prompt content: %r, Arguments: %r", prompt, kwargs)
+        raise
+
+    return formatted_prompt
