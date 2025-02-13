@@ -2,7 +2,6 @@
 
 import hashlib
 import logging
-import os  # pylint: disable=unused-import
 import sys
 import sqlite3
 from unittest import mock
@@ -185,7 +184,7 @@ def test_is_supported_filetype(tmp_path):
 
     # Create an unsupported file with binary content.
     bin_file = tmp_path / "file.bin"
-    bin_file.write_bytes(b'\x00\x01\x02\x03\x04')
+    bin_file.write_bytes(b"\x00\x01\x02\x03\x04")
     assert is_supported_filetype(str(bin_file)) is False
 
 
@@ -197,7 +196,9 @@ def test_calculate_md5(tmp_path):
     test_file.write_text("Test content for MD5.", encoding="utf-8")
     expected_md5 = hashlib.md5("Test content for MD5.".encode("utf-8")).hexdigest()
     calculated_md5 = calculate_md5(str(test_file))
-    assert calculated_md5 == expected_md5, f"Expected MD5: {expected_md5}, but got: {calculated_md5}"
+    assert (
+        calculated_md5 == expected_md5
+    ), f"Expected MD5: {expected_md5}, but got: {calculated_md5}"
 
 
 def test_calculate_md5_file_not_found():
