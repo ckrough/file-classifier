@@ -62,7 +62,6 @@ class OpenAIClient(AIClient):
 
     def __init__(self, api_key: Optional[str] = None):
         """Initialize the OpenAI client with the API key from environment variables."""
-        setup_logging()
         if not api_key:
             api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
@@ -77,7 +76,7 @@ class OpenAIClient(AIClient):
         system_prompt: str,
         user_prompt: str,
         model: str,
-        max_tokens: Optional[int] = 50
+        max_tokens: Optional[int] = None
     ) -> Analysis:
         """
         Analyze the content using OpenAI's ChatCompletion API.
@@ -108,7 +107,11 @@ class OpenAIClient(AIClient):
                 max_tokens=max_tokens,
             )
 
-            # Assuming response is already a dictionary
+            if not response.choices or not hasattr(response.choices[0], "message") or not getattr(response.choices[0].message, "content", None):
+                logger.error("Invalid response structure received from OpenAI API: %s", response)
+                raise RuntimeError("Invalid response structure received from OpenAI API.")
+
+            # Process the validated response
             json_content = response.choices[0].message.content
             analysis = Analysis.model_validate_json(json_content)
             return analysis
