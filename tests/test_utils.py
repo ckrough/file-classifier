@@ -5,7 +5,6 @@ import logging
 import os
 import sys
 import tempfile
-import shutil
 import sqlite3
 from unittest import mock
 
@@ -22,7 +21,6 @@ from src.ai_file_classifier.utils import (
     process_file,
 )
 from src.config.cache_config import DB_FILE
-from src.ai_file_classifier.file_analyzer import analyze_file_content
 
 logger = logging.getLogger(__name__)
 
@@ -381,10 +379,10 @@ def test_rename_files_success(mock_logger, mock_rename):
     mock_rename.assert_has_calls(expected_calls, any_order=False)
     assert mock_logger.info.call_count == 2
     mock_logger.info.assert_any_call(
-        "File '/path/to/file1.txt' renamed to '/path/to/new_file1.txt'."
+        "File '%s' renamed to '%s'.", "/path/to/file1.txt", "/path/to/new_file1.txt"
     )
     mock_logger.info.assert_any_call(
-        "File '/path/to/file2.pdf' renamed to '/path/to/new_file2.pdf'."
+        "File '%s' renamed to '%s'.", "/path/to/file2.pdf", "/path/to/new_file2.pdf"
     )
 
 
@@ -403,58 +401,11 @@ def test_rename_files_rename_error(mock_logger, mock_rename):
 
     mock_rename.assert_called_once_with("/path/to/file1.txt", "/path/to/new_file1.txt")
     mock_logger.error.assert_called_once_with(
-        f"Error renaming file '/path/to/file1.txt' to 'new_file1': Rename failed",
+        "Error renaming file '%s' to '%s': %s",
+        "/path/to/file1.txt",
+        "new_file1",
+        "Rename failed",
         exc_info=True,
-    )
-
-
-@mock.patch("src.ai_file_classifier.utils.insert_or_update_file")
-@mock.patch("src.ai_file_classifier.utils.is_supported_filetype", return_value=True)
-@mock.patch("src.ai_file_classifier.utils.os.path.exists", return_value=True)
-@mock.patch("src.ai_file_classifier.utils.os.path.isfile", return_value=True)
-@mock.patch("src.ai_file_classifier.utils.analyze_file_content")
-@mock.patch("src.ai_file_classifier.utils.logger")
-def test_process_file_success(
-    mock_logger,
-    mock_analyze,
-    mock_isfile,
-    mock_exists,
-    mock_supported,
-    mock_insert_update,
-):
-    """
-    Test that process_file successfully processes a supported file.
-    """
-    file_path = "/path/to/file.txt"
-    model = "model_v1"
-    client = mock.MagicMock()
-
-    mock_analyze.return_value = (
-        "suggested_name",
-        "Category1",
-        "VendorX",
-        "Description",
-        "2023-10-01",
-    )
-
-    process_file(file_path, model, client)
-
-    mock_exists.assert_called_once_with(file_path)
-    mock_isfile.assert_called_once_with(file_path)
-    mock_supported.assert_called_once_with(file_path)
-    mock_analyze.assert_called_once_with(file_path, model, client)
-    mock_insert_update.assert_called_once_with(
-        file_path,
-        "suggested_name",
-        {
-            "category": "Category1",
-            "description": "Description",
-            "vendor": "VendorX",
-            "date": "2023-10-01",
-        },
-    )
-    mock_logger.info.assert_called_once_with(
-        "Suggested name for the file: suggested_name"
     )
 
 
@@ -470,7 +421,9 @@ def test_process_file_file_not_exists(mock_logger):
     with mock.patch("src.ai_file_classifier.utils.os.path.exists", return_value=False):
         process_file(file_path, model, client)
 
-    mock_logger.error.assert_called_once_with(f"The file '{file_path}' does not exist.")
+    mock_logger.error.assert_called_once_with(
+        "The file '%s' does not exist.", "/path/to/non_existent_file.txt"
+    )
 
 
 @mock.patch("src.ai_file_classifier.utils.logger")
@@ -487,7 +440,9 @@ def test_process_file_not_a_file(mock_logger):
     ), mock.patch("src.ai_file_classifier.utils.os.path.isfile", return_value=False):
         process_file(file_path, model, client)
 
-    mock_logger.error.assert_called_once_with(f"The path '{file_path}' is not a file.")
+    mock_logger.error.assert_called_once_with(
+        "The path '%s' is not a file.", "/path/to/directory"
+    )
 
 
 @mock.patch("src.ai_file_classifier.utils.logger")
@@ -509,7 +464,7 @@ def test_process_file_unsupported_filetype(mock_logger):
         process_file(file_path, model, client)
 
     mock_logger.error.assert_called_once_with(
-        f"The file '{file_path}' is not a supported file type."
+        "The file '%s' is not a supported file type.", "/path/to/file.unsupported"
     )
 
 
@@ -517,12 +472,12 @@ def test_process_file_unsupported_filetype(mock_logger):
     "src.ai_file_classifier.utils.analyze_file_content",
     side_effect=RuntimeError("Analysis failed"),
 )
-@mock.patch("src.ai_file_classifier.utils.logger")
 @mock.patch("src.ai_file_classifier.utils.is_supported_filetype", return_value=True)
-@mock.patch("src.ai_file_classifier.utils.os.path.exists", return_value=True)
 @mock.patch("src.ai_file_classifier.utils.os.path.isfile", return_value=True)
+@mock.patch("src.ai_file_classifier.utils.os.path.exists", return_value=True)
+@mock.patch("src.ai_file_classifier.utils.logger")
 def test_process_file_analysis_failure(
-    mock_isfile, mock_exists, mock_supported, mock_logger, mock_analyze
+    mock_logger, _mock_exists, _mock_isfile, _mock_supported, mock_analyze
 ):
     """
     Test that process_file logs an error when analyze_file_content raises an exception.

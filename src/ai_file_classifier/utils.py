@@ -48,13 +48,13 @@ def is_supported_filetype(file_path: str) -> bool:
     try:
         mime = magic.Magic(mime=True)
         mimetype: str = mime.from_file(file_path)
-        logger.debug(f"Detected MIME type for file '{file_path}': {mimetype}")
+        logger.debug("Detected MIME type for file '%s': %s", file_path, mimetype)
         return mimetype in supported_mimetypes
     except ImportError:
         logger.error("Failed to import 'magic' module", exc_info=True)
         return False
     except (IOError, OSError) as e:
-        logger.error(f"Error accessing file '{file_path}': {str(e)}", exc_info=True)
+        logger.error("Error accessing file '%s': %s", file_path, str(e), exc_info=True)
         return False
 
 
@@ -68,7 +68,7 @@ def calculate_md5(file_path: str) -> Optional[str]:
             for chunk in iter(lambda: f.read(4096), b""):
                 hash_md5.update(chunk)
     except (IOError, OSError) as e:
-        logger.error(f"Error reading file '{file_path}': {str(e)}", exc_info=True)
+        logger.error("Error reading file '%s': %s", file_path, str(e), exc_info=True)
         return None
     return hash_md5.hexdigest()
 
@@ -114,11 +114,15 @@ def insert_or_update_file(
         )
         conn.commit()
         logger.debug(
-            f"File '{file_path}' cache updated with suggested name '{suggested_name}'."
+            "File '%s' cache updated with suggested name '%s'.",
+            file_path,
+            suggested_name
         )
     except sqlite3.Error as e:
         logger.error(
-            f"SQLite error inserting or updating file '{file_path}': {str(e)}",
+            "SQLite error inserting or updating file '%s': %s",
+            file_path,
+            str(e),
             exc_info=True,
         )
         raise
@@ -169,10 +173,13 @@ def rename_files(suggested_changes: List[Dict[str, str]]) -> None:
             directory: str = os.path.dirname(file_path)
             new_path: str = os.path.join(directory, f"{suggested_name}{ext}")
             os.rename(file_path, new_path)
-            logger.info(f"File '{file_path}' renamed to '{new_path}'.")
+            logger.info("File '%s' renamed to '%s'.", file_path, new_path)
         except (OSError, IOError) as e:
             logger.error(
-                f"Error renaming file '{file_path}' to '{suggested_name}': {str(e)}",
+                "Error renaming file '%s' to '%s': %s",
+                file_path,
+                suggested_name,
+                str(e),
                 exc_info=True,
             )
             raise
@@ -183,15 +190,15 @@ def process_file(file_path: str, model: str, client: Any) -> None:
     Processes a single file by analyzing its content and caching metadata.
     """
     if not os.path.exists(file_path):
-        logger.error(f"The file '{file_path}' does not exist.")
+        logger.error("The file '%s' does not exist.", file_path)
         return
 
     if not os.path.isfile(file_path):
-        logger.error(f"The path '{file_path}' is not a file.")
+        logger.error("The path '%s' is not a file.", file_path)
         return
 
     if not is_supported_filetype(file_path):
-        logger.error(f"The file '{file_path}' is not a supported file type.")
+        logger.error("The file '%s' is not a supported file type.", file_path)
         return
 
     try:
@@ -199,7 +206,7 @@ def process_file(file_path: str, model: str, client: Any) -> None:
             file_path, model, client
         )
         if suggested_name:
-            logger.info(f"Suggested name for the file: {suggested_name}")
+            logger.info("Suggested name for the file: %s", suggested_name)
             metadata = {
                 "category": category,
                 "description": description,

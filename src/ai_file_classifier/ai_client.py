@@ -6,7 +6,6 @@ for analyzing file content using various AI models.
 """
 
 import os
-import json
 import logging
 from abc import ABC, abstractmethod
 from typing import Optional
@@ -33,8 +32,6 @@ class AIClient(ABC):
         model: str,
         max_tokens: Optional[int] = None,
     ) -> Analysis:
-        if max_tokens is None:
-            max_tokens = int(os.getenv("OPENAI_MAX_TOKENS", 50))
         """
         Analyze the content using the AI model.
 
@@ -85,6 +82,8 @@ class OpenAIClient(AIClient):
             RuntimeError: If there's an error communicating with the OpenAI API.
         """
         try:
+            if max_tokens is None:
+                max_tokens = int(os.getenv("OPENAI_MAX_TOKENS", "50"))
 
             response = self.client.chat.completions.create(
                 model=model,
@@ -98,7 +97,7 @@ class OpenAIClient(AIClient):
 
             # Assuming response is already a dictionary
             json_content = response.choices[0].message.content
-            analysis = Analysis.model_validate_json(json_content)    
+            analysis = Analysis.model_validate_json(json_content)
             return analysis
         except ValidationError as ve:
             logger.error(
