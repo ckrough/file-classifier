@@ -43,7 +43,8 @@ def load_and_format_prompt(file_path: str, **kwargs: Any) -> str:
         logger.error("Missing required keyword argument '%s' in prompt file %s", missing_key, file_path)
     except ValueError as ve:
         logger.error(
-            "Value error formatting prompt from %s: %s. Ensure that literal braces are escaped (i.e. use double braces '{{' and '}}').",
+            "Value error formatting prompt from %s: %s. "
+            "Ensure that literal braces are escaped (i.e. use double braces '{{' and '}}').",
             file_path,
             ve,
         )
