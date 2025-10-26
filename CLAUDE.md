@@ -68,13 +68,12 @@ python main.py path/to/directory --auto-rename
 
 **AIClient Abstraction** (`src/ai_file_classifier/ai_client.py`)
 - Abstract base class `AIClient` defines interface for AI providers
-- **`LangChainClient`** (recommended) - Modern multi-provider implementation using LangChain:
+- **`LangChainClient`** - Multi-provider implementation using LangChain:
   - Supports OpenAI, Ollama (for local models like DeepSeek), and extensible to other providers
   - Uses LangChain's `with_structured_output()` for clean structured extraction
   - Provider selected via `AI_PROVIDER` environment variable
-- `OpenAIClient` (legacy) - Direct OpenAI integration using deprecated function calling API
-- **`create_ai_client()`** factory function - Creates appropriate client based on configuration
-- All clients return structured `Analysis` Pydantic objects
+- **`create_ai_client()`** factory function - Creates LangChainClient based on configuration
+- Returns structured `Analysis` Pydantic objects
 
 **Analysis Pipeline**
 1. **Text Extraction** (`text_extractor.py`) - Extracts content from .txt and .pdf files
@@ -134,7 +133,6 @@ Required in `.env` file:
 **OpenAI Configuration** (when `AI_PROVIDER=openai`):
 - `OPENAI_API_KEY` - OpenAI API key (required for OpenAI)
 - `AI_MODEL` - OpenAI model to use (default: "gpt-4o-mini")
-- `OPENAI_MAX_TOKENS` - Max response tokens (default: 50) - only used by legacy OpenAIClient
 
 **Ollama Configuration** (when `AI_PROVIDER=ollama`):
 - `OLLAMA_BASE_URL` - Ollama server URL (default: "http://localhost:11434")
@@ -180,8 +178,8 @@ GitHub Actions workflows:
 - The cache is ephemeral - deleted on exit, not persisted between runs
 - File renaming preserves file extension
 - Standardization converts category/vendor to lowercase with hyphens (e.g., "Credit Card" → "credit-card")
-- **LangChain Integration**: The application now uses LangChain for multi-provider LLM support
-  - Recommended: Use `LangChainClient` via `create_ai_client()` factory
-  - Legacy `OpenAIClient` still available for backward compatibility
+- **LangChain Integration**: The application uses LangChain for multi-provider LLM support
+  - Use `create_ai_client()` factory to initialize the AI client
   - Supports both cloud (OpenAI) and local (Ollama) model providers
   - Local models like DeepSeek can run via Ollama for zero API costs
+  - All providers use LangChain's structured output API for reliable metadata extraction
