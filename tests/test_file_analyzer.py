@@ -57,7 +57,6 @@ def test_analyze_file_content_txt(mock_load_prompt, mock_extract_txt):
     # Test with a .txt file
     suggested_name, category, vendor, description, date = analyze_file_content(
         file_path="docs/user_guide.txt",
-        model="gpt-3.5-turbo",
         client=mock_ai_client
     )
     assert suggested_name == "openai-documentation-user-guide-2023-10-01"
@@ -98,7 +97,6 @@ def test_analyze_file_content_pdf(
     # Test with a .pdf file
     suggested_name, category, vendor, description, date = analyze_file_content(
         file_path="docs/report.pdf",
-        model="gpt-3.5-turbo",
         client=mock_ai_client
     )
     assert suggested_name == "openai-documentation-annual-report-2023-10-01"
@@ -124,7 +122,6 @@ def test_analyze_file_content_extraction_failure(mock_extract_txt):
     with pytest.raises(RuntimeError) as exc_info:
         analyze_file_content(
             file_path="docs/invalid.txt",
-            model="gpt-3.5-turbo",
             client=mock_ai_client
         )
     assert "Error analyzing file content" in str(exc_info.value)

@@ -29,33 +29,31 @@ from src.ai_file_classifier.ai_client import AIClient, create_ai_client
 
 # Load environment variables
 load_dotenv()
-AI_MODEL: str = os.getenv("AI_MODEL", "gpt-4o-mini")
-DEBUG_MODE: bool = os.getenv("DEBUG_MODE", "false").lower() == "true"
 
 setup_logging()
 logger = logging.getLogger(__name__)
 
 
-def process_path(path: str, ai_model: str, client: AIClient) -> None:
+def process_path(path: str, client: AIClient) -> None:
     """Process a single file or directory."""
     if os.path.isfile(path):
-        process_file(path, ai_model, client)
+        process_file(path, client)
     elif os.path.isdir(path):
-        process_directory(path, ai_model, client)
+        process_directory(path, client)
     else:
         logger.error("The provided path is neither a file nor a directory.")
 
 
-def process_directory(directory: str, ai_model: str, client: AIClient) -> None:
+def process_directory(directory: str, client: AIClient) -> None:
     """Process all supported files in a directory."""
     for root, _, files in os.walk(directory):
         for file in files:
             file_path: str = os.path.join(root, file)
             if is_supported_filetype(file_path):
-                process_file(file_path, ai_model, client)
+                process_file(file_path, client)
 
 
-def handle_suggested_changes(dry_run: bool) -> None:
+def handle_suggested_changes(dry_run: bool, auto_rename: bool) -> None:
     """Handle user verification and approval of suggested changes."""
     suggested_changes = get_all_suggested_changes()
     if not suggested_changes:
@@ -76,6 +74,11 @@ def handle_suggested_changes(dry_run: bool) -> None:
 
     if dry_run:
         print("Dry-run mode enabled. No changes will be made.")
+        return
+
+    if auto_rename:
+        rename_files(suggested_changes)
+        print("Files have been renamed.")
         return
 
     user_confirmation = input("Approve rename? (yes/no): ").strip().lower()
@@ -103,8 +106,8 @@ def main() -> None:
         client: AIClient = create_ai_client()
 
         if args.path:
-            process_path(args.path, AI_MODEL, client)
-            handle_suggested_changes(dry_run=args.dry_run)
+            process_path(args.path, client)
+            handle_suggested_changes(dry_run=args.dry_run, auto_rename=args.auto_rename)
         else:
             logger.error("Please provide a valid path to a file or directory.")
 

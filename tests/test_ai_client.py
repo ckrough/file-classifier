@@ -79,7 +79,7 @@ def test_langchain_client_analyze_content(mock_getenv):
         mock_chat_openai.return_value = mock_llm_instance
 
         client = LangChainClient(provider="openai")
-        result = client.analyze_content("system prompt", "user prompt", "gpt-4o-mini")
+        result = client.analyze_content("system prompt", "user prompt")
 
         assert result.category == "Document"
         assert result.vendor == "TestVendor"

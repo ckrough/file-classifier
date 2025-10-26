@@ -1,6 +1,5 @@
 """Unit tests for the utils module."""
 
-import hashlib
 import logging
 import sys
 import sqlite3
@@ -11,7 +10,6 @@ import pytest
 from src.ai_file_classifier.utils import (
     get_user_arguments,
     is_supported_filetype,
-    calculate_md5,
     connect_to_db,
     insert_or_update_file,
     get_all_suggested_changes,
@@ -188,29 +186,6 @@ def test_is_supported_filetype(tmp_path):
     assert is_supported_filetype(str(bin_file)) is False
 
 
-def test_calculate_md5(tmp_path):
-    """
-    Test that calculate_md5 correctly computes the MD5 hash of a file.
-    """
-    test_file = tmp_path / "test_file.txt"
-    test_file.write_text("Test content for MD5.", encoding="utf-8")
-    expected_md5 = hashlib.md5("Test content for MD5.".encode("utf-8")).hexdigest()
-    calculated_md5 = calculate_md5(str(test_file))
-    assert (
-        calculated_md5 == expected_md5
-    ), f"Expected MD5: {expected_md5}, but got: {calculated_md5}"
-
-
-def test_calculate_md5_file_not_found():
-    """
-    Test that calculate_md5 returns None when the file does not exist.
-    """
-    non_existent_file = "non_existent_file.txt"
-    assert (
-        calculate_md5(non_existent_file) is None
-    ), "calculate_md5 should return None for non-existent files"
-
-
 @mock.patch("sqlite3.connect")
 def test_connect_to_db(mock_connect):
     """
@@ -380,11 +355,10 @@ def test_process_file_file_not_exists(mock_logger):
     Test that process_file logs an error when the file does not exist.
     """
     file_path = "/path/to/non_existent_file.txt"
-    model = "model_v1"
     client = mock.MagicMock()
 
     with mock.patch("src.ai_file_classifier.utils.os.path.exists", return_value=False):
-        process_file(file_path, model, client)
+        process_file(file_path, client)
 
     mock_logger.error.assert_called_once_with(
         "The file '%s' does not exist.", "/path/to/non_existent_file.txt"
@@ -397,13 +371,12 @@ def test_process_file_not_a_file(mock_logger):
     Test that process_file logs an error when the path is not a file.
     """
     file_path = "/path/to/directory"
-    model = "model_v1"
     client = mock.MagicMock()
 
     with mock.patch(
         "src.ai_file_classifier.utils.os.path.exists", return_value=True
     ), mock.patch("src.ai_file_classifier.utils.os.path.isfile", return_value=False):
-        process_file(file_path, model, client)
+        process_file(file_path, client)
 
     mock_logger.error.assert_called_once_with(
         "The path '%s' is not a file.", "/path/to/directory"
@@ -416,7 +389,6 @@ def test_process_file_unsupported_filetype(mock_logger):
     Test that process_file logs an error when the file type is unsupported.
     """
     file_path = "/path/to/file.unsupported"
-    model = "model_v1"
     client = mock.MagicMock()
 
     with mock.patch(
@@ -426,7 +398,7 @@ def test_process_file_unsupported_filetype(mock_logger):
     ), mock.patch(
         "src.ai_file_classifier.utils.is_supported_filetype", return_value=False
     ):
-        process_file(file_path, model, client)
+        process_file(file_path, client)
 
     mock_logger.error.assert_called_once_with(
         "The file '%s' is not a supported file type.", "/path/to/file.unsupported"
@@ -448,14 +420,13 @@ def test_process_file_analysis_failure(
     Test that process_file logs an error when analyze_file_content raises an exception.
     """
     file_path = "/path/to/file.txt"
-    model = "model_v1"
     client = mock.MagicMock()
 
     # Expect a RuntimeError to be raised
     with pytest.raises(RuntimeError, match="Analysis failed"):
-        process_file(file_path, model, client)
+        process_file(file_path, client)
 
-    mock_analyze.assert_called_once_with(file_path, model, client)
+    mock_analyze.assert_called_once_with(file_path, client)
     mock_logger.error.assert_called_once_with("Analysis failed")
 
 

@@ -37,8 +37,6 @@ class AIClient(ABC):
         self,
         system_prompt: str,
         user_prompt: str,
-        model: str,
-        max_tokens: Optional[int] = None,
     ) -> Analysis:
         """
         Analyze the content using the AI model.
@@ -46,8 +44,6 @@ class AIClient(ABC):
         Args:
             system_prompt (str): The system prompt for the AI.
             user_prompt (str): The user prompt for the AI.
-            model (str): The AI model to use.
-            max_tokens (int): The maximum number of tokens for the response.
 
         Returns:
             Analysis: The analyzed metadata of the file.
@@ -139,8 +135,6 @@ class LangChainClient(AIClient):
         self,
         system_prompt: str,
         user_prompt: str,
-        model: str,
-        max_tokens: Optional[int] = None
     ) -> Analysis:
         """
         Analyze the content using LangChain's structured output extraction.
@@ -148,8 +142,6 @@ class LangChainClient(AIClient):
         Args:
             system_prompt (str): The system prompt for the AI.
             user_prompt (str): The user prompt for the AI.
-            model (str): The AI model to use (used for compatibility, actual model set in __init__).
-            max_tokens (int, optional): The maximum number of tokens for the response.
 
         Returns:
             Analysis: The analyzed metadata of the file.

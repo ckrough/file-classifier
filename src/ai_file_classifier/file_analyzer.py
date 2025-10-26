@@ -36,7 +36,6 @@ def standardize_analysis(analysis: Analysis) -> Analysis:
 
 def analyze_file_content(
     file_path: str,
-    model: str,
     client: AIClient
 ) -> Tuple[
     Optional[str],
@@ -51,7 +50,6 @@ def analyze_file_content(
 
     Args:
         file_path (str): The path to the file to analyze.
-        model (str): The AI model to use for analysis.
         client (AIClient): The AI client to use for analysis.
 
     Returns:
@@ -84,7 +82,6 @@ def analyze_file_content(
         response: Analysis = client.analyze_content(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
-            model=model,
         )
 
         logger.debug("AI recommended metadata: %s", response)

@@ -3,13 +3,12 @@ Utility functions for the AI File Classifier application.
 
 This module provides a suite of helper functions that facilitate file analysis,
 caching, and file operations. It includes functionalities such as parsing user
-arguments, validating file types, calculating file hashes, interacting with the
-SQLite database, and renaming files based on suggested changes.
+arguments, validating file types, interacting with the SQLite database, and
+renaming files based on suggested changes.
 
 Functions:
     get_user_arguments: Parses command line arguments provided by the user.
     is_supported_filetype: Validates if a file is of a supported type.
-    calculate_md5: Calculates the MD5 hash of a given file.
     connect_to_db: Connects to the SQLite database.
     insert_or_update_file: Inserts or updates file records in the cache.
     get_all_suggested_changes: Retrieves all files with suggested name changes.
@@ -18,7 +17,6 @@ Functions:
 """
 
 import argparse
-import hashlib
 import logging
 import os
 import sqlite3
@@ -34,7 +32,6 @@ from src.ai_file_classifier.ai_client import AIClient
 __all__ = [
     "get_user_arguments",
     "is_supported_filetype",
-    "calculate_md5",
     "connect_to_db",
     "insert_or_update_file",
     "get_all_suggested_changes",
@@ -92,27 +89,6 @@ def is_supported_filetype(file_path: str) -> bool:
     except (IOError, OSError) as e:
         logger.error("Error accessing file '%s': %s", file_path, str(e), exc_info=True)
         return False
-
-
-def calculate_md5(file_path: str) -> Optional[str]:
-    """
-    Calculates the MD5 hash of the given file.
-
-    Args:
-        file_path (str): Path to the file.
-
-    Returns:
-        Optional[str]: The MD5 hash of the file, or None if an error occurs.
-    """
-    hash_md5 = hashlib.md5()
-    try:
-        with open(file_path, "rb") as f:
-            for chunk in iter(lambda: f.read(4096), b""):
-                hash_md5.update(chunk)
-    except (IOError, OSError) as e:
-        logger.error("Error reading file '%s': %s", file_path, str(e), exc_info=True)
-        return None
-    return hash_md5.hexdigest()
 
 
 def connect_to_db() -> sqlite3.Connection:
@@ -260,13 +236,12 @@ def rename_files(suggested_changes: List[Dict[str, str]]) -> None:
             raise
 
 
-def process_file(file_path: str, model: str, client: AIClient) -> None:
+def process_file(file_path: str, client: AIClient) -> None:
     """
     Processes a single file by analyzing its content and caching metadata.
 
     Args:
         file_path (str): Path to the file.
-        model (str): The model to use for file analysis.
         client (AIClient): The AI client used for file analysis.
 
     Returns:
@@ -286,7 +261,7 @@ def process_file(file_path: str, model: str, client: AIClient) -> None:
 
     try:
         suggested_name, category, vendor, description, date = analyze_file_content(
-            file_path, model, client
+            file_path, client
         )
         if suggested_name:
             logger.info("Suggested name for the file: %s", suggested_name)
