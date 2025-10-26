@@ -25,7 +25,7 @@ from src.ai_file_classifier.utils import (
     rename_files,
 )
 from src.config.logging_config import setup_logging
-from src.ai_file_classifier.ai_client import AIClient, OpenAIClient
+from src.ai_file_classifier.ai_client import AIClient, create_ai_client
 
 # Load environment variables
 load_dotenv()
@@ -90,8 +90,9 @@ def main() -> None:
         args = get_user_arguments()
         initialize_cache()
 
-        # Initialize the AI client
-        client: AIClient = OpenAIClient()
+        # Initialize the AI client using factory function
+        # The factory will read AI_PROVIDER from .env to determine which provider to use
+        client: AIClient = create_ai_client()
 
         if args.path:
             process_path(args.path, AI_MODEL, client)

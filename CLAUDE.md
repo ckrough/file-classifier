@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AI-powered file classifier that analyzes text and PDF files to suggest intelligent file names and categories. Uses OpenAI APIs (with structured outputs via function calling) to extract metadata (category, vendor, description, date) and generate standardized filenames based on content analysis.
+AI-powered file classifier that analyzes text and PDF files to suggest intelligent file names and categories. Uses **LangChain** to support multiple LLM providers (OpenAI, local models via Ollama) with structured output extraction to extract metadata (category, vendor, description, date) and generate standardized filenames based on content analysis.
 
 ## Development Commands
 
@@ -68,9 +68,13 @@ python main.py path/to/directory --auto-rename
 
 **AIClient Abstraction** (`src/ai_file_classifier/ai_client.py`)
 - Abstract base class `AIClient` defines interface for AI providers
-- `OpenAIClient` implements OpenAI integration using function calling (not structured outputs API)
-- Uses deprecated function calling approach: `functions` parameter + `function_call` response parsing
-- Returns structured `Analysis` objects parsed from function call arguments
+- **`LangChainClient`** (recommended) - Modern multi-provider implementation using LangChain:
+  - Supports OpenAI, Ollama (for local models like DeepSeek), and extensible to other providers
+  - Uses LangChain's `with_structured_output()` for clean structured extraction
+  - Provider selected via `AI_PROVIDER` environment variable
+- `OpenAIClient` (legacy) - Direct OpenAI integration using deprecated function calling API
+- **`create_ai_client()`** factory function - Creates appropriate client based on configuration
+- All clients return structured `Analysis` Pydantic objects
 
 **Analysis Pipeline**
 1. **Text Extraction** (`text_extractor.py`) - Extracts content from .txt and .pdf files
@@ -101,12 +105,14 @@ get_user_arguments() → parse CLI args (path, --dry-run, --auto-rename)
   ↓
 initialize_cache() → create SQLite DB
   ↓
+create_ai_client() → initialize LLM client based on AI_PROVIDER
+  ↓
 process_path() → determine if file or directory
   ↓
 process_file() → for each supported file:
   ├─ extract_text_from_{pdf|txt}()
   ├─ load_and_format_prompt()
-  ├─ AIClient.analyze_content() → OpenAI function calling
+  ├─ AIClient.analyze_content() → LangChain structured output
   ├─ standardize_analysis() → lowercase, hyphenate
   └─ generate_filename()
   ↓
@@ -120,10 +126,35 @@ delete_cache() → cleanup
 ### Environment Variables
 
 Required in `.env` file:
-- `OPENAI_API_KEY` - OpenAI API key (required)
-- `AI_MODEL` - Model to use (default: "gpt-4o-mini")
+
+**General Configuration:**
 - `DEBUG_MODE` - Enable debug logging (default: "false")
-- `OPENAI_MAX_TOKENS` - Max response tokens (default: 50)
+- `AI_PROVIDER` - LLM provider to use: "openai" or "ollama" (default: "openai")
+
+**OpenAI Configuration** (when `AI_PROVIDER=openai`):
+- `OPENAI_API_KEY` - OpenAI API key (required for OpenAI)
+- `AI_MODEL` - OpenAI model to use (default: "gpt-4o-mini")
+- `OPENAI_MAX_TOKENS` - Max response tokens (default: 50) - only used by legacy OpenAIClient
+
+**Ollama Configuration** (when `AI_PROVIDER=ollama`):
+- `OLLAMA_BASE_URL` - Ollama server URL (default: "http://localhost:11434")
+- `OLLAMA_MODEL` - Model name (default: "deepseek-r1:latest")
+
+**Examples:**
+
+Using OpenAI (cloud):
+```bash
+AI_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+AI_MODEL=gpt-4o-mini
+```
+
+Using local Ollama with DeepSeek:
+```bash
+AI_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=deepseek-r1:latest
+```
 
 ### Prompts
 
@@ -149,4 +180,8 @@ GitHub Actions workflows:
 - The cache is ephemeral - deleted on exit, not persisted between runs
 - File renaming preserves file extension
 - Standardization converts category/vendor to lowercase with hyphens (e.g., "Credit Card" → "credit-card")
-- The application uses OpenAI's older function calling approach, not the newer structured outputs API
+- **LangChain Integration**: The application now uses LangChain for multi-provider LLM support
+  - Recommended: Use `LangChainClient` via `create_ai_client()` factory
+  - Legacy `OpenAIClient` still available for backward compatibility
+  - Supports both cloud (OpenAI) and local (Ollama) model providers
+  - Local models like DeepSeek can run via Ollama for zero API costs
