@@ -72,14 +72,22 @@ def test_langchain_client_analyze_content(mock_getenv):
     )
 
     with patch("src.ai_file_classifier.ai_client.ChatOpenAI") as mock_chat_openai:
+        from langchain_core.prompts import ChatPromptTemplate
+
         mock_llm_instance = MagicMock()
         mock_structured_llm = MagicMock()
         mock_structured_llm.invoke.return_value = mock_analysis
         mock_llm_instance.with_structured_output.return_value = mock_structured_llm
         mock_chat_openai.return_value = mock_llm_instance
 
+        # Create a mock prompt template
+        mock_prompt = ChatPromptTemplate.from_messages([
+            ("system", "system prompt"),
+            ("human", "user prompt")
+        ])
+
         client = LangChainClient(provider="openai")
-        result = client.analyze_content("system prompt", "user prompt")
+        result = client.analyze_content(mock_prompt, {})
 
         assert result.category == "Document"
         assert result.vendor == "TestVendor"

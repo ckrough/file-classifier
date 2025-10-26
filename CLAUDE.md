@@ -77,10 +77,13 @@ python main.py path/to/directory --auto-rename
 
 **Analysis Pipeline**
 1. **Text Extraction** (`text_extractor.py`) - Extracts content from .txt and .pdf files
-2. **Prompt Loading** (`prompt_loader.py`) - Loads and formats prompts from `prompts/` directory
+2. **Prompt Management** (`prompt_manager.py`) - Uses LangChain's ChatPromptTemplate for proper message formatting
+   - Loads prompts from `prompts/` directory as text files
+   - Singleton pattern with lazy loading for performance
+   - Supports template variables (filename, content) with validation
 3. **AI Analysis** (`file_analyzer.py`) - Coordinates analysis workflow:
-   - Loads system/user prompts
-   - Calls AI client to analyze content
+   - Gets LangChain prompt template
+   - Calls AI client with prompt template and input values
    - Standardizes metadata (lowercase, hyphen-separated)
    - Generates filename: `{vendor}-{category}-{description}-{date}`
 4. **File Operations** (`utils.py`) - Handles file processing and renaming
@@ -110,8 +113,8 @@ process_path() → determine if file or directory
   ↓
 process_file() → for each supported file:
   ├─ extract_text_from_{pdf|txt}()
-  ├─ load_and_format_prompt()
-  ├─ AIClient.analyze_content() → LangChain structured output
+  ├─ get_file_analysis_prompt() → LangChain ChatPromptTemplate
+  ├─ AIClient.analyze_content(prompt_template, values) → LangChain structured output
   ├─ standardize_analysis() → lowercase, hyphenate
   └─ generate_filename()
   ↓
@@ -160,7 +163,10 @@ Prompts are stored in `prompts/` directory:
 - `file-analysis-system-prompt.txt` - System instructions for AI
 - `file-analysis-user-prompt.txt` - User prompt template with placeholders for {filename} and {content}
 
-Prompts are loaded via `prompt_loader.py` which supports variable substitution.
+Prompts are loaded via `prompt_manager.py` which uses LangChain's ChatPromptTemplate:
+- Proper message role handling (SystemMessage, HumanMessage)
+- Template variable validation
+- Singleton pattern for performance
 
 ## CI/CD
 

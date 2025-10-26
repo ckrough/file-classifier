@@ -6,7 +6,7 @@ from typing import Optional, Tuple
 
 from src.ai_file_classifier.ai_client import AIClient
 from src.ai_file_classifier.models import Analysis
-from src.ai_file_classifier.prompt_loader import load_and_format_prompt
+from src.ai_file_classifier.prompt_manager import get_file_analysis_prompt
 from src.ai_file_classifier.text_extractor import (
     extract_text_from_pdf,
     extract_text_from_txt,
@@ -65,23 +65,19 @@ def analyze_file_content(
         if content is None:
             raise ValueError(f"Failed to extract content from file: {file_path}")
 
-        # Load prompts
-        system_prompt: str = load_and_format_prompt(
-            'prompts/file-analysis-system-prompt.txt'
-        )
-        logger.debug("System prompt loaded: %s", system_prompt)
-
-        user_prompt: str = load_and_format_prompt(
-            'prompts/file-analysis-user-prompt.txt',
-            filename=os.path.basename(file_path),
-            content=content
-        )
-        logger.debug("User prompt loaded: %s", user_prompt)
+        # Get prompt template and prepare values
+        prompt_template = get_file_analysis_prompt()
+        prompt_values = {
+            "filename": os.path.basename(file_path),
+            "content": content
+        }
+        logger.debug("Prepared prompt values: filename=%s, content_length=%d",
+                     prompt_values["filename"], len(prompt_values["content"]))
 
         # Make API request to analyze content
         response: Analysis = client.analyze_content(
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
+            prompt_template=prompt_template,
+            prompt_values=prompt_values,
         )
 
         logger.debug("AI recommended metadata: %s", response)

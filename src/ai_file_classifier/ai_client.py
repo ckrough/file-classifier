@@ -17,6 +17,7 @@ from typing import Optional
 
 from pydantic import ValidationError
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
 
@@ -35,15 +36,15 @@ class AIClient(ABC):
     @abstractmethod
     def analyze_content(
         self,
-        system_prompt: str,
-        user_prompt: str,
+        prompt_template: ChatPromptTemplate,
+        prompt_values: dict,
     ) -> Analysis:
         """
-        Analyze the content using the AI model.
+        Analyze the content using the AI model with a prompt template.
 
         Args:
-            system_prompt (str): The system prompt for the AI.
-            user_prompt (str): The user prompt for the AI.
+            prompt_template (ChatPromptTemplate): The LangChain prompt template to use.
+            prompt_values (dict): Variables to format into the template.
 
         Returns:
             Analysis: The analyzed metadata of the file.
@@ -133,15 +134,15 @@ class LangChainClient(AIClient):
 
     def analyze_content(
         self,
-        system_prompt: str,
-        user_prompt: str,
+        prompt_template: ChatPromptTemplate,
+        prompt_values: dict,
     ) -> Analysis:
         """
         Analyze the content using LangChain's structured output extraction.
 
         Args:
-            system_prompt (str): The system prompt for the AI.
-            user_prompt (str): The user prompt for the AI.
+            prompt_template (ChatPromptTemplate): The LangChain prompt template to use.
+            prompt_values (dict): Variables to format into the template (e.g., filename, content).
 
         Returns:
             Analysis: The analyzed metadata of the file.
@@ -153,17 +154,26 @@ class LangChainClient(AIClient):
             # Create a structured output chain using the Analysis Pydantic model
             structured_llm = self.llm.with_structured_output(Analysis)
 
-            # Combine system and user prompts into a single message
-            # LangChain expects a list of messages or a single prompt string
-            full_prompt = f"{system_prompt}\n\n{user_prompt}"
+            # Format the prompt template with the provided values
+            # This creates proper SystemMessage and HumanMessage objects
+            messages = prompt_template.format_messages(**prompt_values)
 
-            # Invoke the LLM with structured output
+            logger.debug("Formatted prompt with values: %s", list(prompt_values.keys()))
             logger.debug("Invoking LLM with provider: %s", self.provider)
-            analysis = structured_llm.invoke(full_prompt)
+
+            # Invoke the LLM with properly formatted messages
+            analysis = structured_llm.invoke(messages)
 
             logger.debug("LLM returned structured analysis: %s", analysis)
             return analysis
 
+        except KeyError as ke:
+            logger.error(
+                "Missing required prompt variable: %s. Available: %s",
+                ke.args[0],
+                list(prompt_values.keys())
+            )
+            raise RuntimeError(f"Missing required prompt variable: {ke.args[0]}") from ke
         except ValidationError as ve:
             logger.error(
                 "Validation error while parsing Analysis: %s", ve, exc_info=True

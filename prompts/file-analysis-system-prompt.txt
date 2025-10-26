@@ -30,12 +30,12 @@ Content
 Invoice from John's Window Cleaning for services rendered on May 10, 2022.
   
 ### **Output:**
-{
+{{
   "category": "invoice",
   "vendor": "johns",
   "description": "window-cleaning",
   "date": "20220510"
-}
+}}
 
 ## Example 2
 
@@ -47,9 +47,9 @@ Content
 Thank you for shopping at ACME Markets. Items: bananas, apples, milk.
 
 ### **Output:**
-{
+{{
   "category": "receipt",
   "vendor": "ACME",
   "description": "groceries",
   "date": ""
-}
+}}

@@ -1,7 +1,8 @@
 """Unit tests for the ai_file_classifier.file_analyzer module."""
 
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, MagicMock
 import pytest
+from langchain_core.prompts import ChatPromptTemplate
 from src.ai_file_classifier.file_analyzer import (
     standardize_analysis,
     generate_filename,
@@ -38,15 +39,16 @@ def test_generate_filename():
 
 
 @patch('src.ai_file_classifier.file_analyzer.extract_text_from_txt')
-@patch('src.ai_file_classifier.file_analyzer.load_and_format_prompt')
-def test_analyze_file_content_txt(mock_load_prompt, mock_extract_txt):
+@patch('src.ai_file_classifier.file_analyzer.get_file_analysis_prompt')
+def test_analyze_file_content_txt(mock_get_prompt, mock_extract_txt):
     """Test analyze_file_content with a .txt file to ensure proper analysis and filename generation."""
     # Setup mocks for the .txt file
     mock_extract_txt.return_value = "Sample text content."
-    mock_load_prompt.side_effect = [
-        "System prompt content.",
-        "User prompt content with filename and content."
-    ]
+
+    # Mock the prompt template
+    mock_prompt = MagicMock(spec=ChatPromptTemplate)
+    mock_get_prompt.return_value = mock_prompt
+
     mock_ai_client = Mock()
     mock_ai_client.analyze_content.return_value = Analysis(
         category="documentation",
@@ -54,39 +56,44 @@ def test_analyze_file_content_txt(mock_load_prompt, mock_extract_txt):
         description="user-guide",
         date="2023-10-01"
     )
+
     # Test with a .txt file
     suggested_name, category, vendor, description, date = analyze_file_content(
         file_path="docs/user_guide.txt",
         client=mock_ai_client
     )
+
     assert suggested_name == "openai-documentation-user-guide-2023-10-01"
     assert category == "documentation"
     assert vendor == "openai"
     assert description == "user-guide"
     assert date == "2023-10-01"
+
     mock_extract_txt.assert_called_once_with("docs/user_guide.txt")
-    mock_load_prompt.assert_any_call('prompts/file-analysis-system-prompt.txt')
-    mock_load_prompt.assert_any_call(
-        'prompts/file-analysis-user-prompt.txt',
-        filename="user_guide.txt",
-        content="Sample text content."
-    )
+    mock_get_prompt.assert_called_once()
+
+    # Verify analyze_content was called with prompt template and values
     mock_ai_client.analyze_content.assert_called_once()
+    call_args = mock_ai_client.analyze_content.call_args
+    assert call_args[1]['prompt_template'] == mock_prompt
+    assert call_args[1]['prompt_values']['filename'] == "user_guide.txt"
+    assert call_args[1]['prompt_values']['content'] == "Sample text content."
 
 
 @patch('src.ai_file_classifier.file_analyzer.extract_text_from_pdf')
-@patch('src.ai_file_classifier.file_analyzer.load_and_format_prompt')
+@patch('src.ai_file_classifier.file_analyzer.get_file_analysis_prompt')
 def test_analyze_file_content_pdf(
-    mock_load_prompt,
+    mock_get_prompt,
     mock_extract_pdf
 ):
     """Test analyze_file_content with a .pdf file to ensure proper analysis and filename generation."""
     # Setup mocks for the .pdf file
     mock_extract_pdf.return_value = "Sample PDF content."
-    mock_load_prompt.side_effect = [
-        "System prompt content.",
-        "User prompt content with filename and content."
-    ]
+
+    # Mock the prompt template
+    mock_prompt = MagicMock(spec=ChatPromptTemplate)
+    mock_get_prompt.return_value = mock_prompt
+
     mock_ai_client = Mock()
     mock_ai_client.analyze_content.return_value = Analysis(
         category="documentation",
@@ -94,24 +101,28 @@ def test_analyze_file_content_pdf(
         description="annual-report",
         date="2023-10-01"
     )
+
     # Test with a .pdf file
     suggested_name, category, vendor, description, date = analyze_file_content(
         file_path="docs/report.pdf",
         client=mock_ai_client
     )
+
     assert suggested_name == "openai-documentation-annual-report-2023-10-01"
     assert category == "documentation"
     assert vendor == "openai"
     assert description == "annual-report"
     assert date == "2023-10-01"
+
     mock_extract_pdf.assert_called_once_with("docs/report.pdf")
-    mock_load_prompt.assert_any_call('prompts/file-analysis-system-prompt.txt')
-    mock_load_prompt.assert_any_call(
-        'prompts/file-analysis-user-prompt.txt',
-        filename="report.pdf",
-        content="Sample PDF content."
-    )
+    mock_get_prompt.assert_called_once()
+
+    # Verify analyze_content was called with prompt template and values
     mock_ai_client.analyze_content.assert_called_once()
+    call_args = mock_ai_client.analyze_content.call_args
+    assert call_args[1]['prompt_template'] == mock_prompt
+    assert call_args[1]['prompt_values']['filename'] == "report.pdf"
+    assert call_args[1]['prompt_values']['content'] == "Sample PDF content."
 
 
 @patch('src.ai_file_classifier.file_analyzer.extract_text_from_txt')
