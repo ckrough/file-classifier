@@ -348,7 +348,7 @@ def test_rename_files_rename_error(mock_logger, mock_rename):
     )
 
 
-@mock.patch("src.files.operations.logger")
+@mock.patch("src.files.processor.logger")
 def test_process_file_file_not_exists(mock_logger):
     """
     Test that process_file logs an error when the file does not exist.
@@ -364,7 +364,7 @@ def test_process_file_file_not_exists(mock_logger):
     )
 
 
-@mock.patch("src.files.operations.logger")
+@mock.patch("src.files.processor.logger")
 def test_process_file_not_a_file(mock_logger):
     """
     Test that process_file logs an error when the path is not a file.
@@ -382,7 +382,7 @@ def test_process_file_not_a_file(mock_logger):
     )
 
 
-@mock.patch("src.files.operations.logger")
+@mock.patch("src.files.processor.logger")
 def test_process_file_unsupported_filetype(mock_logger):
     """
     Test that process_file logs an error when the file type is unsupported.
@@ -409,7 +409,7 @@ def test_process_file_unsupported_filetype(mock_logger):
 @mock.patch("src.files.processor.is_supported_filetype", return_value=True)
 @mock.patch("src.files.processor.os.path.isfile", return_value=True)
 @mock.patch("src.files.processor.os.path.exists", return_value=True)
-@mock.patch("src.files.operations.logger")
+@mock.patch("src.files.processor.logger")
 def test_process_file_analysis_failure(
     mock_logger, _mock_exists, _mock_isfile, _mock_supported, mock_analyze
 ):
