@@ -22,6 +22,7 @@ from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
 
 from src.ai_file_classifier.models import Analysis
+
 __all__ = ["AIClient", "LangChainClient", "create_ai_client"]
 
 logger = logging.getLogger(__name__)
@@ -71,7 +72,7 @@ class LangChainClient(AIClient):
         model: Optional[str] = None,
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize the LangChain client with specified provider.
@@ -94,7 +95,7 @@ class LangChainClient(AIClient):
         model: Optional[str],
         api_key: Optional[str],
         base_url: Optional[str],
-        **kwargs
+        **kwargs,
     ) -> BaseChatModel:
         """
         Initialize the appropriate LangChain LLM based on provider.
@@ -115,7 +116,9 @@ class LangChainClient(AIClient):
             if not api_key:
                 api_key = os.getenv("OPENAI_API_KEY")
             if not api_key:
-                logger.critical("OPENAI_API_KEY not provided or set in environment variables.")
+                logger.critical(
+                    "OPENAI_API_KEY not provided or set in environment variables."
+                )
                 raise ValueError("OPENAI_API_KEY must be provided for OpenAI provider.")
 
             model = model or os.getenv("AI_MODEL", "gpt-4o-mini")
@@ -123,7 +126,9 @@ class LangChainClient(AIClient):
             return ChatOpenAI(api_key=api_key, model=model, **kwargs)
 
         if self.provider == "ollama":
-            base_url = base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+            base_url = base_url or os.getenv(
+                "OLLAMA_BASE_URL", "http://localhost:11434"
+            )
             model = model or os.getenv("OLLAMA_MODEL", "deepseek-r1:latest")
             logger.info("Initializing ChatOllama with model: %s at %s", model, base_url)
             return ChatOllama(model=model, base_url=base_url, **kwargs)
@@ -171,9 +176,11 @@ class LangChainClient(AIClient):
             logger.error(
                 "Missing required prompt variable: %s. Available: %s",
                 ke.args[0],
-                list(prompt_values.keys())
+                list(prompt_values.keys()),
             )
-            raise RuntimeError(f"Missing required prompt variable: {ke.args[0]}") from ke
+            raise RuntimeError(
+                f"Missing required prompt variable: {ke.args[0]}"
+            ) from ke
         except ValidationError as ve:
             logger.error(
                 "Validation error while parsing Analysis: %s", ve, exc_info=True
@@ -189,7 +196,7 @@ def create_ai_client(
     model: Optional[str] = None,
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
-    **kwargs
+    **kwargs,
 ) -> AIClient:
     """
     Factory function to create an AI client based on provider configuration.
@@ -224,9 +231,5 @@ def create_ai_client(
     logger.info("Creating AI client with provider: %s", provider)
 
     return LangChainClient(
-        provider=provider,
-        model=model,
-        api_key=api_key,
-        base_url=base_url,
-        **kwargs
+        provider=provider, model=model, api_key=api_key, base_url=base_url, **kwargs
     )
