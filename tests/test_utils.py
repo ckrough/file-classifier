@@ -457,3 +457,75 @@ def test_process_file_analysis_failure(
 
     mock_analyze.assert_called_once_with(file_path, model, client)
     mock_logger.error.assert_called_once_with("Analysis failed")
+
+
+def test_rename_files_preserves_extension_integration(tmp_path):
+    """
+    Integration test: Verify that file extensions are preserved during actual renaming.
+    """
+    # Create test files with different extensions
+    pdf_file = tmp_path / "original.pdf"
+    txt_file = tmp_path / "document.txt"
+
+    pdf_file.write_bytes(b"%PDF-1.4 fake pdf content")
+    txt_file.write_text("Sample text content", encoding="utf-8")
+
+    suggested_changes = [
+        {"file_path": str(pdf_file), "suggested_name": "vendor-category-description"},
+        {"file_path": str(txt_file), "suggested_name": "company-invoice-2024"},
+    ]
+
+    # Perform the renaming
+    rename_files(suggested_changes)
+
+    # Verify original files no longer exist
+    assert not pdf_file.exists(), "Original PDF file should be renamed"
+    assert not txt_file.exists(), "Original TXT file should be renamed"
+
+    # Verify new files exist with extensions preserved
+    new_pdf = tmp_path / "vendor-category-description.pdf"
+    new_txt = tmp_path / "company-invoice-2024.txt"
+
+    assert new_pdf.exists(), "Renamed PDF file should have .pdf extension"
+    assert new_txt.exists(), "Renamed TXT file should have .txt extension"
+
+    # Verify content is preserved
+    assert new_pdf.read_bytes() == b"%PDF-1.4 fake pdf content"
+    assert new_txt.read_text(encoding="utf-8") == "Sample text content"
+
+
+def test_rename_files_uppercase_extension(tmp_path):
+    """
+    Test that uppercase extensions are preserved correctly.
+    """
+    pdf_file = tmp_path / "document.PDF"
+    pdf_file.write_bytes(b"content")
+
+    suggested_changes = [
+        {"file_path": str(pdf_file), "suggested_name": "new-name"},
+    ]
+
+    rename_files(suggested_changes)
+
+    # Verify the uppercase extension is preserved
+    new_file = tmp_path / "new-name.PDF"
+    assert new_file.exists(), "File should preserve uppercase .PDF extension"
+
+
+def test_rename_files_multiple_dots_in_filename(tmp_path):
+    """
+    Test that files with multiple dots preserve only the extension.
+    """
+    file_with_dots = tmp_path / "my.document.name.pdf"
+    file_with_dots.write_bytes(b"content")
+
+    suggested_changes = [
+        {"file_path": str(file_with_dots), "suggested_name": "vendor-category"},
+    ]
+
+    rename_files(suggested_changes)
+
+    # Should preserve only the .pdf extension, not .name.pdf
+    new_file = tmp_path / "vendor-category.pdf"
+    assert new_file.exists(), "Should preserve only the final .pdf extension"
+    assert not (tmp_path / "vendor-category.name.pdf").exists()

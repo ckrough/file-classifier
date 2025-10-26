@@ -215,6 +215,7 @@ def get_all_suggested_changes() -> List[Dict[str, str]]:
 def rename_files(suggested_changes: List[Dict[str, str]]) -> None:
     """
     Renames files in bulk based on the approved suggested changes.
+    File extensions are preserved from the original filename.
 
     Args:
         suggested_changes (List[Dict[str, str]]): A list of dictionaries containing file paths and suggested names.
@@ -226,9 +227,26 @@ def rename_files(suggested_changes: List[Dict[str, str]]) -> None:
         file_path: str = change["file_path"]
         suggested_name: str = change["suggested_name"]
         try:
+            # Extract extension from original file path
             _, ext = os.path.splitext(file_path)
+
+            # Defensive check: ensure we have an extension for supported files
+            if not ext:
+                logger.warning(
+                    "File '%s' has no extension. This may indicate an issue.",
+                    file_path
+                )
+
             directory: str = os.path.dirname(file_path)
             new_path: str = os.path.join(directory, f"{suggested_name}{ext}")
+
+            logger.debug(
+                "Renaming '%s' to '%s' (extension: '%s')",
+                file_path,
+                new_path,
+                ext
+            )
+
             os.rename(file_path, new_path)
             logger.info("File '%s' renamed to '%s'.", file_path, new_path)
         except (OSError, IOError) as e:

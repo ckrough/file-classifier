@@ -63,8 +63,16 @@ def handle_suggested_changes(dry_run: bool) -> None:
         return
 
     for change in suggested_changes:
-        print(f"Current Name: {change['file_path']}")
-        print(f"Suggested Name: {change['suggested_name']}\n")
+        file_path = change['file_path']
+        suggested_name = change['suggested_name']
+
+        # Extract extension from original file and append to suggested name for display
+        _, ext = os.path.splitext(file_path)
+        suggested_name_with_ext = f"{suggested_name}{ext}"
+
+        # Display the current and suggested filenames
+        current_basename = os.path.basename(file_path)
+        print(f"{current_basename} → {suggested_name_with_ext}\n")
 
     if dry_run:
         print("Dry-run mode enabled. No changes will be made.")
