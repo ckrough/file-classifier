@@ -39,10 +39,12 @@ def load_file_analysis_prompt() -> ChatPromptTemplate:
         user_prompt = user_prompt_path.read_text(encoding="utf-8").strip()
 
         # Create ChatPromptTemplate with proper message roles
-        return ChatPromptTemplate.from_messages([
-            ("system", system_prompt),
-            ("human", user_prompt),
-        ])
+        return ChatPromptTemplate.from_messages(
+            [
+                ("system", system_prompt),
+                ("human", user_prompt),
+            ]
+        )
 
     except FileNotFoundError as e:
         logger.error("Prompt file not found: %s", e)

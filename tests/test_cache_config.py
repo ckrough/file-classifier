@@ -1,12 +1,12 @@
 """Unit tests for cache configuration utilities."""
 
-
 from unittest import mock
-from src.config.cache_config import delete_cache, DB_FILE
+from src.storage.cache import delete_cache
+from src.config.settings import DB_FILE
 
 
-@mock.patch('os.path.exists')
-@mock.patch('os.remove')
+@mock.patch("os.path.exists")
+@mock.patch("os.remove")
 def test_delete_cache_exists(mock_remove, mock_exists):
     """
     Test that delete_cache successfully deletes the cache file when it exists.
@@ -22,8 +22,8 @@ def test_delete_cache_exists(mock_remove, mock_exists):
     mock_remove.assert_called_once_with(DB_FILE)
 
 
-@mock.patch('os.path.exists')
-@mock.patch('os.remove')
+@mock.patch("os.path.exists")
+@mock.patch("os.remove")
 def test_delete_cache_not_exists(mock_remove, mock_exists):
     """
     Test that delete_cache does nothing when the cache file does not exist.

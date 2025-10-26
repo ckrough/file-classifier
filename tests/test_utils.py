@@ -7,16 +7,15 @@ from unittest import mock
 
 import pytest
 
-from src.ai_file_classifier.utils import (
-    get_user_arguments,
-    is_supported_filetype,
+from src.cli.arguments import parse_arguments as get_user_arguments
+from src.files.operations import is_supported_filetype, rename_files
+from src.storage.database import (
     connect_to_db,
     insert_or_update_file,
     get_all_suggested_changes,
-    rename_files,
-    process_file,
 )
-from src.config.cache_config import DB_FILE
+from src.files.processor import process_file
+from src.config.settings import DB_FILE
 
 logger = logging.getLogger(__name__)
 
@@ -195,7 +194,7 @@ def test_connect_to_db(mock_connect):
     mock_connect.assert_called_once_with(DB_FILE)
 
 
-@mock.patch("src.ai_file_classifier.utils.connect_to_db")
+@mock.patch("src.storage.database.connect_to_db")
 def test_insert_or_update_file(mock_connect):
     """
     Test that insert_or_update_file correctly inserts or updates a file record.
@@ -236,7 +235,7 @@ def test_insert_or_update_file(mock_connect):
     mock_conn.close.assert_called_once()
 
 
-@mock.patch("src.ai_file_classifier.utils.connect_to_db")
+@mock.patch("src.storage.database.connect_to_db")
 def test_insert_or_update_file_db_error(mock_connect):
     """
     Test that insert_or_update_file handles SQLite errors gracefully.
@@ -256,7 +255,7 @@ def test_insert_or_update_file_db_error(mock_connect):
         insert_or_update_file(file_path, suggested_name, metadata)
 
 
-@mock.patch("src.ai_file_classifier.utils.connect_to_db")
+@mock.patch("src.storage.database.connect_to_db")
 def test_get_all_suggested_changes(mock_connect):
     """
     Test that get_all_suggested_changes retrieves the correct data from the database.
@@ -287,7 +286,7 @@ def test_get_all_suggested_changes(mock_connect):
     ]
 
 
-@mock.patch("src.ai_file_classifier.utils.connect_to_db")
+@mock.patch("src.storage.database.connect_to_db")
 def test_get_all_suggested_changes_db_error(mock_connect):
     """
     Test that get_all_suggested_changes handles SQLite errors gracefully.
@@ -300,7 +299,7 @@ def test_get_all_suggested_changes_db_error(mock_connect):
 
 
 @mock.patch("os.rename")
-@mock.patch("src.ai_file_classifier.utils.logger")
+@mock.patch("src.files.operations.logger")
 def test_rename_files_success(mock_logger, mock_rename):
     """
     Test that rename_files successfully renames files as per suggested changes.
@@ -327,7 +326,7 @@ def test_rename_files_success(mock_logger, mock_rename):
 
 
 @mock.patch("os.rename", side_effect=OSError("Rename failed"))
-@mock.patch("src.ai_file_classifier.utils.logger")
+@mock.patch("src.files.operations.logger")
 def test_rename_files_rename_error(mock_logger, mock_rename):
     """
     Test that rename_files handles rename errors gracefully.
@@ -349,7 +348,7 @@ def test_rename_files_rename_error(mock_logger, mock_rename):
     )
 
 
-@mock.patch("src.ai_file_classifier.utils.logger")
+@mock.patch("src.files.operations.logger")
 def test_process_file_file_not_exists(mock_logger):
     """
     Test that process_file logs an error when the file does not exist.
@@ -357,7 +356,7 @@ def test_process_file_file_not_exists(mock_logger):
     file_path = "/path/to/non_existent_file.txt"
     client = mock.MagicMock()
 
-    with mock.patch("src.ai_file_classifier.utils.os.path.exists", return_value=False):
+    with mock.patch("src.files.processor.os.path.exists", return_value=False):
         process_file(file_path, client)
 
     mock_logger.error.assert_called_once_with(
@@ -365,7 +364,7 @@ def test_process_file_file_not_exists(mock_logger):
     )
 
 
-@mock.patch("src.ai_file_classifier.utils.logger")
+@mock.patch("src.files.operations.logger")
 def test_process_file_not_a_file(mock_logger):
     """
     Test that process_file logs an error when the path is not a file.
@@ -374,8 +373,8 @@ def test_process_file_not_a_file(mock_logger):
     client = mock.MagicMock()
 
     with mock.patch(
-        "src.ai_file_classifier.utils.os.path.exists", return_value=True
-    ), mock.patch("src.ai_file_classifier.utils.os.path.isfile", return_value=False):
+        "src.files.processor.os.path.exists", return_value=True
+    ), mock.patch("src.files.processor.os.path.isfile", return_value=False):
         process_file(file_path, client)
 
     mock_logger.error.assert_called_once_with(
@@ -383,7 +382,7 @@ def test_process_file_not_a_file(mock_logger):
     )
 
 
-@mock.patch("src.ai_file_classifier.utils.logger")
+@mock.patch("src.files.operations.logger")
 def test_process_file_unsupported_filetype(mock_logger):
     """
     Test that process_file logs an error when the file type is unsupported.
@@ -392,11 +391,9 @@ def test_process_file_unsupported_filetype(mock_logger):
     client = mock.MagicMock()
 
     with mock.patch(
-        "src.ai_file_classifier.utils.os.path.exists", return_value=True
-    ), mock.patch(
-        "src.ai_file_classifier.utils.os.path.isfile", return_value=True
-    ), mock.patch(
-        "src.ai_file_classifier.utils.is_supported_filetype", return_value=False
+        "src.files.processor.os.path.exists", return_value=True
+    ), mock.patch("src.files.processor.os.path.isfile", return_value=True), mock.patch(
+        "src.files.processor.is_supported_filetype", return_value=False
     ):
         process_file(file_path, client)
 
@@ -406,13 +403,13 @@ def test_process_file_unsupported_filetype(mock_logger):
 
 
 @mock.patch(
-    "src.ai_file_classifier.utils.analyze_file_content",
+    "src.files.processor.analyze_file_content",
     side_effect=RuntimeError("Analysis failed"),
 )
-@mock.patch("src.ai_file_classifier.utils.is_supported_filetype", return_value=True)
-@mock.patch("src.ai_file_classifier.utils.os.path.isfile", return_value=True)
-@mock.patch("src.ai_file_classifier.utils.os.path.exists", return_value=True)
-@mock.patch("src.ai_file_classifier.utils.logger")
+@mock.patch("src.files.processor.is_supported_filetype", return_value=True)
+@mock.patch("src.files.processor.os.path.isfile", return_value=True)
+@mock.patch("src.files.processor.os.path.exists", return_value=True)
+@mock.patch("src.files.operations.logger")
 def test_process_file_analysis_failure(
     mock_logger, _mock_exists, _mock_isfile, _mock_supported, mock_analyze
 ):

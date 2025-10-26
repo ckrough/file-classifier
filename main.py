@@ -9,84 +9,24 @@ lifecycle including cleanup on exit.
 
 import atexit
 import logging
-import os
 import signal
 import sys
 
 from dotenv import load_dotenv
 
-from src.config.cache_config import delete_cache
-from src.ai_file_classifier.file_inventory import initialize_cache
-from src.ai_file_classifier.utils import (
-    get_all_suggested_changes,
-    get_user_arguments,
-    is_supported_filetype,
-    process_file,
-    rename_files,
-)
-from src.config.logging_config import setup_logging
-from src.ai_file_classifier.ai_client import AIClient, create_ai_client
+from src.config.logging import setup_logging
+from src.storage.cache import initialize_cache, delete_cache
+from src.ai.factory import create_ai_client
+from src.ai.client import AIClient
+from src.cli.arguments import parse_arguments
+from src.cli.workflow import process_path
+from src.cli.display import handle_suggested_changes
 
 # Load environment variables
 load_dotenv()
 
 setup_logging()
 logger = logging.getLogger(__name__)
-
-
-def process_path(path: str, client: AIClient) -> None:
-    """Process a single file or directory."""
-    if os.path.isfile(path):
-        process_file(path, client)
-    elif os.path.isdir(path):
-        process_directory(path, client)
-    else:
-        logger.error("The provided path is neither a file nor a directory.")
-
-
-def process_directory(directory: str, client: AIClient) -> None:
-    """Process all supported files in a directory."""
-    for root, _, files in os.walk(directory):
-        for file in files:
-            file_path: str = os.path.join(root, file)
-            if is_supported_filetype(file_path):
-                process_file(file_path, client)
-
-
-def handle_suggested_changes(dry_run: bool, auto_rename: bool) -> None:
-    """Handle user verification and approval of suggested changes."""
-    suggested_changes = get_all_suggested_changes()
-    if not suggested_changes:
-        print("No changes were suggested.")
-        return
-
-    for change in suggested_changes:
-        file_path = change['file_path']
-        suggested_name = change['suggested_name']
-
-        # Extract extension from original file and append to suggested name for display
-        _, ext = os.path.splitext(file_path)
-        suggested_name_with_ext = f"{suggested_name}{ext}"
-
-        # Display the current and suggested filenames
-        current_basename = os.path.basename(file_path)
-        print(f"{current_basename} → {suggested_name_with_ext}\n")
-
-    if dry_run:
-        print("Dry-run mode enabled. No changes will be made.")
-        return
-
-    if auto_rename:
-        rename_files(suggested_changes)
-        print("Files have been renamed.")
-        return
-
-    user_confirmation = input("Approve rename? (yes/no): ").strip().lower()
-    if user_confirmation == "yes":
-        rename_files(suggested_changes)
-        print("Files have been renamed.")
-    else:
-        print("Renaming was canceled by the user.")
 
 
 def main() -> None:
@@ -98,7 +38,7 @@ def main() -> None:
     signal.signal(signal.SIGTERM, lambda s, f: sys.exit(0))
 
     try:
-        args = get_user_arguments()
+        args = parse_arguments()
         initialize_cache()
 
         # Initialize the AI client using factory function

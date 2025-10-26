@@ -1,16 +1,21 @@
-"""Module for analyzing file content and extracting metadata."""
+"""
+File content analysis and metadata extraction.
+
+This module coordinates the analysis workflow by combining AI analysis,
+text extraction, and metadata standardization.
+"""
 
 import logging
 import os
-from typing import Optional, Tuple
+from typing import Optional
 
-from src.ai_file_classifier.ai_client import AIClient
-from src.ai_file_classifier.models import Analysis
-from src.ai_file_classifier.prompt_manager import get_file_analysis_prompt
-from src.ai_file_classifier.text_extractor import (
-    extract_text_from_pdf,
-    extract_text_from_txt,
-)
+from src.ai.client import AIClient
+from src.ai.prompts import get_file_analysis_prompt
+from src.analysis.models import Analysis
+from src.analysis.filename import generate_filename
+from src.files.extractors import extract_text_from_pdf, extract_text_from_txt
+
+__all__ = ["analyze_file_content", "standardize_analysis"]
 
 logger = logging.getLogger(__name__)
 
@@ -27,25 +32,18 @@ def standardize_analysis(analysis: Analysis) -> Analysis:
         Analysis: A new Analysis object with standardized fields.
     """
     return Analysis(
-        category=analysis.category.lower().replace(' ', '-'),
-        vendor=analysis.vendor.lower().replace(' ', '-'),
-        description=analysis.description.lower().replace(' ', '-'),
-        date=analysis.date if analysis.date else ''
+        category=analysis.category.lower().replace(" ", "-"),
+        vendor=analysis.vendor.lower().replace(" ", "-"),
+        description=analysis.description.lower().replace(" ", "-"),
+        date=analysis.date if analysis.date else "",
     )
 
 
 def analyze_file_content(
-    file_path: str,
-    client: AIClient
-) -> Tuple[
-    Optional[str],
-    Optional[str],
-    Optional[str],
-    Optional[str],
-    Optional[str]
-]:
+    file_path: str, client: AIClient
+) -> tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[str]]:
     """
-    Analyzes the content of a file to determine its context and purpose.
+    Analyze the content of a file to determine its context and purpose.
     Returns suggested name, category, vendor, description, and date.
 
     Args:
@@ -53,11 +51,11 @@ def analyze_file_content(
         client (AIClient): The AI client to use for analysis.
 
     Returns:
-        Tuple containing suggested_name, category, vendor, description, and date.
+        tuple: containing suggested_name, category, vendor, description, and date.
     """
     try:
         # Extract content based on file type
-        if file_path.lower().endswith('.pdf'):
+        if file_path.lower().endswith(".pdf"):
             content: Optional[str] = extract_text_from_pdf(file_path)
         else:
             content: Optional[str] = extract_text_from_txt(file_path)
@@ -67,12 +65,12 @@ def analyze_file_content(
 
         # Get prompt template and prepare values
         prompt_template = get_file_analysis_prompt()
-        prompt_values = {
-            "filename": os.path.basename(file_path),
-            "content": content
-        }
-        logger.debug("Prepared prompt values: filename=%s, content_length=%d",
-                     prompt_values["filename"], len(prompt_values["content"]))
+        prompt_values = {"filename": os.path.basename(file_path), "content": content}
+        logger.debug(
+            "Prepared prompt values: filename=%s, content_length=%d",
+            prompt_values["filename"],
+            len(prompt_values["content"]),
+        )
 
         # Make API request to analyze content
         response: Analysis = client.analyze_content(
@@ -96,17 +94,3 @@ def analyze_file_content(
     except (ValueError, FileNotFoundError) as e:
         logger.error("Failed to analyze file content: %s", e)
         raise RuntimeError("Error analyzing file content") from e
-
-
-def generate_filename(analysis: Analysis) -> str:
-    """Generate a standardized filename based on the analysis data."""
-    category: str = analysis.category
-    vendor: str = analysis.vendor
-    description: str = analysis.description
-    date: str = analysis.date if analysis.date else ''
-
-    filename: str = f"{vendor}-{category}-{description}"
-    if date:
-        filename += f"-{date}"
-
-    return filename

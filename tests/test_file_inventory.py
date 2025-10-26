@@ -8,8 +8,8 @@ import sqlite3
 
 import pytest
 
-from src.config.cache_config import DB_FILE, delete_cache
-from src.ai_file_classifier.file_inventory import initialize_cache
+from src.storage.cache import initialize_cache, delete_cache
+from src.config.settings import DB_FILE
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +33,7 @@ def test_initialize_cache():
     # Verify that the required table exists
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='files'")
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='files'")
     table = cursor.fetchone()
     assert table is not None
     conn.close()

@@ -1,5 +1,5 @@
 """
-Module for AI Client Abstractions.
+AI Client Abstractions.
 
 This module defines the abstract base class `AIClient` and its concrete
 implementation for interfacing with AI models to analyze file content.
@@ -21,9 +21,9 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
 
-from src.ai_file_classifier.models import Analysis
+from src.analysis.models import Analysis
 
-__all__ = ["AIClient", "LangChainClient", "create_ai_client"]
+__all__ = ["AIClient", "LangChainClient"]
 
 logger = logging.getLogger(__name__)
 
@@ -189,47 +189,3 @@ class LangChainClient(AIClient):
         except Exception as e:
             logger.exception("Error communicating with LLM provider: %s", self.provider)
             raise RuntimeError(f"Error communicating with {self.provider} API.") from e
-
-
-def create_ai_client(
-    provider: Optional[str] = None,
-    model: Optional[str] = None,
-    api_key: Optional[str] = None,
-    base_url: Optional[str] = None,
-    **kwargs,
-) -> AIClient:
-    """
-    Factory function to create an AI client based on provider configuration.
-
-    Uses LangChain for multi-provider support with structured outputs.
-
-    Args:
-        provider (str, optional): The LLM provider ('openai', 'ollama', etc.).
-            Defaults to AI_PROVIDER env var or 'openai'.
-        model (str, optional): Model name. Defaults based on provider.
-        api_key (str, optional): API key for the provider.
-        base_url (str, optional): Base URL for the provider API.
-        **kwargs: Additional provider-specific arguments.
-
-    Returns:
-        AIClient: An initialized LangChainClient instance.
-
-    Examples:
-        # Use OpenAI via LangChain (default)
-        client = create_ai_client()
-
-        # Use local Ollama with DeepSeek
-        client = create_ai_client(provider="ollama", model="deepseek-r1:latest")
-
-        # Use specific OpenAI model
-        client = create_ai_client(provider="openai", model="gpt-4")
-    """
-    # Default to OpenAI provider if not specified
-    if provider is None:
-        provider = os.getenv("AI_PROVIDER", "openai")
-
-    logger.info("Creating AI client with provider: %s", provider)
-
-    return LangChainClient(
-        provider=provider, model=model, api_key=api_key, base_url=base_url, **kwargs
-    )

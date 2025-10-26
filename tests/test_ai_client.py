@@ -4,15 +4,18 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from src.ai_file_classifier.ai_client import LangChainClient, create_ai_client
-from src.ai_file_classifier.models import Analysis
+from src.ai.client import LangChainClient
+from src.ai.factory import create_ai_client
+from src.analysis.models import Analysis
 
 
 # LangChainClient Tests
 
-@patch("src.ai_file_classifier.ai_client.os.getenv")
+
+@patch("src.ai.client.os.getenv")
 def test_langchain_client_init_openai(mock_getenv):
     """Test that LangChainClient initializes successfully with OpenAI provider."""
+
     def side_effect(key, default=None):
         if key == "OPENAI_API_KEY":
             return "test_api_key"
@@ -26,9 +29,10 @@ def test_langchain_client_init_openai(mock_getenv):
     assert client.provider == "openai"
 
 
-@patch("src.ai_file_classifier.ai_client.os.getenv")
+@patch("src.ai.client.os.getenv")
 def test_langchain_client_init_ollama(mock_getenv):
     """Test that LangChainClient initializes successfully with Ollama provider."""
+
     def side_effect(key, default=None):
         if key == "OLLAMA_BASE_URL":
             return "http://localhost:11434"
@@ -42,7 +46,7 @@ def test_langchain_client_init_ollama(mock_getenv):
     assert client.provider == "ollama"
 
 
-@patch("src.ai_file_classifier.ai_client.os.getenv")
+@patch("src.ai.client.os.getenv")
 def test_langchain_client_unsupported_provider(mock_getenv):
     """Test that LangChainClient raises ValueError for unsupported providers."""
     mock_getenv.return_value = None
@@ -51,9 +55,10 @@ def test_langchain_client_unsupported_provider(mock_getenv):
     assert "Unsupported provider" in str(excinfo.value)
 
 
-@patch("src.ai_file_classifier.ai_client.os.getenv")
+@patch("src.ai.client.os.getenv")
 def test_langchain_client_analyze_content(mock_getenv):
     """Test that LangChainClient.analyze_content returns structured Analysis object."""
+
     def side_effect(key, default=None):
         if key == "OPENAI_API_KEY":
             return "test_api_key"
@@ -68,10 +73,10 @@ def test_langchain_client_analyze_content(mock_getenv):
         category="Document",
         vendor="TestVendor",
         description="Test description",
-        date="2023-10-01"
+        date="2023-10-01",
     )
 
-    with patch("src.ai_file_classifier.ai_client.ChatOpenAI") as mock_chat_openai:
+    with patch("src.ai.client.ChatOpenAI") as mock_chat_openai:
         from langchain_core.prompts import ChatPromptTemplate
 
         mock_llm_instance = MagicMock()
@@ -81,10 +86,9 @@ def test_langchain_client_analyze_content(mock_getenv):
         mock_chat_openai.return_value = mock_llm_instance
 
         # Create a mock prompt template
-        mock_prompt = ChatPromptTemplate.from_messages([
-            ("system", "system prompt"),
-            ("human", "user prompt")
-        ])
+        mock_prompt = ChatPromptTemplate.from_messages(
+            [("system", "system prompt"), ("human", "user prompt")]
+        )
 
         client = LangChainClient(provider="openai")
         result = client.analyze_content(mock_prompt, {})
@@ -98,9 +102,11 @@ def test_langchain_client_analyze_content(mock_getenv):
 
 # Factory Function Tests
 
-@patch("src.ai_file_classifier.ai_client.os.getenv")
+
+@patch("src.ai.client.os.getenv")
 def test_create_ai_client_default_openai(mock_getenv):
     """Test that create_ai_client defaults to OpenAI with LangChain."""
+
     def side_effect(key, default=None):
         if key == "AI_PROVIDER":
             return "openai"
@@ -112,14 +118,15 @@ def test_create_ai_client_default_openai(mock_getenv):
 
     mock_getenv.side_effect = side_effect
 
-    with patch("src.ai_file_classifier.ai_client.ChatOpenAI"):
+    with patch("src.ai.client.ChatOpenAI"):
         client = create_ai_client()
         assert isinstance(client, LangChainClient)
 
 
-@patch("src.ai_file_classifier.ai_client.os.getenv")
+@patch("src.ai.client.os.getenv")
 def test_create_ai_client_ollama(mock_getenv):
     """Test that create_ai_client creates Ollama client when specified."""
+
     def side_effect(key, default=None):
         if key == "AI_PROVIDER":
             return "ollama"
@@ -131,9 +138,7 @@ def test_create_ai_client_ollama(mock_getenv):
 
     mock_getenv.side_effect = side_effect
 
-    with patch("src.ai_file_classifier.ai_client.ChatOllama"):
+    with patch("src.ai.client.ChatOllama"):
         client = create_ai_client(provider="ollama")
         assert isinstance(client, LangChainClient)
         assert client.provider == "ollama"
-
-

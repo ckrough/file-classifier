@@ -4,8 +4,7 @@ import logging
 import pytest
 from fpdf import FPDF
 
-from src.ai_file_classifier.text_extractor import (extract_text_from_pdf,
-                                                   extract_text_from_txt)
+from src.files.extractors import extract_text_from_pdf, extract_text_from_txt
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +42,9 @@ def test_extract_text_from_nonexistent_txt(tmp_path, caplog):
     file_path = tmp_path / "nonexistent.txt"
     result = extract_text_from_txt(str(file_path))
     assert result is None
-    assert any("Error opening text file:" in record.message for record in caplog.records)
+    assert any(
+        "Error opening text file:" in record.message for record in caplog.records
+    )
 
 
 def test_extract_text_from_nonexistent_pdf(tmp_path, caplog):
@@ -62,10 +63,12 @@ def test_extract_text_from_txt_invalid_encoding(tmp_path, caplog):
     """
     file_path = tmp_path / "invalid.txt"
     # Write bytes that are not valid UTF-8
-    file_path.write_bytes(b'\xff\xfe\xfa')
+    file_path.write_bytes(b"\xff\xfe\xfa")
     result = extract_text_from_txt(str(file_path))
     assert result is None
-    assert any("Error decoding text file:" in record.message for record in caplog.records)
+    assert any(
+        "Error decoding text file:" in record.message for record in caplog.records
+    )
 
 
 if __name__ == "__main__":

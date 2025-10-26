@@ -4,10 +4,10 @@ import pytest
 from pathlib import Path
 from unittest import mock
 
-from src.ai_file_classifier.prompt_manager import (
+from src.ai.prompts import (
     load_file_analysis_prompt,
     get_file_analysis_prompt,
-    PROMPTS_DIR
+    PROMPTS_DIR,
 )
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -27,7 +27,8 @@ def test_load_file_analysis_prompt():
 def test_get_file_analysis_prompt_singleton():
     """Test that get_file_analysis_prompt returns the same instance (singleton)."""
     # Clear the singleton
-    import src.ai_file_classifier.prompt_manager as pm
+    import src.ai.prompts as pm
+
     pm._file_analysis_prompt = None
 
     prompt1 = get_file_analysis_prompt()
@@ -39,7 +40,7 @@ def test_get_file_analysis_prompt_singleton():
 
 def test_load_file_analysis_prompt_missing_file():
     """Test that load_file_analysis_prompt raises FileNotFoundError if files are missing."""
-    with mock.patch('src.ai_file_classifier.prompt_manager.PROMPTS_DIR', Path("/nonexistent")):
+    with mock.patch("src.ai.prompts.PROMPTS_DIR", Path("/nonexistent")):
         with pytest.raises(FileNotFoundError):
             load_file_analysis_prompt()
 
@@ -50,8 +51,7 @@ def test_prompt_template_formats_correctly():
 
     # Format with sample values
     messages = prompt_template.format_messages(
-        filename="test.pdf",
-        content="Sample content"
+        filename="test.pdf", content="Sample content"
     )
 
     assert len(messages) == 2
