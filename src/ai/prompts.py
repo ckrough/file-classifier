@@ -6,8 +6,8 @@ loaded from text files in the prompts/ directory.
 """
 
 import logging
+from functools import lru_cache
 from pathlib import Path
-from typing import Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -54,22 +54,20 @@ def load_file_analysis_prompt() -> ChatPromptTemplate:
         raise
 
 
-# Singleton instance (lazy-loaded)
-_file_analysis_prompt: Optional[ChatPromptTemplate] = None
-
-
+@lru_cache(maxsize=1)
 def get_file_analysis_prompt() -> ChatPromptTemplate:
     """
-    Get the file analysis prompt template (singleton with lazy loading).
+    Get the file analysis prompt template (cached with lazy loading).
+
+    This function uses lru_cache to ensure the prompt is loaded only once
+    and reused across multiple calls, providing singleton-like behavior.
 
     Returns:
         ChatPromptTemplate: The file analysis prompt template.
     """
-    global _file_analysis_prompt
-    if _file_analysis_prompt is None:
-        _file_analysis_prompt = load_file_analysis_prompt()
-        logger.info("File analysis prompt template loaded successfully")
-    return _file_analysis_prompt
+    prompt = load_file_analysis_prompt()
+    logger.info("File analysis prompt template loaded successfully")
+    return prompt
 
 
 __all__ = ["get_file_analysis_prompt", "load_file_analysis_prompt"]
