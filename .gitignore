@@ -26,6 +26,9 @@ dist/
 .coverage
 .vscode/
 sample-documents/
-file_cache.db
 .aider*
 *.code-workspace
+
+# Ignore pytest-benchmark local baselines
+.pytest-benchmark/
+.benchmarks/

@@ -8,7 +8,6 @@ and getting approval for renaming operations.
 import logging
 import os
 
-from src.storage.database import get_all_suggested_changes
 from src.files.operations import rename_files
 
 __all__ = ["handle_suggested_changes"]
@@ -16,23 +15,26 @@ __all__ = ["handle_suggested_changes"]
 logger = logging.getLogger(__name__)
 
 
-def handle_suggested_changes(dry_run: bool, auto_rename: bool) -> None:
+def handle_suggested_changes(
+    changes: list[dict[str, str]], dry_run: bool, auto_rename: bool
+) -> None:
     """
     Handle user verification and approval of suggested changes.
 
     Args:
+        changes (list[dict[str, str]]): List of change dictionaries containing
+            file_path and suggested_name.
         dry_run (bool): If True, display changes but don't apply them.
         auto_rename (bool): If True, automatically apply changes without asking.
 
     Returns:
         None
     """
-    suggested_changes = get_all_suggested_changes()
-    if not suggested_changes:
+    if not changes:
         print("No changes were suggested.")
         return
 
-    for change in suggested_changes:
+    for change in changes:
         file_path = change["file_path"]
         suggested_name = change["suggested_name"]
 
@@ -49,13 +51,13 @@ def handle_suggested_changes(dry_run: bool, auto_rename: bool) -> None:
         return
 
     if auto_rename:
-        rename_files(suggested_changes)
+        rename_files(changes)
         print("Files have been renamed.")
         return
 
     user_confirmation = input("Approve rename? (yes/no): ").strip().lower()
     if user_confirmation == "yes":
-        rename_files(suggested_changes)
+        rename_files(changes)
         print("Files have been renamed.")
     else:
         print("Renaming was canceled by the user.")

@@ -31,7 +31,6 @@ pytest --cov=src --cov-report=html
 pytest tests/ai/           # AI client & prompts
 pytest tests/analysis/     # Analysis logic
 pytest tests/files/        # File operations
-pytest tests/storage/      # Database & cache
 pytest tests/cli/          # CLI arguments
 
 # Run a specific test
@@ -90,23 +89,19 @@ src/
 ├── files/            # File I/O operations
 │   ├── extractors.py     # extract_text_from_pdf(), extract_text_from_txt()
 │   ├── operations.py     # is_supported_filetype(), rename_files()
-│   └── processor.py      # process_file(), process_directory()
-│
-├── storage/          # Database & caching
-│   ├── cache.py          # initialize_cache(), delete_cache()
-│   └── database.py       # connect_to_db(), insert_or_update_file(), get_all_suggested_changes()
+│   └── processor.py      # process_file(), process_directory() - Returns change dicts
 │
 ├── cli/              # User interaction
 │   ├── arguments.py      # parse_arguments() - CLI argument parsing
 │   ├── display.py        # handle_suggested_changes() - Display & user prompts
-│   └── workflow.py       # process_path() - Main orchestration
+│   └── workflow.py       # process_path() - Main orchestration, collects changes
 │
 ├── config/           # Configuration
-│   ├── settings.py       # DB_FILE, SUPPORTED_MIMETYPES constants
+│   ├── settings.py       # SUPPORTED_MIMETYPES constants
 │   └── logging.py        # setup_logging()
 │
 └── recommendations/  # Folder suggestions
-    └── recommender.py    # recommend_folder_structure()
+    └── recommender.py    # recommend_folder_structure() - Accepts change list
 ```
 
 ### Test Structure (Mirrors src/)
@@ -124,10 +119,6 @@ tests/
 │   ├── test_extractors.py   # Tests for files/extractors.py
 │   ├── test_operations.py   # Tests for files/operations.py
 │   └── test_processor.py    # Tests for files/processor.py
-├── storage/
-│   ├── test_cache.py        # Tests for storage/cache.py
-│   ├── test_database.py     # Tests for storage/database.py
-│   └── test_inventory.py    # Integration tests
 └── cli/
     └── test_arguments.py    # Tests for cli/arguments.py
 ```
@@ -153,18 +144,15 @@ tests/
 **File Operations** (`src/files/`)
 1. `extractors.py`: Text extraction from .txt and .pdf files
 2. `operations.py`: File validation (`is_supported_filetype()`) and bulk renaming
-3. `processor.py`: File processing orchestration (`process_file()`, `process_directory()`)
-
-**Storage** (`src/storage/`)
-- `cache.py`: SQLite cache initialization and cleanup
-- `database.py`: All SQL operations (connect, insert/update, query)
-- Schema: id, file_path, category, description, vendor, date, suggested_name
-- Cache is ephemeral (deleted on exit)
+3. `processor.py`: File processing orchestration
+   - `process_file()`: Returns `Optional[dict[str, str]]` with change metadata
+   - `process_directory()`: Returns `list[dict[str, str]]` of all changes
+   - In-memory collection replaces database caching
 
 **CLI** (`src/cli/`)
 - `arguments.py`: CLI argument parsing
-- `display.py`: User prompts and suggested changes display
-- `workflow.py`: Main application orchestration
+- `display.py`: User prompts and suggested changes display (accepts changes list)
+- `workflow.py`: Main application orchestration (collects and returns changes)
 
 ### Application Flow
 
@@ -173,11 +161,9 @@ main.py
   ↓
 cli/arguments.py: parse_arguments() → parse CLI args (path, --dry-run, --auto-rename)
   ↓
-storage/cache.py: initialize_cache() → create SQLite DB
-  ↓
 ai/factory.py: create_ai_client() → initialize LLM client based on AI_PROVIDER
   ↓
-cli/workflow.py: process_path() → determine if file or directory
+cli/workflow.py: process_path() → determine if file or directory, collect changes
   ↓
 files/processor.py: process_file() → for each supported file:
   ├─ files/extractors.py: extract_text_from_{pdf|txt}()
@@ -185,13 +171,15 @@ files/processor.py: process_file() → for each supported file:
   ├─ ai/client.py: AIClient.analyze_content() → LangChain structured output
   ├─ analysis/analyzer.py: standardize_analysis() → lowercase, hyphenate
   ├─ analysis/filename.py: generate_filename()
-  └─ storage/database.py: insert_or_update_file()
+  └─ return change dict {file_path, suggested_name, category, vendor, description, date}
   ↓
-cli/display.py: handle_suggested_changes() → display suggestions, get user approval
+files/processor.py: process_directory() → collect all change dicts into list
+  ↓
+cli/workflow.py: process_path() → return collected changes to main
+  ↓
+cli/display.py: handle_suggested_changes(changes) → display suggestions, get user approval
   ↓
 files/operations.py: rename_files() → apply approved changes
-  ↓
-storage/cache.py: delete_cache() → cleanup
 ```
 
 ### Environment Variables
@@ -245,7 +233,7 @@ The domain-driven structure allows focused AI context:
 
 - **Working on AI providers?** → `@src/ai/` loads only AI-related code
 - **Working on file operations?** → `@src/files/` loads only file I/O code
-- **Working on database?** → `@src/storage/` loads only storage code
+- **Working on CLI/workflow?** → `@src/cli/` loads only CLI code
 - **Working on tests?** → `@tests/ai/` loads only AI tests
 
 This reduces context noise by 70-80% compared to flat structure!
@@ -255,11 +243,10 @@ This reduces context noise by 70-80% compared to flat structure!
 Clean, acyclic dependency graph:
 
 ```
-cli/           → depends on: analysis/, files/, storage/
+cli/           → depends on: analysis/, files/
 analysis/      → depends on: ai/, files/
 ai/            → depends on: analysis/models.py only
 files/         → isolated (no internal dependencies)
-storage/       → isolated (no internal dependencies)
 config/        → isolated (leaf node)
 ```
 
@@ -288,19 +275,22 @@ GitHub Actions workflows:
   - Python 3.10
   - Installs dependencies
   - Runs flake8 linting
-  - Runs pytest (46 tests)
+  - Runs pytest
 - **pylint.yml** - Separate pylint workflow
 
 ## Important Notes
 
 - Only `.txt` and `.pdf` files are supported (checked via `is_supported_filetype()`)
-- The cache is ephemeral - deleted on exit, not persisted between runs
 - File renaming preserves file extension
 - Standardization converts category/vendor to lowercase with hyphens (e.g., "Credit Card" → "credit-card")
+- **In-Memory Processing**: File changes are collected in-memory during processing
+  - No persistent storage between runs
+  - Batch review workflow: analyze all → review → apply
+  - Changes passed through function calls as `list[dict[str, str]]`
 - **LangChain Integration**: The application uses LangChain for multi-provider LLM support
   - Use `create_ai_client()` factory (in `src/ai/factory.py`) to initialize the AI client
   - Supports both cloud (OpenAI) and local (Ollama) model providers
   - Local models like DeepSeek can run via Ollama for zero API costs
   - All providers use LangChain's structured output API for reliable metadata extraction
 - **Code Style**: All code formatted with Black (88-character line limit)
-- **Test Coverage**: 46 tests, 100% pass rate
+- **Test Coverage**: Comprehensive test suite with pytest
