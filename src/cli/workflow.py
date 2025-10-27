@@ -16,7 +16,7 @@ __all__ = ["process_path"]
 logger = logging.getLogger(__name__)
 
 
-def process_path(path: str, client: AIClient) -> None:
+def process_path(path: str, client: AIClient) -> list[dict[str, str]]:
     """
     Process a single file or directory.
 
@@ -25,11 +25,12 @@ def process_path(path: str, client: AIClient) -> None:
         client (AIClient): The AI client to use for analysis.
 
     Returns:
-        None
+        list[dict[str, str]]: List of change dictionaries for successfully processed files.
     """
     if os.path.isfile(path):
-        process_file(path, client)
-    elif os.path.isdir(path):
-        process_directory(path, client)
-    else:
-        logger.error("The provided path is neither a file nor a directory.")
+        change = process_file(path, client)
+        return [change] if change else []
+    if os.path.isdir(path):
+        return process_directory(path, client)
+    logger.error("The provided path is neither a file nor a directory.")
+    return []

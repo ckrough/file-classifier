@@ -6,28 +6,33 @@ folder structures.
 """
 
 import logging
-import sqlite3
-
-from src.config.settings import DB_FILE
 
 __all__ = ["recommend_folder_structure"]
 
 logger = logging.getLogger(__name__)
 
 
-def recommend_folder_structure():
+def recommend_folder_structure(changes: list[dict[str, str]]) -> list[str]:
     """
     Recommend a folder structure based on the file categories.
 
-    Analyzes all categorized files in the cache and suggests a folder
-    structure organized by category.
+    Analyzes categorized files and suggests a folder structure organized by category.
+
+    Args:
+        changes (list[dict[str, str]]): List of change dictionaries containing
+            file metadata including category information.
+
+    Returns:
+        list[str]: List of unique categories for folder organization.
     """
-    with sqlite3.connect(DB_FILE) as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT DISTINCT category FROM files WHERE category IS NOT NULL")
-        categories = [row[0] for row in cursor.fetchall()]
+    # Extract unique categories from changes
+    categories = sorted(
+        {change.get("category") for change in changes if change.get("category")}
+    )
 
     # Display recommended structure
     logger.info("Recommended Folder Structure:")
     for category in categories:
         logger.info("- %s", category)
+
+    return categories
