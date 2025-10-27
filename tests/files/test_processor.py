@@ -27,9 +27,10 @@ def test_process_file_not_a_file(mock_logger):
     file_path = "/path/to/directory"
     client = mock.MagicMock()
 
-    with mock.patch(
-        "src.files.processor.os.path.exists", return_value=True
-    ), mock.patch("src.files.processor.os.path.isfile", return_value=False):
+    with (
+        mock.patch("src.files.processor.os.path.exists", return_value=True),
+        mock.patch("src.files.processor.os.path.isfile", return_value=False),
+    ):
         process_file(file_path, client)
 
     mock_logger.error.assert_called_once_with(
@@ -43,10 +44,10 @@ def test_process_file_unsupported_filetype(mock_logger):
     file_path = "/path/to/file.unsupported"
     client = mock.MagicMock()
 
-    with mock.patch(
-        "src.files.processor.os.path.exists", return_value=True
-    ), mock.patch("src.files.processor.os.path.isfile", return_value=True), mock.patch(
-        "src.files.processor.is_supported_filetype", return_value=False
+    with (
+        mock.patch("src.files.processor.os.path.exists", return_value=True),
+        mock.patch("src.files.processor.os.path.isfile", return_value=True),
+        mock.patch("src.files.processor.is_supported_filetype", return_value=False),
     ):
         process_file(file_path, client)
 

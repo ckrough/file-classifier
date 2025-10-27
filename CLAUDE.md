@@ -64,6 +64,95 @@ PYTHONPATH=/Users/crow/Documents/code/file-classifier pylint src/
 bandit -c pyproject.toml -r src/
 ```
 
+## Claude Code Verification Workflow
+
+**IMPORTANT**: Claude Code must follow this verification workflow before staging any changes to `src/` files.
+
+### Pre-Commit Verification Steps
+
+When preparing to stage changes, Claude Code **MUST** run these checks in order:
+
+1. **Code Quality Checks**
+   ```bash
+   black .                                                        # Format code
+   flake8 src/ tests/                                            # Lint code
+   PYTHONPATH=/Users/crow/Documents/code/file-classifier pylint src/  # Static analysis
+   ```
+
+2. **Test Suite**
+   ```bash
+   PYTHONPATH=/Users/crow/Documents/code/file-classifier pytest  # Run all tests
+   ```
+
+3. **Performance Quality Gate** ⚡
+   ```bash
+   ./scripts/run_performance_gate.sh  # Check performance regressions
+   ```
+
+### Performance Gate Decision Tree
+
+After running `./scripts/run_performance_gate.sh`:
+
+**Exit Code 0** → `[SUCCESS]`
+- ✅ No performance regressions detected
+- ✅ Proceed with staging changes
+- ✅ Ready to commit
+
+**Exit Code 1** → `[WARNING] PERFORMANCE REGRESSION DETECTED`
+- ⚠️  One or more functions are >15% slower than baseline
+- Claude Code **MUST** present options to user:
+
+  **Option 1: Optimize**
+  - Review the benchmark output above
+  - Identify slow functions
+  - Optimize code and re-run verification
+
+  **Option 2: Accept Regression**
+  - If performance trade-off is acceptable (e.g., improved correctness)
+  - Update baseline to accept new performance characteristics:
+    ```bash
+    ./scripts/update_baseline.sh
+    ```
+  - Then proceed with staging
+
+  **Option 3: Skip Check** (Use sparingly)
+  - If working on non-performance-critical changes
+  - User explicitly approves skipping
+  - Proceed with staging (regression noted for later)
+
+### Performance Quality Gate Details
+
+**Automated performance regression detection** - Runs automatically before staging changes.
+
+```bash
+# Check performance impact of staged changes (run before commits)
+./scripts/run_performance_gate.sh
+
+# Generate initial baseline (first time setup)
+./scripts/generate_baseline.sh
+
+# Update baseline after intentional performance changes
+./scripts/update_baseline.sh
+
+# Run all benchmarks manually
+PYTHONPATH=/Users/crow/Documents/code/file-classifier pytest -m benchmark --benchmark-only
+
+# Compare current code against baseline
+PYTHONPATH=/Users/crow/Documents/code/file-classifier pytest -m benchmark --benchmark-compare=baseline
+```
+
+**How It Works:**
+1. **Smart Detection**: Analyzes staged git changes using naming convention (`analyzer.py` → `bench_analyzer`)
+2. **Targeted Execution**: Only runs benchmarks for changed code (5-15 second feedback)
+3. **Regression Detection**: Compares against local baseline, warns if >15% slower
+4. **Soft Warning**: Blocks with warning but allows override for intentional trade-offs
+
+**Benchmarked Functions:**
+- `src/analysis/analyzer.py::standardize_analysis()` - String normalization
+- `src/analysis/filename.py::generate_filename()` - Filename construction
+- `src/files/operations.py` - Path manipulation patterns
+- `src/ai/prompts.py::get_file_analysis_prompt()` - Cache effectiveness
+
 ## Architecture
 
 ### Domain-Driven Structure
