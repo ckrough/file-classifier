@@ -25,7 +25,8 @@ def process_path(path: str, client: AIClient) -> list[dict[str, str]]:
         client (AIClient): The AI client to use for analysis.
 
     Returns:
-        list[dict[str, str]]: List of change dictionaries for successfully processed files.
+        list[dict[str, str]]: List of change dicts for processed
+            files.
     """
     if os.path.isfile(path):
         change = process_file(path, client)

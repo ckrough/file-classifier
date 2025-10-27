@@ -1,8 +1,8 @@
 """
 Data models for file analysis.
 
-This module defines the `Analysis` model, which represents the analyzed metadata of a file.
-The `Analysis` model is utilized throughout the application to standardize data handling.
+Defines the `Analysis` model for representing analyzed file metadata.
+Used throughout the application to standardize data handling.
 """
 
 from typing import Optional

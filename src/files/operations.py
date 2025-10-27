@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 # Module-level singleton for MIME detection
 # Initialized lazily on first use to avoid loading the MIME database at import time
-_MIME_DETECTOR = None
+_MIME_DETECTOR = None  # pylint: disable=invalid-name
 
 
 def _get_mime_detector() -> magic.Magic:
@@ -31,7 +31,7 @@ def _get_mime_detector() -> magic.Magic:
     Returns:
         magic.Magic: Cached Magic instance for MIME detection.
     """
-    global _MIME_DETECTOR
+    global _MIME_DETECTOR  # pylint: disable=global-statement
     if _MIME_DETECTOR is None:
         _MIME_DETECTOR = magic.Magic(mime=True)
         logger.debug("Initialized singleton MIME detector")
