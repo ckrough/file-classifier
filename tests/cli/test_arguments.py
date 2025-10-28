@@ -1,7 +1,6 @@
 """Unit tests for CLI argument parsing."""
 
 import sys
-from unittest import mock
 
 import pytest
 
@@ -46,7 +45,8 @@ def test_get_user_arguments_without_dry_run() -> None:
 
 @pytest.mark.usefixtures("clear_sys_argv")
 def test_get_user_arguments_with_all_flags() -> None:
-    """Test that all flags (--dry-run and --auto-rename) are correctly parsed together."""
+    """Test that all flags (--dry-run and --auto-rename) are correctly parsed
+    together."""
     test_path = "another/path"
     sys.argv = ["script.py", test_path, "--dry-run", "--auto-rename"]
 
@@ -61,7 +61,8 @@ def test_get_user_arguments_with_all_flags() -> None:
 
 @pytest.mark.usefixtures("clear_sys_argv")
 def test_get_user_arguments_with_auto_rename_only() -> None:
-    """Test that the --auto-rename flag is correctly parsed when present without --dry-run."""
+    """Test that the --auto-rename flag is correctly parsed when present
+    without --dry-run."""
     test_path = "path/without/dryrun"
     sys.argv = ["script.py", test_path, "--auto-rename"]
 

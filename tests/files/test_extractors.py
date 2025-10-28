@@ -58,9 +58,8 @@ def test_extract_text_from_nonexistent_pdf(tmp_path, caplog):
 
 
 def test_extract_text_from_txt_invalid_encoding(tmp_path, caplog):
-    """
-    Test that extraction from a TXT file with invalid encoding returns None and logs an error.
-    """
+    """Test that extraction from a TXT file with invalid encoding
+    returns None and logs an error."""
     file_path = tmp_path / "invalid.txt"
     # Write bytes that are not valid UTF-8
     file_path.write_bytes(b"\xff\xfe\xfa")

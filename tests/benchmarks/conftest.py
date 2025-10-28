@@ -32,7 +32,8 @@ def sample_analysis_complex() -> Analysis:
     return Analysis(
         category="Financial Statement Quarterly Report",
         vendor="International Business Machines Corporation",
-        description="Comprehensive Quarterly Financial Analysis and Performance Metrics",
+        description="Comprehensive Quarterly Financial Analysis "
+        "and Performance Metrics",
         date="2024-01-15",
     )
 

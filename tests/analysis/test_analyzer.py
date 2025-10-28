@@ -58,9 +58,7 @@ def test_analyze_file_content_pdf(mock_multi_agent, mock_extract_pdf):
     mock_ai_client = Mock()
 
     # Test with a .pdf file
-    result = analyze_file_content(
-        file_path="docs/report.pdf", client=mock_ai_client
-    )
+    result = analyze_file_content(file_path="docs/report.pdf", client=mock_ai_client)
 
     suggested_name, category, vendor, description, date = result
 
@@ -102,9 +100,7 @@ def test_analyze_file_content_complex_filename(mock_multi_agent, mock_extract_pd
 
     mock_ai_client = Mock()
 
-    result = analyze_file_content(
-        file_path="test.pdf", client=mock_ai_client
-    )
+    result = analyze_file_content(file_path="test.pdf", client=mock_ai_client)
 
     suggested_name, category, vendor, description, date = result
 
@@ -130,9 +126,7 @@ def test_analyze_file_content_no_date(mock_multi_agent, mock_extract_pdf):
 
     mock_ai_client = Mock()
 
-    result = analyze_file_content(
-        file_path="test.pdf", client=mock_ai_client
-    )
+    result = analyze_file_content(file_path="test.pdf", client=mock_ai_client)
 
     suggested_name, category, vendor, description, date = result
 

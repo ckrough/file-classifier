@@ -27,9 +27,7 @@ __all__ = ["standardize_metadata"]
 logger = logging.getLogger(__name__)
 
 
-def standardize_metadata(
-    raw: RawMetadata, ai_client: AIClient
-) -> NormalizedMetadata:
+def standardize_metadata(raw: RawMetadata, ai_client: AIClient) -> NormalizedMetadata:
     """
     Apply document archival system naming conventions to raw metadata.
 

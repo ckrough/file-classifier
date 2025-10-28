@@ -22,9 +22,7 @@ __all__ = ["classify_document"]
 logger = logging.getLogger(__name__)
 
 
-def classify_document(
-    content: str, filename: str, ai_client: AIClient
-) -> RawMetadata:
+def classify_document(content: str, filename: str, ai_client: AIClient) -> RawMetadata:
     """
     Analyze document content to extract raw semantic metadata.
 

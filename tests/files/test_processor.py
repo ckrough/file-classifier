@@ -67,7 +67,8 @@ def test_process_file_unsupported_filetype(mock_logger):
 def test_process_file_analysis_failure(
     mock_logger, _mock_exists, _mock_isfile, _mock_supported, mock_analyze
 ):
-    """Test that process_file logs an error when analyze_file_content raises an exception."""
+    """Test that process_file logs an error when
+    analyze_file_content raises an exception."""
     file_path = "/path/to/file.txt"
     client = mock.MagicMock()
 

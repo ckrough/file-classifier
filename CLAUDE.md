@@ -18,12 +18,11 @@ Generates intelligent directory paths and filenames based on deep content analys
 ### Environment Setup
 ```bash
 # Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate  # or .venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 
-# Install dependencies
-pip install -r requirements.txt
-pip install -r dev-requirements.txt
+# Install dependencies (includes both runtime and dev dependencies)
+pip install -e ".[dev]"
 ```
 
 ### Testing
@@ -31,8 +30,8 @@ pip install -r dev-requirements.txt
 # Run all tests
 pytest
 
-# Run tests with coverage
-pytest --cov=src --cov-report=html
+# Run tests with coverage (terminal + HTML report)
+pytest --cov=src --cov-report=term-missing --cov-report=html
 
 # Run domain-specific tests
 pytest tests/ai/           # AI client & prompts
@@ -40,24 +39,69 @@ pytest tests/analysis/     # Analysis logic
 pytest tests/files/        # File operations
 pytest tests/cli/          # CLI arguments
 
+# Run tests by marker (configured in pyproject.toml)
+pytest -m "unit"                              # Unit tests only
+pytest -m "not slow and not benchmark"        # Fast tests (matches CI)
+pytest -m "functional"                        # Integration tests
+
 # Run a specific test
 pytest tests/ai/test_client.py::test_langchain_client_init_openai
+
+# Run with verbose output
+pytest -v --tb=long
 ```
 
-### Linting
+### Code Quality
+
+#### Pre-Commit Checklist
+Run these commands before git staging file changes (recommended order):
+
 ```bash
-# Run pylint on all source files
-pylint src/
-
-# Run pylint on a specific domain
-pylint src/ai/
-
-# Run flake8 (used in CI)
-flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-
-# Format with Black
+# 1. Format code (auto-fixes issues)
 black src/ tests/
+
+# 2. Lint - Flake8 (two-pass approach, matches CI)
+flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics  # Critical errors
+flake8 . --count --exit-zero --max-complexity=10 --statistics        # All warnings
+
+# 3. Lint - Pylint (requires PYTHONPATH)
+PYTHONPATH=/Users/crow/Documents/code/file-classifier pylint src/
+
+# 4. Security scan
+bandit -r src/ -c pyproject.toml
+
+# 5. Run tests with coverage
+pytest --cov=src --cov-report=term-missing --cov-report=html
+```
+
+#### Configuration Files
+- **Black**: Configured in `pyproject.toml` (line-length=88)
+- **Flake8**: Auto-reads `.flake8` config (extends Black compatibility)
+- **Pylint**: Configured in `pyproject.toml` (max-line-length=88)
+- **Bandit**: Configured in `pyproject.toml` (excludes tests, allows assertions)
+- **Pytest**: Configured in `pyproject.toml` (markers: unit, functional, slow, benchmark)
+
+#### Individual Tool Commands
+```bash
+# Black - Code formatting
+black src/ tests/
+black --check src/ tests/  # Check without modifying
+
+# Flake8 - Linting (auto-reads .flake8)
+flake8 .                   # Use .flake8 config
+flake8 src/                # Check only src/
+
+# Pylint - Deep analysis
+PYTHONPATH=$(pwd) pylint src/
+
+# Bandit - Security scanning
+bandit -r src/ -c pyproject.toml
+bandit -r src/ -ll         # Low severity only
+
+# Pytest - Testing
+pytest                                           # All tests
+pytest --cov=src --cov-report=term-missing      # With coverage
+pytest -m "not slow and not benchmark"          # Exclude slow tests (matches CI)
 ```
 
 ### Running the Application
@@ -376,11 +420,14 @@ config/        → isolated (leaf node)
 
 GitHub Actions workflows:
 - **python-app.yml** - Runs on push/PR to main:
-  - Python 3.10
-  - Installs dependencies
-  - Runs flake8 linting
-  - Runs pytest
-- **pylint.yml** - Separate pylint workflow
+  - Python 3.11 (minimum version, as specified in pyproject.toml)
+  - Installs dependencies via `pip install -e ".[dev]"`
+  - Runs flake8 linting (two-pass: critical errors + all warnings)
+  - Runs pytest (excludes slow, functional, and benchmark tests)
+- **pylint.yml** - Separate pylint workflow:
+  - Python 3.11
+  - Sets PYTHONPATH for import resolution
+  - Runs `pylint src/` with pyproject.toml configuration
 
 ## Important Notes
 

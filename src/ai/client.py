@@ -197,10 +197,10 @@ class LangChainClient(AIClient):
                 f"Missing required prompt variable: {ke.args[0]}"
             ) from ke
         except ValidationError as ve:
-            logger.error(
-                "Validation error while parsing schema: %s", ve, exc_info=True
-            )
-            raise RuntimeError("Validation error while parsing structured output.") from ve
+            logger.error("Validation error while parsing schema: %s", ve, exc_info=True)
+            raise RuntimeError(
+                "Validation error while parsing structured output."
+            ) from ve
         except Exception as e:
             logger.exception("Error communicating with LLM provider: %s", self.provider)
             raise RuntimeError(f"Error communicating with {self.provider} API.") from e

@@ -58,22 +58,27 @@ class RawMetadata(BaseModel):
 
     domain: str = Field(
         ...,
-        description="Primary domain: Financial, Property, Insurance, Tax, Legal, Medical",
+        description="Primary domain: Financial, Property, Insurance, Tax, "
+        "Legal, Medical",
     )
     category: str = Field(
         ...,
-        description="Functional category within domain (e.g., Banking, Real_Estate, Health)",
+        description="Functional category within domain "
+        "(e.g., Banking, Real_Estate, Health)",
     )
     doctype: str = Field(
         ...,
-        description="Document type: statement, receipt, invoice, policy, deed, title, etc.",
+        description="Document type: statement, receipt, invoice, policy, "
+        "deed, title, etc.",
     )
     vendor_raw: str = Field(
-        ..., description="Raw vendor name as found in document (e.g., 'Bank of America')"
+        ...,
+        description="Raw vendor name as found in document " "(e.g., 'Bank of America')",
     )
     date_raw: str = Field(
         ...,
-        description="Most relevant date in document (invoice date preferred over transaction date)",
+        description="Most relevant date in document "
+        "(invoice date preferred over transaction date)",
     )
     subject_raw: str = Field(
         ..., description="Raw subject matter or purpose (e.g., 'wire transfer')"
@@ -94,18 +99,15 @@ class NormalizedMetadata(BaseModel):
     - Concise subjects (1-3 words)
     """
 
-    domain: str = Field(
-        ..., description="Normalized domain name (unchanged from raw)"
-    )
+    domain: str = Field(..., description="Normalized domain name (unchanged from raw)")
     category: str = Field(
         ..., description="Normalized category name (unchanged from raw)"
     )
-    doctype: str = Field(
-        ..., description="Standardized document type vocabulary"
-    )
+    doctype: str = Field(..., description="Standardized document type vocabulary")
     vendor_name: str = Field(
         ...,
-        description="Standardized vendor name (e.g., 'bank_of_america', 'smith_john_md')",
+        description="Standardized vendor name "
+        "(e.g., 'bank_of_america', 'smith_john_md')",
     )
     date: str = Field(
         ...,
@@ -122,22 +124,21 @@ class PathMetadata(BaseModel):
     Path and filename constructed by the Path Construction Agent.
 
     Follows the document archival system directory taxonomy:
-    - directory_path: Domain/Category/Vendor/ (with special cases like Tax/Federal/2024/)
+    - directory_path: Domain/Category/Vendor/
+      (with special cases like Tax/Federal/2024/)
     - filename: doctype-vendor-subject-YYYYMMDD.ext
     - full_path: Complete path combining directory and filename
     """
 
     directory_path: str = Field(
         ...,
-        description="Directory path following taxonomy: Domain/Category/Vendor/",
+        description="Directory path following taxonomy: " "Domain/Category/Vendor/",
     )
     filename: str = Field(
         ...,
         description="Standardized filename: doctype-vendor-subject-YYYYMMDD",
     )
-    full_path: str = Field(
-        ..., description="Complete path: directory_path + filename"
-    )
+    full_path: str = Field(..., description="Complete path: directory_path + filename")
 
 
 class ResolvedMetadata(BaseModel):
@@ -153,7 +154,8 @@ class ResolvedMetadata(BaseModel):
     )
     alternative_paths: Optional[list[str]] = Field(
         None,
-        description="Alternative placement options if document serves multiple purposes",
+        description="Alternative placement options if document serves "
+        "multiple purposes",
     )
     resolution_notes: Optional[str] = Field(
         None,
