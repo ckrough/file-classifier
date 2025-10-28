@@ -12,6 +12,7 @@ from src.analysis.models import Analysis
 # LangChainClient Tests
 
 
+@pytest.mark.unit
 @patch("src.ai.client.os.getenv")
 def test_langchain_client_init_openai(mock_getenv):
     """Test that LangChainClient initializes successfully with OpenAI provider."""
@@ -29,6 +30,7 @@ def test_langchain_client_init_openai(mock_getenv):
     assert client.provider == "openai"
 
 
+@pytest.mark.unit
 @patch("src.ai.client.os.getenv")
 def test_langchain_client_init_ollama(mock_getenv):
     """Test that LangChainClient initializes successfully with Ollama provider."""
@@ -46,6 +48,7 @@ def test_langchain_client_init_ollama(mock_getenv):
     assert client.provider == "ollama"
 
 
+@pytest.mark.unit
 @patch("src.ai.client.os.getenv")
 def test_langchain_client_unsupported_provider(mock_getenv):
     """Test that LangChainClient raises ValueError for unsupported providers."""
@@ -55,6 +58,7 @@ def test_langchain_client_unsupported_provider(mock_getenv):
     assert "Unsupported provider" in str(excinfo.value)
 
 
+@pytest.mark.unit
 @patch("src.ai.client.os.getenv")
 def test_langchain_client_analyze_content(mock_getenv):
     """Test that LangChainClient.analyze_content returns structured Analysis object."""
@@ -103,6 +107,7 @@ def test_langchain_client_analyze_content(mock_getenv):
 # Factory Function Tests
 
 
+@pytest.mark.unit
 @patch("src.ai.client.os.getenv")
 def test_create_ai_client_default_openai(mock_getenv):
     """Test that create_ai_client defaults to OpenAI with LangChain."""
@@ -123,6 +128,7 @@ def test_create_ai_client_default_openai(mock_getenv):
         assert isinstance(client, LangChainClient)
 
 
+@pytest.mark.unit
 @patch("src.ai.client.os.getenv")
 def test_create_ai_client_ollama(mock_getenv):
     """Test that create_ai_client creates Ollama client when specified."""
