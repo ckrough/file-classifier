@@ -86,7 +86,7 @@ def test_analyze_file_content_extraction_failure(mock_extract_txt):
     mock_ai_client = Mock()
     with pytest.raises(RuntimeError) as exc_info:
         analyze_file_content(file_path="docs/invalid.txt", client=mock_ai_client)
-    assert "Error analyzing file content" in str(exc_info.value)
+    assert "Failed to extract content" in str(exc_info.value)
     mock_extract_txt.assert_called_once_with("docs/invalid.txt")
 
 

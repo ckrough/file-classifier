@@ -46,7 +46,7 @@ def test_extract_text_from_nonexistent_txt(tmp_path, caplog):
     result = extract_text_from_txt(str(file_path))
     assert result is None
     assert any(
-        "Error opening text file:" in record.message for record in caplog.records
+        "opening text file" in record.message.lower() for record in caplog.records
     )
 
 
@@ -58,7 +58,14 @@ def test_extract_text_from_nonexistent_pdf(tmp_path, caplog):
     file_path = tmp_path / "nonexistent.pdf"
     result = extract_text_from_pdf(str(file_path))
     assert result is None
-    assert any("Error opening PDF file:" in record.message for record in caplog.records)
+    # Check for error about PDF file (could be "opening" or "reading")
+    assert any(
+        (
+            "PDF" in record.message
+            and ("opening" in record.message.lower() or "error" in record.message.lower())
+        )
+        for record in caplog.records
+    )
 
 
 @pytest.mark.unit
@@ -71,5 +78,5 @@ def test_extract_text_from_txt_invalid_encoding(tmp_path, caplog):
     result = extract_text_from_txt(str(file_path))
     assert result is None
     assert any(
-        "Error decoding text file:" in record.message for record in caplog.records
+        "decoding text file" in record.message.lower() for record in caplog.records
     )

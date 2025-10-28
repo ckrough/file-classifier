@@ -55,7 +55,7 @@ def test_langchain_client_unsupported_provider(mock_getenv):
     mock_getenv.return_value = None
     with pytest.raises(ValueError) as excinfo:
         LangChainClient(provider="unsupported_provider")
-    assert "Unsupported provider" in str(excinfo.value)
+    assert "Unsupported AI provider" in str(excinfo.value)
 
 
 @pytest.mark.unit
