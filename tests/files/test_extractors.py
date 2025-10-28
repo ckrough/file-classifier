@@ -9,6 +9,7 @@ from src.files.extractors import extract_text_from_pdf, extract_text_from_txt
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.unit
 def test_extract_text_from_txt(tmp_path):
     """
     Test the extraction of text from a plain text file.
@@ -19,6 +20,7 @@ def test_extract_text_from_txt(tmp_path):
     assert result == "This is a sample text for testing."
 
 
+@pytest.mark.unit
 def test_extract_text_from_pdf(tmp_path):
     """
     Test the extraction of text from a PDF file.
@@ -35,6 +37,7 @@ def test_extract_text_from_pdf(tmp_path):
     assert "This is a sample text for testing." in result
 
 
+@pytest.mark.unit
 def test_extract_text_from_nonexistent_txt(tmp_path, caplog):
     """
     Test that extraction from a non-existent TXT file returns None and logs an error.
@@ -47,6 +50,7 @@ def test_extract_text_from_nonexistent_txt(tmp_path, caplog):
     )
 
 
+@pytest.mark.unit
 def test_extract_text_from_nonexistent_pdf(tmp_path, caplog):
     """
     Test that extraction from a non-existent PDF file returns None and logs an error.
@@ -57,6 +61,7 @@ def test_extract_text_from_nonexistent_pdf(tmp_path, caplog):
     assert any("Error opening PDF file:" in record.message for record in caplog.records)
 
 
+@pytest.mark.unit
 def test_extract_text_from_txt_invalid_encoding(tmp_path, caplog):
     """Test that extraction from a TXT file with invalid encoding
     returns None and logs an error."""
@@ -68,7 +73,3 @@ def test_extract_text_from_txt_invalid_encoding(tmp_path, caplog):
     assert any(
         "Error decoding text file:" in record.message for record in caplog.records
     )
-
-
-if __name__ == "__main__":
-    pytest.main()

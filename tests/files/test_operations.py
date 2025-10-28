@@ -7,6 +7,7 @@ import pytest
 from src.files.operations import is_supported_filetype, rename_files
 
 
+@pytest.mark.unit
 def test_is_supported_filetype(tmp_path):
     """Test if the file type is supported."""
     # Create a supported text file.
@@ -20,6 +21,7 @@ def test_is_supported_filetype(tmp_path):
     assert is_supported_filetype(str(bin_file)) is False
 
 
+@pytest.mark.unit
 @mock.patch("os.rename")
 @mock.patch("src.files.operations.logger")
 def test_rename_files_success(mock_logger, mock_rename):
@@ -45,6 +47,7 @@ def test_rename_files_success(mock_logger, mock_rename):
     )
 
 
+@pytest.mark.unit
 @mock.patch("os.rename", side_effect=OSError("Rename failed"))
 @mock.patch("src.files.operations.logger")
 def test_rename_files_rename_error(mock_logger, mock_rename):
@@ -66,6 +69,7 @@ def test_rename_files_rename_error(mock_logger, mock_rename):
     )
 
 
+@pytest.mark.integration
 def test_rename_files_preserves_extension_integration(tmp_path):
     """Integration test: Test that rename_files preserves file extensions."""
     # Create a temporary file with an extension
@@ -91,6 +95,7 @@ def test_rename_files_preserves_extension_integration(tmp_path):
     ), "File content should remain unchanged"
 
 
+@pytest.mark.integration
 def test_rename_files_uppercase_extension(tmp_path):
     """Test that rename_files preserves uppercase extensions (e.g., .PDF)."""
     original_file = tmp_path / "document.PDF"
@@ -109,6 +114,7 @@ def test_rename_files_uppercase_extension(tmp_path):
     ), "File content should remain unchanged"
 
 
+@pytest.mark.integration
 def test_rename_files_multiple_dots_in_filename(tmp_path):
     """Test that rename_files correctly handles filenames with multiple dots."""
     original_file = tmp_path / "archive.backup.tar.gz"

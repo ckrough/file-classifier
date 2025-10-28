@@ -7,6 +7,7 @@ import pytest
 from src.files.processor import process_file
 
 
+@pytest.mark.unit
 @mock.patch("src.files.processor.logger")
 def test_process_file_file_not_exists(mock_logger):
     """Test that process_file logs an error when the file does not exist."""
@@ -21,6 +22,7 @@ def test_process_file_file_not_exists(mock_logger):
     )
 
 
+@pytest.mark.unit
 @mock.patch("src.files.processor.logger")
 def test_process_file_not_a_file(mock_logger):
     """Test that process_file logs an error when the path is not a file."""
@@ -38,6 +40,7 @@ def test_process_file_not_a_file(mock_logger):
     )
 
 
+@pytest.mark.unit
 @mock.patch("src.files.processor.logger")
 def test_process_file_unsupported_filetype(mock_logger):
     """Test that process_file logs an error when the file type is unsupported."""
@@ -56,6 +59,7 @@ def test_process_file_unsupported_filetype(mock_logger):
     )
 
 
+@pytest.mark.unit
 @mock.patch(
     "src.files.processor.analyze_file_content",
     side_effect=RuntimeError("Analysis failed"),
