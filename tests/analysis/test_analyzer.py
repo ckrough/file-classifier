@@ -6,6 +6,7 @@ from src.analysis.analyzer import analyze_file_content
 from src.analysis.models import ResolvedMetadata
 
 
+@pytest.mark.unit
 @patch("src.analysis.analyzer.extract_text_from_txt")
 @patch("src.analysis.analyzer.process_document_multi_agent")
 def test_analyze_file_content_txt(mock_multi_agent, mock_extract_txt):
@@ -42,6 +43,7 @@ def test_analyze_file_content_txt(mock_multi_agent, mock_extract_txt):
     )
 
 
+@pytest.mark.unit
 @patch("src.analysis.analyzer.extract_text_from_pdf")
 @patch("src.analysis.analyzer.process_document_multi_agent")
 def test_analyze_file_content_pdf(mock_multi_agent, mock_extract_pdf):
@@ -76,6 +78,7 @@ def test_analyze_file_content_pdf(mock_multi_agent, mock_extract_pdf):
     )
 
 
+@pytest.mark.unit
 @patch("src.analysis.analyzer.extract_text_from_txt")
 def test_analyze_file_content_extraction_failure(mock_extract_txt):
     """Test that analyze_file_content raises RuntimeError on extraction failure."""
@@ -87,6 +90,7 @@ def test_analyze_file_content_extraction_failure(mock_extract_txt):
     mock_extract_txt.assert_called_once_with("docs/invalid.txt")
 
 
+@pytest.mark.unit
 @patch("src.analysis.analyzer.extract_text_from_pdf")
 @patch("src.analysis.analyzer.process_document_multi_agent")
 def test_analyze_file_content_complex_filename(mock_multi_agent, mock_extract_pdf):
@@ -117,6 +121,7 @@ def test_analyze_file_content_complex_filename(mock_multi_agent, mock_extract_pd
     )
 
 
+@pytest.mark.unit
 @patch("src.analysis.analyzer.extract_text_from_pdf")
 @patch("src.analysis.analyzer.process_document_multi_agent")
 def test_analyze_file_content_no_date(mock_multi_agent, mock_extract_pdf):

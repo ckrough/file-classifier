@@ -16,6 +16,7 @@ def clear_sys_argv():
     sys.argv = original_argv  # Restore original argv after test
 
 
+@pytest.mark.unit
 @pytest.mark.usefixtures("clear_sys_argv")
 def test_get_user_arguments_with_dry_run() -> None:
     """Test that the --dry-run flag is correctly parsed when present."""
@@ -30,6 +31,7 @@ def test_get_user_arguments_with_dry_run() -> None:
     assert args.move is False, "move should be False by default"
 
 
+@pytest.mark.unit
 def test_get_user_arguments_without_dry_run() -> None:
     """Test that the --dry-run flag is correctly parsed when absent."""
     test_path = "some/path"
@@ -45,6 +47,7 @@ def test_get_user_arguments_without_dry_run() -> None:
     assert args.move is False, "move should be False by default"
 
 
+@pytest.mark.unit
 @pytest.mark.usefixtures("clear_sys_argv")
 def test_get_user_arguments_with_destination_and_move() -> None:
     """Test that --destination and --move flags are correctly parsed together."""
@@ -59,6 +62,7 @@ def test_get_user_arguments_with_destination_and_move() -> None:
     assert args.path == test_path, f"Path should be '{test_path}'"
 
 
+@pytest.mark.unit
 @pytest.mark.usefixtures("clear_sys_argv")
 def test_get_user_arguments_with_destination_only() -> None:
     """Test that --destination without --move is accepted (but move is disabled)."""
@@ -73,6 +77,7 @@ def test_get_user_arguments_with_destination_only() -> None:
     assert args.path == test_path, f"Path should be '{test_path}'"
 
 
+@pytest.mark.unit
 @pytest.mark.usefixtures("clear_sys_argv")
 def test_get_user_arguments_move_without_destination_fails() -> None:
     """Test that --move without --destination raises SystemExit."""
@@ -85,6 +90,7 @@ def test_get_user_arguments_move_without_destination_fails() -> None:
     assert exc_info.value.code == 2, "SystemExit code should be 2 for validation error"
 
 
+@pytest.mark.unit
 @pytest.mark.usefixtures("clear_sys_argv")
 def test_get_user_arguments_missing_path() -> None:
     """Test that missing required 'path' argument raises SystemExit."""
@@ -96,6 +102,7 @@ def test_get_user_arguments_missing_path() -> None:
     assert exc_info.value.code == 2, "SystemExit code should be 2 for missing argument"
 
 
+@pytest.mark.unit
 @pytest.mark.usefixtures("clear_sys_argv")
 def test_get_user_arguments_invalid_flag() -> None:
     """Test that an invalid flag raises SystemExit."""
@@ -108,6 +115,7 @@ def test_get_user_arguments_invalid_flag() -> None:
     assert exc_info.value.code == 2, "SystemExit code should be 2 for invalid flag"
 
 
+@pytest.mark.unit
 @pytest.mark.usefixtures("clear_sys_argv")
 def test_get_user_arguments_path_with_spaces() -> None:
     """Test that paths containing spaces are handled correctly."""
@@ -119,6 +127,7 @@ def test_get_user_arguments_path_with_spaces() -> None:
     assert args.path == test_path, f"Path should be '{test_path}'"
 
 
+@pytest.mark.unit
 @pytest.mark.usefixtures("clear_sys_argv")
 def test_get_user_arguments_multiple_paths() -> None:
     """Test that only the first positional argument is accepted as the path."""
