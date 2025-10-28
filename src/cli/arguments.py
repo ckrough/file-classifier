@@ -19,17 +19,38 @@ def parse_arguments() -> argparse.Namespace:
 
     Returns:
         argparse.Namespace: The parsed command line arguments.
+
+    Raises:
+        SystemExit: If --move is specified without --destination.
     """
-    parser = argparse.ArgumentParser(description="File Analyzer Application")
+    parser = argparse.ArgumentParser(
+        description="AI-powered file classifier and archival tool"
+    )
     parser.add_argument(
         "path", type=str, help="Path to the file or directory to be analyzed"
     )
     parser.add_argument(
-        "--auto-rename", action="store_true", help="Always rename the file[s]"
+        "--destination",
+        type=str,
+        help="Root directory for archive structure (files will be moved to "
+        "Domain/Category/Vendor/ subdirectories under this root)",
+    )
+    parser.add_argument(
+        "--move",
+        action="store_true",
+        help="Enable file moving to destination archive structure "
+        "(requires --destination)",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Execute a dry run without renaming files",
+        help="Preview changes without executing (works for both rename and move)",
     )
-    return parser.parse_args()
+
+    args = parser.parse_args()
+
+    # Validate that --move requires --destination
+    if args.move and not args.destination:
+        parser.error("--move requires --destination to be specified")
+
+    return args

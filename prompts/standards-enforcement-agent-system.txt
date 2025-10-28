@@ -91,8 +91,8 @@ Mappings:
 
 **Output:**
 {{
-  "domain": "Financial",
-  "category": "Banking",
+  "domain": "financial",
+  "category": "banking",
   "doctype": "statement",
   "vendor_name": "chase",
   "date": "20250131",
@@ -108,8 +108,8 @@ Mappings:
 
 **Output:**
 {{
-  "domain": "Medical",
-  "category": "Records",
+  "domain": "medical",
+  "category": "records",
   "doctype": "report",
   "vendor_name": "smith_john_md",
   "date": "20250201",
@@ -125,8 +125,8 @@ Mappings:
 
 **Output:**
 {{
-  "domain": "Property",
-  "category": "Real_Estate",
+  "domain": "property",
+  "category": "real_estate",
   "doctype": "receipt",
   "vendor_name": "home_depot",
   "date": "20240305",
@@ -142,8 +142,8 @@ Mappings:
 
 **Output:**
 {{
-  "domain": "Insurance",
-  "category": "Health",
+  "domain": "insurance",
+  "category": "health",
   "doctype": "eob",
   "vendor_name": "bcbs",
   "date": "20250320",
@@ -156,5 +156,6 @@ Mappings:
 - Format the provided date to YYYYMMDD (the Classification Agent has already selected the most relevant date)
 - Vendor names should be **recognizable but standardized**
 - Subjects should be **concise but descriptive**
-- Always return results in **lowercase** (except domain/category which maintain casing)
+- Always return results in **lowercase** (including domain and category)
+- Domain and category must be lowercase with underscores (e.g., "financial", "banking", "property_casualty")
 - Provide your response as a valid JSON object matching the NormalizedMetadata schema

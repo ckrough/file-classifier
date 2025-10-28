@@ -43,7 +43,10 @@ def main() -> None:
         if args.path:
             changes = process_path(args.path, client)
             handle_suggested_changes(
-                changes, dry_run=args.dry_run, auto_rename=args.auto_rename
+                changes,
+                dry_run=args.dry_run,
+                destination_root=args.destination,
+                move_enabled=args.move,
             )
         else:
             logger.error("Please provide a valid path to a file or directory.")

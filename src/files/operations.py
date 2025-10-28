@@ -7,12 +7,13 @@ file types and renaming files based on analysis results.
 
 import logging
 import os
+import shutil
 
 import magic
 
 from src.config.settings import SUPPORTED_MIMETYPES
 
-__all__ = ["is_supported_filetype", "rename_files"]
+__all__ = ["is_supported_filetype", "rename_files", "move_files"]
 
 logger = logging.getLogger(__name__)
 
@@ -107,3 +108,85 @@ def rename_files(suggested_changes: list[dict[str, str]]) -> None:
                 exc_info=True,
             )
             raise
+
+
+def move_files(
+    suggested_changes: list[dict[str, str]],
+    destination_root: str,
+    dry_run: bool = False,
+) -> dict[str, list[str]]:
+    """
+    Move files to archive directory structure based on suggested changes.
+
+    Creates the full directory taxonomy (Domain/Category/Vendor/) under the
+    destination root. Skips files that already exist at the destination.
+
+    Args:
+        suggested_changes (list[dict[str, str]]): List of dictionaries containing
+            file_path and destination_relative_path.
+        destination_root (str): Root directory for the archive structure.
+        dry_run (bool): If True, preview changes without executing. Defaults to False.
+
+    Returns:
+        dict[str, list[str]]: Dictionary with keys 'succeeded', 'skipped', 'failed'
+            containing lists of file paths for each outcome.
+    """
+    results = {"succeeded": [], "skipped": [], "failed": []}
+
+    for change in suggested_changes:
+        file_path: str = change["file_path"]
+        destination_relative_path: str = change.get("destination_relative_path", "")
+
+        if not destination_relative_path:
+            logger.error(
+                "Missing destination_relative_path for file '%s'. Skipping.", file_path
+            )
+            results["failed"].append(file_path)
+            continue
+
+        try:
+            # Construct full destination path
+            destination_full_path = os.path.join(
+                destination_root, destination_relative_path
+            )
+
+            # Check if file already exists at destination
+            if os.path.exists(destination_full_path):
+                logger.warning(
+                    "File already exists at destination: '%s'. Skipping '%s'.",
+                    destination_full_path,
+                    file_path,
+                )
+                results["skipped"].append(file_path)
+                continue
+
+            if dry_run:
+                logger.info(
+                    "[DRY-RUN] Would move '%s' to '%s'",
+                    file_path,
+                    destination_full_path,
+                )
+                results["succeeded"].append(file_path)
+                continue
+
+            # Create directory structure if it doesn't exist
+            destination_dir = os.path.dirname(destination_full_path)
+            os.makedirs(destination_dir, exist_ok=True)
+            logger.debug("Created directory structure: '%s'", destination_dir)
+
+            # Move the file
+            shutil.move(file_path, destination_full_path)
+            logger.info("Moved '%s' to '%s'", file_path, destination_full_path)
+            results["succeeded"].append(file_path)
+
+        except (OSError, IOError, shutil.Error) as e:
+            logger.error(
+                "Error moving file '%s' to '%s': %s",
+                file_path,
+                destination_relative_path,
+                str(e),
+                exc_info=True,
+            )
+            results["failed"].append(file_path)
+
+    return results

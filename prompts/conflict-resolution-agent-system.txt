@@ -20,21 +20,21 @@ Documents that could legitimately belong to multiple categories:
 
 **Medical Receipt + Tax Deduction:**
 - A medical receipt for a procedure may also serve as tax documentation
-- **Primary placement:** Medical/Expenses/[Vendor]/
-- **Alternative placement:** Tax/Supporting_Docs/[Year]/
+- **Primary placement:** medical/expenses/[vendor]/
+- **Alternative placement:** tax/supporting_docs/[year]/
 - **Resolution:** Prioritize the document's primary purpose (medical treatment), note alternative
 
 **Property Receipt + Insurance Claim:**
 - A repair receipt for property damage may also be an insurance claim document
-- **Primary placement:** Property/[Category]/[Vendor]/
-- **Alternative placement:** Insurance/Property_Casualty/[Insurance_Vendor]/
+- **Primary placement:** property/[category]/[vendor]/
+- **Alternative placement:** insurance/property_casualty/[insurance_vendor]/
 - **Resolution:** Place in Property (where work was done), note insurance alternative
 
 **Investment Statement + Tax Documentation:**
 - Investment statements with tax information (1099s) serve dual purposes
-- **Primary placement:** Financial/Investment/[Vendor]/
-- **Alternative placement:** Tax/Supporting_Docs/[Year]/
-- **Resolution:** Keep in Financial/Investment, tax copies handled separately
+- **Primary placement:** financial/investment/[vendor]/
+- **Alternative placement:** tax/supporting_docs/[year]/
+- **Resolution:** Keep in financial/investment, tax copies handled separately
 
 ### 2. Vendor Name Changes and Mergers
 
@@ -123,35 +123,35 @@ When multiple dates could be "the" date:
 ### Example 1: Medical Receipt (Multi-Purpose)
 
 **Conflict Flags:** ["potential_multi_purpose"]
-**Proposed Path:** Medical/Expenses/City_Hospital/invoice-city_hosp-surgery-20250110.pdf
+**Proposed Path:** medical/expenses/city_hospital/invoice-city_hosp-surgery-20250110.pdf
 
 **Resolution:**
 {{
-  "final_path": "Medical/Expenses/City_Hospital/invoice-city_hosp-surgery-20250110.pdf",
-  "alternative_paths": ["Tax/Supporting_Docs/2025/invoice-city_hosp-surgery-20250110.pdf"],
-  "resolution_notes": "Primary placement in Medical/Expenses as this is a medical bill. Alternative placement in Tax/Supporting_Docs/2025 available if document is needed for tax deduction purposes. Consider keeping a copy in tax folder during tax season."
+  "final_path": "medical/expenses/city_hospital/invoice-city_hosp-surgery-20250110.pdf",
+  "alternative_paths": ["tax/supporting_docs/2025/invoice-city_hosp-surgery-20250110.pdf"],
+  "resolution_notes": "Primary placement in medical/expenses as this is a medical bill. Alternative placement in tax/supporting_docs/2025 available if document is needed for tax deduction purposes. Consider keeping a copy in tax folder during tax season."
 }}
 
 ### Example 2: Unknown Vendor
 
 **Conflict Flags:** ["unknown_vendor"]
-**Proposed Path:** Financial/Banking/unknown/receipt-unknown-cash_deposit-20250115.pdf
+**Proposed Path:** financial/banking/unknown/receipt-unknown-cash_deposit-20250115.pdf
 
 **Resolution:**
 {{
-  "final_path": "Financial/Banking/Unknown_Bank/receipt-unknown_bank-cash_deposit-20250115.pdf",
+  "final_path": "financial/banking/unknown_bank/receipt-unknown_bank-cash_deposit-20250115.pdf",
   "alternative_paths": null,
-  "resolution_notes": "Vendor could not be identified from document content. Placed in Financial/Banking/Unknown_Bank directory. Consider updating vendor name if institution is identified later."
+  "resolution_notes": "Vendor could not be identified from document content. Placed in financial/banking/unknown_bank directory. Consider updating vendor name if institution is identified later."
 }}
 
 ### Example 3: Multiple Dates Ambiguity
 
 **Conflict Flags:** ["multiple_dates"]
-**Proposed Path:** Insurance/Health/BCBS/eob-bcbs-hospital_visit-20250320.pdf
+**Proposed Path:** insurance/health/bcbs/eob-bcbs-hospital_visit-20250320.pdf
 
 **Resolution:**
 {{
-  "final_path": "Insurance/Health/BCBS/eob-bcbs-hospital_visit-20250320.pdf",
+  "final_path": "insurance/health/bcbs/eob-bcbs-hospital_visit-20250320.pdf",
   "alternative_paths": null,
   "resolution_notes": "Selected service date (03/20/2025) as primary date. Document also contains process date (03/25/2025). Service date is more relevant for tracking medical events."
 }}
@@ -159,13 +159,13 @@ When multiple dates could be "the" date:
 ### Example 4: Vendor Merger
 
 **Conflict Flags:** null
-**Proposed Path:** Financial/Investment/TD_Ameritrade/statement-td_ameritrade-ira-20210331-q1.pdf
+**Proposed Path:** financial/investment/td_ameritrade/statement-td_ameritrade-ira-20210331-q1.pdf
 
 **Resolution:**
 {{
-  "final_path": "Financial/Investment/TD_Ameritrade/statement-td_ameritrade-ira-20210331-q1.pdf",
+  "final_path": "financial/investment/td_ameritrade/statement-td_ameritrade-ira-20210331-q1.pdf",
   "alternative_paths": null,
-  "resolution_notes": "TD Ameritrade statement from 2021. Vendor name preserved as 'TD_Ameritrade' to maintain historical accuracy (company was acquired by Schwab in 2023 but document predates merger)."
+  "resolution_notes": "TD Ameritrade statement from 2021. Vendor name preserved as 'td_ameritrade' to maintain historical accuracy (company was acquired by Schwab in 2023 but document predates merger)."
 }}
 
 ## Important Notes

@@ -15,7 +15,7 @@ def test_analyze_file_content_txt(mock_multi_agent, mock_extract_txt):
 
     # Mock the multi-agent pipeline response
     mock_multi_agent.return_value = ResolvedMetadata(
-        final_path="Financial/Banking/acme/statement-acme-checking-20231001.txt",
+        final_path="financial/banking/acme/statement-acme-checking-20231001.txt",
         alternative_paths=None,
         resolution_notes=None,
     )
@@ -27,13 +27,14 @@ def test_analyze_file_content_txt(mock_multi_agent, mock_extract_txt):
         file_path="docs/user_guide.txt", client=mock_ai_client
     )
 
-    suggested_name, category, vendor, description, date = result
+    suggested_name, category, vendor, description, date, destination = result
 
     assert suggested_name == "statement-acme-checking-20231001.txt"
     assert category == "statement"
     assert vendor == "acme"
     assert description == "checking"
     assert date == "20231001"
+    assert destination == "financial/banking/acme/statement-acme-checking-20231001.txt"
 
     mock_extract_txt.assert_called_once_with("docs/user_guide.txt")
     mock_multi_agent.assert_called_once_with(
@@ -50,7 +51,7 @@ def test_analyze_file_content_pdf(mock_multi_agent, mock_extract_pdf):
 
     # Mock the multi-agent pipeline response
     mock_multi_agent.return_value = ResolvedMetadata(
-        final_path="Financial/Banking/chase/statement-chase-savings-20230115.pdf",
+        final_path="financial/banking/chase/statement-chase-savings-20230115.pdf",
         alternative_paths=None,
         resolution_notes=None,
     )
@@ -60,13 +61,14 @@ def test_analyze_file_content_pdf(mock_multi_agent, mock_extract_pdf):
     # Test with a .pdf file
     result = analyze_file_content(file_path="docs/report.pdf", client=mock_ai_client)
 
-    suggested_name, category, vendor, description, date = result
+    suggested_name, category, vendor, description, date, destination = result
 
     assert suggested_name == "statement-chase-savings-20230115.pdf"
     assert category == "statement"
     assert vendor == "chase"
     assert description == "savings"
     assert date == "20230115"
+    assert destination == "financial/banking/chase/statement-chase-savings-20230115.pdf"
 
     mock_extract_pdf.assert_called_once_with("docs/report.pdf")
     mock_multi_agent.assert_called_once_with(
@@ -93,7 +95,7 @@ def test_analyze_file_content_complex_filename(mock_multi_agent, mock_extract_pd
 
     # Mock response with complex filename (multi-word description)
     mock_multi_agent.return_value = ResolvedMetadata(
-        final_path="Financial/Banking/bofa/invoice-bofa-wire-transfer-fee-20240315.pdf",
+        final_path="financial/banking/bofa/invoice-bofa-wire-transfer-fee-20240315.pdf",
         alternative_paths=None,
         resolution_notes=None,
     )
@@ -102,13 +104,17 @@ def test_analyze_file_content_complex_filename(mock_multi_agent, mock_extract_pd
 
     result = analyze_file_content(file_path="test.pdf", client=mock_ai_client)
 
-    suggested_name, category, vendor, description, date = result
+    suggested_name, category, vendor, description, date, destination = result
 
     assert suggested_name == "invoice-bofa-wire-transfer-fee-20240315.pdf"
     assert category == "invoice"
     assert vendor == "bofa"
     assert description == "wire-transfer-fee"
     assert date == "20240315"
+    assert (
+        destination
+        == "financial/banking/bofa/invoice-bofa-wire-transfer-fee-20240315.pdf"
+    )
 
 
 @patch("src.analysis.analyzer.extract_text_from_pdf")
@@ -119,7 +125,7 @@ def test_analyze_file_content_no_date(mock_multi_agent, mock_extract_pdf):
 
     # Mock response without date in filename
     mock_multi_agent.return_value = ResolvedMetadata(
-        final_path="Legal/Contracts/vendor-name/agreement-vendor-name-service.pdf",
+        final_path="legal/contracts/vendor-name/agreement-vendor-name-service.pdf",
         alternative_paths=None,
         resolution_notes=None,
     )
@@ -128,10 +134,13 @@ def test_analyze_file_content_no_date(mock_multi_agent, mock_extract_pdf):
 
     result = analyze_file_content(file_path="test.pdf", client=mock_ai_client)
 
-    suggested_name, category, vendor, description, date = result
+    suggested_name, category, vendor, description, date, destination = result
 
     assert suggested_name == "agreement-vendor-name-service.pdf"
     assert category == "agreement"
     assert vendor == "vendor"
     assert description == "name-service"
     assert date == ""
+    assert (
+        destination == "legal/contracts/vendor-name/agreement-vendor-name-service.pdf"
+    )
