@@ -50,9 +50,14 @@ def process_file(
         return None
 
     try:
-        suggested_name, category, vendor, description, date = analyze_file_content(
-            file_path, client
-        )
+        (
+            suggested_name,
+            category,
+            vendor,
+            description,
+            date,
+            destination_relative_path,
+        ) = analyze_file_content(file_path, client)
         if suggested_name:
             logger.info("Suggested name for the file: %s", suggested_name)
             return {
@@ -62,6 +67,7 @@ def process_file(
                 "vendor": vendor or "",
                 "description": description or "",
                 "date": date or "",
+                "destination_relative_path": destination_relative_path or "",
             }
         logger.error("Could not determine a suitable name for the file.")
         return None

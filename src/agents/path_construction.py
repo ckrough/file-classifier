@@ -5,14 +5,15 @@ Expertise: Directory structure assembly and special case handling.
 Knows about file systems, not document semantics.
 
 Responsibilities:
-- Build directory path: Domain/Category/Vendor/
+- Build directory path: domain/category/vendor/ (all lowercase)
 - Handle special structures (Tax requires year subdirectories:
-  Tax/Federal/2024/)
+  tax/federal/2024/)
 - Normalize vendor names for directory use (addresses, abbreviations)
 - Apply filename to complete path
 """
 
 import logging
+import os
 from src.ai.client import AIClient
 from src.ai.prompts import get_prompt_template
 from src.analysis.models import NormalizedMetadata, PathMetadata
@@ -73,6 +74,10 @@ def construct_path(
             schema=PathMetadata,
         )
 
+        # Defensive lowercase conversion: Ensure all path components are lowercase
+        # This guarantees consistency even if the AI doesn't follow prompt exactly
+        path_metadata = _lowercase_path_components(path_metadata)
+
         logger.debug(
             "Path Construction Agent built path: %s",
             path_metadata.full_path,
@@ -83,3 +88,32 @@ def construct_path(
     except Exception as e:
         logger.error("Path Construction Agent failed: %s", e, exc_info=True)
         raise RuntimeError("Path construction failed") from e
+
+
+def _lowercase_path_components(path_metadata: PathMetadata) -> PathMetadata:
+    """
+    Defensive conversion: Lowercase all directory and filename components.
+
+    Ensures consistency even if the AI doesn't follow prompts exactly.
+    Preserves file extension case-sensitivity (though typically lowercase).
+
+    Args:
+        path_metadata (PathMetadata): Original path metadata from AI.
+
+    Returns:
+        PathMetadata: Path with all components lowercased.
+    """
+    # Split the full path into directory and filename
+    directory_path = path_metadata.directory_path.lower()
+    filename = path_metadata.filename.lower()
+
+    # Reconstruct full path (which includes extension)
+    # Extract extension to preserve it if needed
+    name_without_ext, ext = os.path.splitext(path_metadata.full_path)
+    full_path_lowercase = f"{name_without_ext.lower()}{ext.lower()}"
+
+    return PathMetadata(
+        directory_path=directory_path,
+        filename=filename,
+        full_path=full_path_lowercase,
+    )
