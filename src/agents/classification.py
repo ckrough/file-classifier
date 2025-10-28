@@ -68,5 +68,16 @@ def classify_document(content: str, filename: str, ai_client: AIClient) -> RawMe
         return raw_metadata
 
     except Exception as e:
-        logger.error("Classification Agent failed: %s", e, exc_info=True)
-        raise RuntimeError("Document classification failed") from e
+        logger.error(
+            "Classification Agent failed for %s: %s",
+            filename,
+            type(e).__name__,
+            exc_info=True,
+        )
+        error_msg = (
+            f"Document classification failed for {filename}\n"
+            f"  → Ensure document contains readable text (not scanned images)\n"
+            f"  → Check that content extraction succeeded\n"
+            f"  → Verify AI model supports structured output"
+        )
+        raise RuntimeError(error_msg) from e

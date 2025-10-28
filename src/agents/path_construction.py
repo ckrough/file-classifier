@@ -86,8 +86,22 @@ def construct_path(
         return path_metadata
 
     except Exception as e:
-        logger.error("Path Construction Agent failed: %s", e, exc_info=True)
-        raise RuntimeError("Path construction failed") from e
+        logger.error(
+            "Path Construction Agent failed for %s/%s/%s: %s",
+            normalized.domain,
+            normalized.category,
+            normalized.vendor_name,
+            type(e).__name__,
+            exc_info=True,
+        )
+        error_msg = (
+            f"Path construction failed for {normalized.domain}/"
+            f"{normalized.category}/{normalized.vendor_name}\n"
+            f"  → Check that domain/category/vendor are valid\n"
+            f"  → Verify date format is YYYYMMDD\n"
+            f"  → Ensure doctype and subject are standardized"
+        )
+        raise RuntimeError(error_msg) from e
 
 
 def _lowercase_path_components(path_metadata: PathMetadata) -> PathMetadata:

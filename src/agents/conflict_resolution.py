@@ -103,5 +103,17 @@ def resolve_conflicts(
         return resolved
 
     except Exception as e:
-        logger.error("Conflict Resolution Agent failed: %s", e, exc_info=True)
-        raise RuntimeError("Conflict resolution failed") from e
+        conflict_str = ", ".join(conflict_flags) if conflict_flags else "none"
+        logger.error(
+            "Conflict Resolution Agent failed for conflicts '%s': %s",
+            conflict_str,
+            type(e).__name__,
+            exc_info=True,
+        )
+        error_msg = (
+            f"Conflict resolution failed for: {conflict_str}\n"
+            f"  → Check that proposed path is valid: {path.full_path}\n"
+            f"  → Verify conflict flags are recognized\n"
+            f"  → Ensure AI model can handle edge cases"
+        )
+        raise RuntimeError(error_msg) from e

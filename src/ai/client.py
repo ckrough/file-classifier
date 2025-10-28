@@ -12,6 +12,7 @@ Classes:
 
 import os
 import logging
+import time
 from abc import ABC, abstractmethod
 from typing import Optional
 
@@ -122,9 +123,14 @@ class LangChainClient(AIClient):
                 api_key = os.getenv("OPENAI_API_KEY")
             if not api_key:
                 logger.critical(
-                    "OPENAI_API_KEY not provided or set in environment variables."
+                    "OPENAI_API_KEY not found in environment or parameters."
                 )
-                raise ValueError("OPENAI_API_KEY must be provided for OpenAI provider.")
+                error_msg = (
+                    "OPENAI_API_KEY is required for OpenAI provider.\n"
+                    "  → Set environment variable: export OPENAI_API_KEY=sk-...\n"
+                    "  → Or add to .env file: OPENAI_API_KEY=sk-..."
+                )
+                raise ValueError(error_msg)
 
             model = model or os.getenv("AI_MODEL", "gpt-4o-mini")
             logger.info("Initializing ChatOpenAI with model: %s", model)
@@ -140,7 +146,12 @@ class LangChainClient(AIClient):
 
         # Future providers can be added here (anthropic, google, etc.)
         logger.error("Unsupported provider: %s", self.provider)
-        raise ValueError(f"Unsupported provider: {self.provider}")
+        error_msg = (
+            f"Unsupported AI provider: {self.provider}\n"
+            f"  → Supported providers: 'openai', 'ollama'\n"
+            f"  → Set AI_PROVIDER in .env file"
+        )
+        raise ValueError(error_msg)
 
     def analyze_content(
         self,
@@ -167,13 +178,16 @@ class LangChainClient(AIClient):
         Raises:
             RuntimeError: If there's an error during analysis.
         """
+        start_time = time.perf_counter()
+        schema_name = schema.__name__ if schema else "Analysis"
+
         try:
             # Format the prompt template with the provided values
             # This creates proper SystemMessage and HumanMessage objects
             messages = prompt_template.format_messages(**prompt_values)
 
             logger.debug("Formatted prompt with values: %s", list(prompt_values.keys()))
-            logger.debug("Invoking LLM with provider: %s", self.provider)
+            logger.debug("Invoking %s LLM for schema: %s", self.provider, schema_name)
 
             # Use custom schema if provided, otherwise use cached Analysis schema
             if schema is not None:
@@ -184,23 +198,103 @@ class LangChainClient(AIClient):
                 # Use cached structured LLM chain (initialized in __init__)
                 result = self.structured_llm.invoke(messages)
 
+            elapsed = time.perf_counter() - start_time
+            logger.info("LLM analysis completed for %s (%.2fs)", schema_name, elapsed)
             logger.debug("LLM returned structured result: %s", result)
             return result
 
         except KeyError as ke:
+            elapsed = time.perf_counter() - start_time
             logger.error(
-                "Missing required prompt variable: %s. Available: %s",
+                "Missing required prompt variable: %s (failed after %.2fs). "
+                "Available variables: %s",
                 ke.args[0],
+                elapsed,
                 list(prompt_values.keys()),
             )
-            raise RuntimeError(
-                f"Missing required prompt variable: {ke.args[0]}"
-            ) from ke
+            error_msg = (
+                f"Missing required prompt variable: {ke.args[0]}\n"
+                f"  → Check prompt template for required variables\n"
+                f"  → Available: {', '.join(prompt_values.keys())}"
+            )
+            raise RuntimeError(error_msg) from ke
+
         except ValidationError as ve:
-            logger.error("Validation error while parsing schema: %s", ve, exc_info=True)
-            raise RuntimeError(
-                "Validation error while parsing structured output."
-            ) from ve
+            elapsed = time.perf_counter() - start_time
+            logger.error(
+                "LLM output validation failed for %s (failed after %.2fs): %s",
+                schema_name,
+                elapsed,
+                ve,
+                exc_info=True,
+            )
+            error_msg = (
+                f"LLM returned invalid {schema_name} data.\n"
+                f"  → The LLM may not support structured output correctly\n"
+                f"  → Try a different model or check prompt template\n"
+                f"  → Validation errors: {ve.error_count()} field(s)"
+            )
+            raise RuntimeError(error_msg) from ve
+
+        except ConnectionError as ce:
+            elapsed = time.perf_counter() - start_time
+            logger.error(
+                "Network error connecting to %s (failed after %.2fs): %s",
+                self.provider,
+                elapsed,
+                ce,
+                exc_info=True,
+            )
+            if self.provider == "ollama":
+                error_msg = (
+                    f"Failed to connect to Ollama server (after {elapsed:.1f}s).\n"
+                    f"  → Is Ollama running? Try: ollama serve\n"
+                    f"  → Check OLLAMA_BASE_URL in .env (current: "
+                    f"{os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')})\n"
+                    f"  → Verify the server is accessible"
+                )
+            else:
+                error_msg = (
+                    f"Network error connecting to {self.provider} "
+                    f"(after {elapsed:.1f}s).\n"
+                    f"  → Check your internet connection\n"
+                    f"  → Verify {self.provider} service is available"
+                )
+            raise RuntimeError(error_msg) from ce
+
         except Exception as e:
-            logger.exception("Error communicating with LLM provider: %s", self.provider)
-            raise RuntimeError(f"Error communicating with {self.provider} API.") from e
+            elapsed = time.perf_counter() - start_time
+            error_type = type(e).__name__
+            logger.exception(
+                "Unexpected error with %s provider (failed after %.2fs): %s",
+                self.provider,
+                elapsed,
+                error_type,
+            )
+
+            # Provide specific guidance based on error type
+            if "auth" in str(e).lower() or "401" in str(e):
+                error_msg = (
+                    f"Authentication failed with {self.provider} "
+                    f"(after {elapsed:.1f}s).\n"
+                    f"  → Verify your API key is correct\n"
+                    f"  → Check API key has not expired\n"
+                    f"  → Ensure sufficient API credits/quota"
+                )
+            elif "timeout" in str(e).lower():
+                error_msg = (
+                    f"Request timeout with {self.provider} "
+                    f"(after {elapsed:.1f}s).\n"
+                    f"  → The model may be slow to respond\n"
+                    f"  → Try a faster model\n"
+                    f"  → Check network connection"
+                )
+            else:
+                error_msg = (
+                    f"Error communicating with {self.provider} "
+                    f"(after {elapsed:.1f}s): {error_type}\n"
+                    f"  → Check logs for details\n"
+                    f"  → Verify {self.provider} configuration\n"
+                    f"  → Error: {str(e)[:200]}"
+                )
+            raise RuntimeError(error_msg) from e

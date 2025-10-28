@@ -82,5 +82,16 @@ def standardize_metadata(raw: RawMetadata, ai_client: AIClient) -> NormalizedMet
         return normalized
 
     except Exception as e:
-        logger.error("Standards Enforcement Agent failed: %s", e, exc_info=True)
-        raise RuntimeError("Metadata standardization failed") from e
+        logger.error(
+            "Standards Enforcement Agent failed for vendor '%s': %s",
+            raw.vendor_raw,
+            type(e).__name__,
+            exc_info=True,
+        )
+        error_msg = (
+            f"Metadata standardization failed for vendor: {raw.vendor_raw}\n"
+            f"  → Check that vendor name is recognizable\n"
+            f"  → Verify date format is parseable\n"
+            f"  → Ensure AI model can normalize naming conventions"
+        )
+        raise RuntimeError(error_msg) from e

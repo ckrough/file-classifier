@@ -101,7 +101,10 @@ def rename_files(suggested_changes: list[dict[str, str]]) -> None:
             logger.info("File '%s' renamed to '%s'.", file_path, new_path)
         except (OSError, IOError) as e:
             logger.error(
-                "Error renaming file '%s' to '%s': %s",
+                "Error renaming file '%s' to '%s': %s\n"
+                "  → Check file permissions\n"
+                "  → Verify destination directory is writable\n"
+                "  → Ensure file is not open in another program",
                 file_path,
                 suggested_name,
                 str(e),
@@ -181,7 +184,11 @@ def move_files(
 
         except (OSError, IOError, shutil.Error) as e:
             logger.error(
-                "Error moving file '%s' to '%s': %s",
+                "Error moving file '%s' to '%s': %s\n"
+                "  → Check file permissions\n"
+                "  → Verify destination directory exists and is writable\n"
+                "  → Ensure file is not open in another program\n"
+                "  → Check sufficient disk space",
                 file_path,
                 destination_relative_path,
                 str(e),
