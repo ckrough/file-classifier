@@ -42,18 +42,30 @@ def handle_suggested_changes(
         None
     """
     if not changes:
-        print("No changes were suggested.")
+        msg = "No changes were suggested."
+        logger.info(msg)
+        print(msg)
         return
 
     # Display changes based on mode
     if move_enabled and destination_root:
-        print("Move mode: Files will be moved to archive structure\n")
+        mode_msg = "Move mode: Files will be moved to archive structure"
+        logger.info(mode_msg)
+        print(f"{mode_msg}\n")
+
+        logger.info("Displaying %d suggested moves:", len(changes))
         for change in changes:
             source_basename = os.path.basename(change["file_path"])
             destination_relative = change.get("destination_relative_path", "")
-            print(f"{source_basename} → {destination_relative}\n")
+            change_msg = f"{source_basename} → {destination_relative}"
+            logger.info("  %s", change_msg)
+            print(f"{change_msg}\n")
     else:
-        print("Rename mode: Files will be renamed in current directory\n")
+        mode_msg = "Rename mode: Files will be renamed in current directory"
+        logger.info(mode_msg)
+        print(f"{mode_msg}\n")
+
+        logger.info("Displaying %d suggested renames:", len(changes))
         for change in changes:
             file_path = change["file_path"]
             suggested_name = change["suggested_name"]
@@ -63,25 +75,37 @@ def handle_suggested_changes(
             suggested_name_with_ext = f"{suggested_name}{ext}"
 
             current_basename = os.path.basename(file_path)
-            print(f"{current_basename} → {suggested_name_with_ext}\n")
+            change_msg = f"{current_basename} → {suggested_name_with_ext}"
+            logger.info("  %s", change_msg)
+            print(f"{change_msg}\n")
 
     if dry_run:
-        print("Dry-run mode enabled. No changes will be made.")
+        dry_run_msg = "Dry-run mode enabled. No changes will be made."
+        logger.info(dry_run_msg)
+        print(dry_run_msg)
         return
 
     # Auto-execute (no confirmation prompt by default)
     user_confirmation = input("Approve changes? (yes/no): ").strip().lower()
+    logger.info("User response to approval prompt: '%s'", user_confirmation)
+
     if user_confirmation != "yes":
-        print("Operation canceled by user.")
+        cancel_msg = "Operation canceled by user."
+        logger.info(cancel_msg)
+        print(cancel_msg)
         return
 
     # Execute based on mode
     if move_enabled and destination_root:
+        logger.info("Executing move operation for %d files...", len(changes))
         results = move_files(changes, destination_root, dry_run=False)
         _display_move_results(results)
     else:
+        logger.info("Executing rename operation for %d files...", len(changes))
         rename_files(changes)
-        print(f"{len(changes)} file(s) have been renamed.")
+        success_msg = f"{len(changes)} file(s) have been renamed."
+        logger.info(success_msg)
+        print(success_msg)
 
 
 def _display_move_results(results: dict[str, list[str]]) -> None:
@@ -98,7 +122,18 @@ def _display_move_results(results: dict[str, list[str]]) -> None:
     succeeded_count = len(results["succeeded"])
     skipped_count = len(results["skipped"])
     failed_count = len(results["failed"])
+    total_count = succeeded_count + skipped_count + failed_count
 
+    # Log summary statistics
+    logger.info(
+        "Move operation complete: %d succeeded, %d skipped, %d failed (total: %d)",
+        succeeded_count,
+        skipped_count,
+        failed_count,
+        total_count,
+    )
+
+    # Display to user
     print("\nMove operation complete:")
     print(f"  ✓ Successfully moved: {succeeded_count} file(s)")
     if skipped_count > 0:
@@ -108,11 +143,17 @@ def _display_move_results(results: dict[str, list[str]]) -> None:
 
     # Display details for skipped and failed files
     if skipped_count > 0:
+        logger.info("Skipped files (already exist at destination):")
         print("\nSkipped files (already exist at destination):")
         for file_path in results["skipped"]:
-            print(f"  - {os.path.basename(file_path)}")
+            basename = os.path.basename(file_path)
+            logger.info("  - %s", basename)
+            print(f"  - {basename}")
 
     if failed_count > 0:
+        logger.info("Failed files (see logs for details):")
         print("\nFailed files (see logs for details):")
         for file_path in results["failed"]:
-            print(f"  - {os.path.basename(file_path)}")
+            basename = os.path.basename(file_path)
+            logger.info("  - %s", basename)
+            print(f"  - {basename}")

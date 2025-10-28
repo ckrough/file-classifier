@@ -111,6 +111,23 @@ def analyze_file_content(file_path: str, client: AIClient) -> tuple[
         logger.warning("Failed to parse filename: %s", suggested_name)
         return suggested_name, "", "", "", "", destination_relative_path
 
-    except (ValueError, FileNotFoundError) as e:
-        logger.error("Failed to analyze file content: %s", e)
-        raise RuntimeError("Error analyzing file content") from e
+    except ValueError as e:
+        logger.error(
+            "Content extraction failed for %s: %s\n"
+            "  → Ensure file contains readable text\n"
+            "  → Check file is not corrupted\n"
+            "  → Verify file format is supported (.pdf or .txt)",
+            file_path,
+            e,
+            exc_info=True,
+        )
+        raise RuntimeError(f"Failed to extract content from {file_path}") from e
+    except FileNotFoundError as e:
+        logger.error(
+            "File not found: %s\n"
+            "  → Check path is correct\n"
+            "  → Verify file exists",
+            file_path,
+            exc_info=True,
+        )
+        raise RuntimeError(f"File not found: {file_path}") from e

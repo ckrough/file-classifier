@@ -29,9 +29,19 @@ def process_path(path: str, client: AIClient) -> list[dict[str, str]]:
             files.
     """
     if os.path.isfile(path):
+        logger.info("Processing single file: %s", path)
         change = process_file(path, client)
         return [change] if change else []
+
     if os.path.isdir(path):
+        logger.info("Processing directory: %s", path)
         return process_directory(path, client)
-    logger.error("The provided path is neither a file nor a directory.")
+
+    logger.error(
+        "Invalid path: %s\n"
+        "  → Path must be an existing file or directory\n"
+        "  → Check that the path is spelled correctly\n"
+        "  → Verify the file/directory exists",
+        path,
+    )
     return []
