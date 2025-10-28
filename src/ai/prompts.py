@@ -3,6 +3,13 @@ Prompt management using LangChain templates.
 
 This module provides access to LangChain ChatPromptTemplate objects
 loaded from text files in the prompts/ directory.
+
+Supports both legacy file-analysis prompts and new multi-agent prompts:
+- file-analysis (legacy)
+- classification-agent
+- standards-enforcement-agent
+- path-construction-agent
+- conflict-resolution-agent
 """
 
 import logging
@@ -17,9 +24,16 @@ logger = logging.getLogger(__name__)
 PROMPTS_DIR = Path(__file__).parent.parent.parent / "prompts"
 
 
-def load_file_analysis_prompt() -> ChatPromptTemplate:
+def load_prompt_template(prompt_name: str) -> ChatPromptTemplate:
     """
-    Load the file analysis prompt template from text files.
+    Load a prompt template from text files by name.
+
+    Looks for two files in the prompts/ directory:
+    - {prompt_name}-system.txt (or {prompt_name}-system-prompt.txt)
+    - {prompt_name}-user.txt (or {prompt_name}-user-prompt.txt)
+
+    Args:
+        prompt_name (str): The base name of the prompt (e.g., 'classification-agent').
 
     Returns:
         ChatPromptTemplate: A LangChain prompt template with system and human messages.
@@ -29,8 +43,14 @@ def load_file_analysis_prompt() -> ChatPromptTemplate:
         IOError: If prompt files cannot be read.
     """
     try:
-        system_prompt_path = PROMPTS_DIR / "file-analysis-system-prompt.txt"
-        user_prompt_path = PROMPTS_DIR / "file-analysis-user-prompt.txt"
+        # Try both naming conventions for backward compatibility
+        system_prompt_path = PROMPTS_DIR / f"{prompt_name}-system.txt"
+        if not system_prompt_path.exists():
+            system_prompt_path = PROMPTS_DIR / f"{prompt_name}-system-prompt.txt"
+
+        user_prompt_path = PROMPTS_DIR / f"{prompt_name}-user.txt"
+        if not user_prompt_path.exists():
+            user_prompt_path = PROMPTS_DIR / f"{prompt_name}-user-prompt.txt"
 
         logger.debug("Loading system prompt from: %s", system_prompt_path)
         system_prompt = system_prompt_path.read_text(encoding="utf-8").strip()
@@ -54,20 +74,61 @@ def load_file_analysis_prompt() -> ChatPromptTemplate:
         raise
 
 
+@lru_cache(maxsize=10)
+def get_prompt_template(prompt_name: str) -> ChatPromptTemplate:
+    """
+    Get a prompt template by name (cached with lazy loading).
+
+    This function uses lru_cache to ensure each prompt is loaded only once
+    and reused across multiple calls, providing singleton-like behavior.
+
+    Supported prompts:
+    - 'file-analysis' (legacy)
+    - 'classification-agent'
+    - 'standards-enforcement-agent'
+    - 'path-construction-agent'
+    - 'conflict-resolution-agent'
+
+    Args:
+        prompt_name (str): The name of the prompt to load.
+
+    Returns:
+        ChatPromptTemplate: The requested prompt template.
+    """
+    prompt = load_prompt_template(prompt_name)
+    logger.info("Prompt template '%s' loaded successfully", prompt_name)
+    return prompt
+
+
+# Legacy functions for backward compatibility
+def load_file_analysis_prompt() -> ChatPromptTemplate:
+    """
+    Load the file analysis prompt template from text files.
+
+    DEPRECATED: Use load_prompt_template('file-analysis') instead.
+
+    Returns:
+        ChatPromptTemplate: A LangChain prompt template with system and human messages.
+    """
+    return load_prompt_template("file-analysis")
+
+
 @lru_cache(maxsize=1)
 def get_file_analysis_prompt() -> ChatPromptTemplate:
     """
     Get the file analysis prompt template (cached with lazy loading).
 
-    This function uses lru_cache to ensure the prompt is loaded only once
-    and reused across multiple calls, providing singleton-like behavior.
+    DEPRECATED: Use get_prompt_template('file-analysis') instead.
 
     Returns:
         ChatPromptTemplate: The file analysis prompt template.
     """
-    prompt = load_file_analysis_prompt()
-    logger.info("File analysis prompt template loaded successfully")
-    return prompt
+    return get_prompt_template("file-analysis")
 
 
-__all__ = ["get_file_analysis_prompt", "load_file_analysis_prompt"]
+__all__ = [
+    "get_prompt_template",
+    "load_prompt_template",
+    "get_file_analysis_prompt",
+    "load_file_analysis_prompt",
+]

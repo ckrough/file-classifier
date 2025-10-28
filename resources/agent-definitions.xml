@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document_processing_agents>
+  <agent id="1">
+    <name>Document Classification Agent</name>
+    <purpose>Semantic analysis and metadata extraction</purpose>
+    <inputs>
+      <input>Raw document (PDF/image)</input>
+      <input>OCR text</input>
+      <input>Document content</input>
+    </inputs>
+    <outputs>
+      <output>Domain</output>
+      <output>Category</output>
+      <output>Document Type (doctype)</output>
+      <output>Raw vendor name</output>
+      <output>Raw dates</output>
+      <output>Transaction amounts</output>
+      <output>Account types</output>
+      <output>Subject matter</output>
+    </outputs>
+  </agent>
+  
+  <agent id="2">
+    <name>Standards Enforcement Agent</name>
+    <purpose>Normalize and format per naming conventions</purpose>
+    <inputs>
+      <input>Raw metadata: vendor name</input>
+      <input>Raw metadata: dates</input>
+      <input>Raw metadata: subject</input>
+      <input>Raw metadata: doctype</input>
+    </inputs>
+    <outputs>
+      <output>Standardized vendor_name</output>
+      <output>YYYYMMDD date</output>
+      <output>Normalized subject (1-3 words)</output>
+      <output>Standardized doctype</output>
+    </outputs>
+  </agent>
+  
+  <agent id="3">
+    <name>Path Construction Agent</name>
+    <purpose>Assemble directory structure and filename</purpose>
+    <inputs>
+      <input>Normalized metadata: domain</input>
+      <input>Normalized metadata: category</input>
+      <input>Normalized metadata: vendor_name</input>
+      <input>Normalized metadata: doctype</input>
+      <input>Normalized metadata: subject</input>
+      <input>Normalized metadata: date</input>
+    </inputs>
+    <outputs>
+      <output>Complete directory path</output>
+      <output>Complete filename</output>
+      <output>Full file path (path + filename)</output>
+    </outputs>
+  </agent>
+  
+  <agent id="4">
+    <name>Conflict Resolution Agent</name>
+    <purpose>Handle edge cases and ambiguous placements</purpose>
+    <inputs>
+      <input>Full file path</input>
+      <input>Document metadata</input>
+      <input>Conflict flags from previous agents</input>
+    </inputs>
+    <outputs>
+      <output>Final resolved path</output>
+      <output>Alternative placement options (if applicable)</output>
+      <output>Resolution notes</output>
+    </outputs>
+  </agent>
+  
+  <processing_flow>
+    <step order="1">Raw Document → Classification</step>
+    <step order="2">Classification → Standards Enforcement</step>
+    <step order="3">Standards Enforcement → Path Construction</step>
+    <step order="4">Path Construction → Conflict Resolution</step>
+    <step order="5">Conflict Resolution → Final Path</step>
+  </processing_flow>
+</document_processing_agents>

@@ -1,0 +1,20 @@
+Construct the directory path and filename for the following normalized metadata.
+
+**Domain:** {domain}
+**Category:** {category}
+**Vendor Name (standardized):** {vendor_name}
+**Document Type:** {doctype}
+**Subject:** {subject}
+**Date (YYYYMMDD):** {date}
+**File Extension:** {file_extension}
+
+Build and provide:
+- directory_path (Domain/Category/Vendor/ with special handling for Tax)
+- filename (doctype-vendor-subject-YYYYMMDD.ext)
+- full_path (directory_path + filename)
+
+Remember:
+- Vendor directory names use Title_Case with underscores
+- Filenames use lowercase with hyphens
+- Tax documents require year subdirectory: Tax/Category/Year/
+- Preserve the file extension provided

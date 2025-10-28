@@ -13,7 +13,7 @@ def test_process_directory_dry_run():
         [sys.executable, "main.py", "--dry-run", "sample-documents"],
         capture_output=True,
         text=True,
-        env={"DEBUG_MODE": "True"},
+        env={"DEBUG_MODE": "True", "USE_LEGACY_ANALYSIS": "true"},
     )
 
     # Verify exit code
@@ -36,7 +36,7 @@ def test_process_single_document_dry_run():
         [sys.executable, "main.py", "--dry-run", "sample-documents/acme_20060921.pdf"],
         capture_output=True,
         text=True,
-        env={"DEBUG_MODE": "True"},
+        env={"DEBUG_MODE": "True", "USE_LEGACY_ANALYSIS": "true"},
     )
 
     # Verify exit code
@@ -58,7 +58,7 @@ def test_ai_classification_accuracy():
         [sys.executable, "main.py", "--dry-run", "sample-documents/acme_20060921.pdf"],
         capture_output=True,
         text=True,
-        env={"DEBUG_MODE": "True"},
+        env={"DEBUG_MODE": "True", "USE_LEGACY_ANALYSIS": "true"},
     )
 
     assert result.returncode == 0

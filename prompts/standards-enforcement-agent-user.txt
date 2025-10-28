@@ -1,0 +1,16 @@
+Apply document archival system naming conventions to the following raw metadata.
+
+**Domain:** {domain}
+**Category:** {category}
+**Document Type (raw):** {doctype}
+**Vendor (raw):** {vendor_raw}
+**Date (raw):** {date_raw}
+**Subject (raw):** {subject_raw}
+
+Standardize and provide:
+- domain (unchanged)
+- category (unchanged)
+- doctype (standardized vocabulary)
+- vendor_name (lowercase, underscores, standard abbreviations)
+- date (YYYYMMDD format - format the provided date)
+- subject (1-3 words, lowercase, underscores)

@@ -57,9 +57,9 @@ def test_analyze_file_content_txt(mock_get_prompt, mock_extract_txt):
         date="2023-10-01",
     )
 
-    # Test with a .txt file
+    # Test with a .txt file (using legacy single-agent mode for this test)
     suggested_name, category, vendor, description, date = analyze_file_content(
-        file_path="docs/user_guide.txt", client=mock_ai_client
+        file_path="docs/user_guide.txt", client=mock_ai_client, use_multi_agent=False
     )
 
     assert suggested_name == "openai-documentation-user-guide-2023-10-01"
@@ -98,9 +98,9 @@ def test_analyze_file_content_pdf(mock_get_prompt, mock_extract_pdf):
         date="2023-10-01",
     )
 
-    # Test with a .pdf file
+    # Test with a .pdf file (using legacy single-agent mode for this test)
     suggested_name, category, vendor, description, date = analyze_file_content(
-        file_path="docs/report.pdf", client=mock_ai_client
+        file_path="docs/report.pdf", client=mock_ai_client, use_multi_agent=False
     )
 
     assert suggested_name == "openai-documentation-annual-report-2023-10-01"

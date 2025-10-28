@@ -90,9 +90,8 @@ class LangChainClient(AIClient):
         self.provider = provider.lower()
         self.llm = self._initialize_llm(model, api_key, base_url, **kwargs)
 
-        # Cache structured output chain to avoid rebuilding JSON schema.
-        # Analysis model structure is constant, so schema conversion
-        # only needs to happen once (performance optimization).
+        # Cache structured output chain for legacy Analysis model
+        # (for backward compatibility with existing code)
         self.structured_llm = self.llm.with_structured_output(Analysis)
         logger.debug("Cached structured output chain for Analysis model")
 
@@ -147,20 +146,23 @@ class LangChainClient(AIClient):
         self,
         prompt_template: ChatPromptTemplate,
         prompt_values: dict,
+        schema: Optional[type] = None,
     ) -> Analysis:
         """
         Analyze the content using LangChain's structured output extraction.
 
-        Uses the cached structured output chain to avoid repeated JSON schema
-        conversion, improving performance by 10-20% per API call.
+        Supports dynamic schema selection for multi-agent workflows. If no schema
+        is provided, uses the cached Analysis schema for backward compatibility.
 
         Args:
             prompt_template (ChatPromptTemplate): LangChain prompt.
             prompt_values (dict): Variables for template
                 (e.g., filename, content).
+            schema (type, optional): Pydantic model class for structured output.
+                If None, uses Analysis (legacy behavior).
 
         Returns:
-            Analysis: The analyzed metadata of the file.
+            Analysis or schema instance: The analyzed metadata in the requested format.
 
         Raises:
             RuntimeError: If there's an error during analysis.
@@ -173,11 +175,17 @@ class LangChainClient(AIClient):
             logger.debug("Formatted prompt with values: %s", list(prompt_values.keys()))
             logger.debug("Invoking LLM with provider: %s", self.provider)
 
-            # Use cached structured LLM chain (initialized in __init__)
-            analysis = self.structured_llm.invoke(messages)
+            # Use custom schema if provided, otherwise use cached Analysis schema
+            if schema is not None:
+                logger.debug("Using custom schema: %s", schema.__name__)
+                structured_llm = self.llm.with_structured_output(schema)
+                result = structured_llm.invoke(messages)
+            else:
+                # Use cached structured LLM chain (initialized in __init__)
+                result = self.structured_llm.invoke(messages)
 
-            logger.debug("LLM returned structured analysis: %s", analysis)
-            return analysis
+            logger.debug("LLM returned structured result: %s", result)
+            return result
 
         except KeyError as ke:
             logger.error(
@@ -190,9 +198,9 @@ class LangChainClient(AIClient):
             ) from ke
         except ValidationError as ve:
             logger.error(
-                "Validation error while parsing Analysis: %s", ve, exc_info=True
+                "Validation error while parsing schema: %s", ve, exc_info=True
             )
-            raise RuntimeError("Validation error while parsing Analysis.") from ve
+            raise RuntimeError("Validation error while parsing structured output.") from ve
         except Exception as e:
             logger.exception("Error communicating with LLM provider: %s", self.provider)
             raise RuntimeError(f"Error communicating with {self.provider} API.") from e
