@@ -93,10 +93,11 @@ addopts = [
 ]
 console_output_style = "classic"
 markers = [
-    "functional: functional/integration tests",
-    "unit: unit tests",
-    "slow: tests that take >1s",
-    "benchmark: performance benchmark tests",
+    "unit: Unit tests - test individual components in isolation with mocked dependencies",
+    "integration: Integration tests - test how multiple components work together with real internal dependencies",
+    "functional: Functional tests - test complete user workflows end-to-end with all real components",
+    "slow: Slow tests - tests that take >1s to execute",
+    "benchmark: Benchmark tests - performance tests for locally developed code only",
 ]
 
 # Coverage
