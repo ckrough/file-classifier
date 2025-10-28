@@ -4,8 +4,7 @@ Prompt management using LangChain templates.
 This module provides access to LangChain ChatPromptTemplate objects
 loaded from text files in the prompts/ directory.
 
-Supports both legacy file-analysis prompts and new multi-agent prompts:
-- file-analysis (legacy)
+Supports the multi-agent document processing prompts:
 - classification-agent
 - standards-enforcement-agent
 - path-construction-agent
@@ -83,7 +82,6 @@ def get_prompt_template(prompt_name: str) -> ChatPromptTemplate:
     and reused across multiple calls, providing singleton-like behavior.
 
     Supported prompts:
-    - 'file-analysis' (legacy)
     - 'classification-agent'
     - 'standards-enforcement-agent'
     - 'path-construction-agent'
@@ -100,35 +98,7 @@ def get_prompt_template(prompt_name: str) -> ChatPromptTemplate:
     return prompt
 
 
-# Legacy functions for backward compatibility
-def load_file_analysis_prompt() -> ChatPromptTemplate:
-    """
-    Load the file analysis prompt template from text files.
-
-    DEPRECATED: Use load_prompt_template('file-analysis') instead.
-
-    Returns:
-        ChatPromptTemplate: A LangChain prompt template with system and human messages.
-    """
-    return load_prompt_template("file-analysis")
-
-
-@lru_cache(maxsize=1)
-def get_file_analysis_prompt() -> ChatPromptTemplate:
-    """
-    Get the file analysis prompt template (cached with lazy loading).
-
-    DEPRECATED: Use get_prompt_template('file-analysis') instead.
-
-    Returns:
-        ChatPromptTemplate: The file analysis prompt template.
-    """
-    return get_prompt_template("file-analysis")
-
-
 __all__ = [
     "get_prompt_template",
     "load_prompt_template",
-    "get_file_analysis_prompt",
-    "load_file_analysis_prompt",
 ]

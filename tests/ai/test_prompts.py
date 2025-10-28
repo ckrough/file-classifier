@@ -4,17 +4,13 @@ import pytest
 from pathlib import Path
 from unittest import mock
 
-from src.ai.prompts import (
-    load_file_analysis_prompt,
-    get_file_analysis_prompt,
-    PROMPTS_DIR,
-)
+from src.ai.prompts import load_prompt_template, get_prompt_template
 from langchain_core.prompts import ChatPromptTemplate
 
 
-def test_load_file_analysis_prompt():
-    """Test that load_file_analysis_prompt returns a valid ChatPromptTemplate."""
-    prompt_template = load_file_analysis_prompt()
+def test_load_classification_prompt():
+    """Test load_prompt_template returns ChatPromptTemplate for classification."""
+    prompt_template = load_prompt_template("classification-agent")
 
     assert isinstance(prompt_template, ChatPromptTemplate)
     assert len(prompt_template.messages) == 2  # System + Human
@@ -24,30 +20,50 @@ def test_load_file_analysis_prompt():
     assert "content" in prompt_template.input_variables
 
 
-def test_get_file_analysis_prompt_singleton():
-    """Test that get_file_analysis_prompt returns the same instance (singleton)."""
-    # Clear the singleton
-    import src.ai.prompts as pm
+def test_get_prompt_template_singleton():
+    """Test that get_prompt_template caches prompts (singleton behavior)."""
+    # Get the same prompt twice
+    prompt1 = get_prompt_template("classification-agent")
+    prompt2 = get_prompt_template("classification-agent")
 
-    pm._file_analysis_prompt = None
-
-    prompt1 = get_file_analysis_prompt()
-    prompt2 = get_file_analysis_prompt()
-
-    # Should be the exact same object
+    # Should be the exact same object (cached)
     assert prompt1 is prompt2
 
 
-def test_load_file_analysis_prompt_missing_file():
-    """Test that load_file_analysis_prompt raises FileNotFoundError if files are missing."""
+def test_load_standards_enforcement_prompt():
+    """Test loading standards enforcement agent prompt."""
+    prompt_template = load_prompt_template("standards-enforcement-agent")
+
+    assert isinstance(prompt_template, ChatPromptTemplate)
+    assert len(prompt_template.messages) == 2
+
+
+def test_load_path_construction_prompt():
+    """Test loading path construction agent prompt."""
+    prompt_template = load_prompt_template("path-construction-agent")
+
+    assert isinstance(prompt_template, ChatPromptTemplate)
+    assert len(prompt_template.messages) == 2
+
+
+def test_load_conflict_resolution_prompt():
+    """Test loading conflict resolution agent prompt."""
+    prompt_template = load_prompt_template("conflict-resolution-agent")
+
+    assert isinstance(prompt_template, ChatPromptTemplate)
+    assert len(prompt_template.messages) == 2
+
+
+def test_load_prompt_template_missing_file():
+    """Test that load_prompt_template raises FileNotFoundError if files are missing."""
     with mock.patch("src.ai.prompts.PROMPTS_DIR", Path("/nonexistent")):
         with pytest.raises(FileNotFoundError):
-            load_file_analysis_prompt()
+            load_prompt_template("classification-agent")
 
 
 def test_prompt_template_formats_correctly():
     """Test that the prompt template formats with actual values."""
-    prompt_template = load_file_analysis_prompt()
+    prompt_template = load_prompt_template("classification-agent")
 
     # Format with sample values
     messages = prompt_template.format_messages(

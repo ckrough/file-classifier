@@ -1,131 +1,143 @@
-"""Unit tests for the ai_file_classifier.file_analyzer module."""
+"""Unit tests for the multi-agent file analyzer module."""
 
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, Mock
 import pytest
-from langchain_core.prompts import ChatPromptTemplate
-from src.analysis.analyzer import (
-    standardize_analysis,
-    generate_filename,
-    analyze_file_content,
-)
-from src.analysis.models import Analysis
-
-
-def test_standardize_analysis():
-    """Test that standardize_analysis correctly standardizes the Analysis object."""
-    original_analysis = Analysis(
-        category="Financial Report",
-        vendor="Acme Corp",
-        description="Annual Financial Overview",
-        date="2023-10-01",
-    )
-    standardized = standardize_analysis(original_analysis)
-    assert standardized.category == "financial-report"
-    assert standardized.vendor == "acme-corp"
-    assert standardized.description == "annual-financial-overview"
-    assert standardized.date == "2023-10-01"
-
-
-def test_generate_filename():
-    """Test that generate_filename creates the correct filename based on Analysis data."""
-    analysis = Analysis(
-        category="financial-report",
-        vendor="acme-corp",
-        description="annual-financial-overview",
-        date="2023-10-01",
-    )
-    filename = generate_filename(analysis)
-    assert filename == "acme-corp-financial-report-annual-financial-overview-2023-10-01"
+from src.analysis.analyzer import analyze_file_content
+from src.analysis.models import ResolvedMetadata
 
 
 @patch("src.analysis.analyzer.extract_text_from_txt")
-@patch("src.analysis.analyzer.get_file_analysis_prompt")
-def test_analyze_file_content_txt(mock_get_prompt, mock_extract_txt):
-    """Test analyze_file_content with a .txt file to ensure proper analysis and filename generation."""
+@patch("src.analysis.analyzer.process_document_multi_agent")
+def test_analyze_file_content_txt(mock_multi_agent, mock_extract_txt):
+    """Test analyze_file_content with a .txt file using multi-agent pipeline."""
     # Setup mocks for the .txt file
     mock_extract_txt.return_value = "Sample text content."
 
-    # Mock the prompt template
-    mock_prompt = MagicMock(spec=ChatPromptTemplate)
-    mock_get_prompt.return_value = mock_prompt
+    # Mock the multi-agent pipeline response
+    mock_multi_agent.return_value = ResolvedMetadata(
+        final_path="Financial/Banking/acme/statement-acme-checking-20231001.txt",
+        alternative_paths=None,
+        resolution_notes=None,
+    )
 
     mock_ai_client = Mock()
-    mock_ai_client.analyze_content.return_value = Analysis(
-        category="documentation",
-        vendor="openai",
-        description="user-guide",
-        date="2023-10-01",
+
+    # Test with a .txt file
+    result = analyze_file_content(
+        file_path="docs/user_guide.txt", client=mock_ai_client
     )
 
-    # Test with a .txt file (using legacy single-agent mode for this test)
-    suggested_name, category, vendor, description, date = analyze_file_content(
-        file_path="docs/user_guide.txt", client=mock_ai_client, use_multi_agent=False
-    )
+    suggested_name, category, vendor, description, date = result
 
-    assert suggested_name == "openai-documentation-user-guide-2023-10-01"
-    assert category == "documentation"
-    assert vendor == "openai"
-    assert description == "user-guide"
-    assert date == "2023-10-01"
+    assert suggested_name == "statement-acme-checking-20231001.txt"
+    assert category == "statement"
+    assert vendor == "acme"
+    assert description == "checking"
+    assert date == "20231001"
 
     mock_extract_txt.assert_called_once_with("docs/user_guide.txt")
-    mock_get_prompt.assert_called_once()
-
-    # Verify analyze_content was called with prompt template and values
-    mock_ai_client.analyze_content.assert_called_once()
-    call_args = mock_ai_client.analyze_content.call_args
-    assert call_args[1]["prompt_template"] == mock_prompt
-    assert call_args[1]["prompt_values"]["filename"] == "user_guide.txt"
-    assert call_args[1]["prompt_values"]["content"] == "Sample text content."
+    mock_multi_agent.assert_called_once_with(
+        "Sample text content.", "user_guide.txt", mock_ai_client
+    )
 
 
 @patch("src.analysis.analyzer.extract_text_from_pdf")
-@patch("src.analysis.analyzer.get_file_analysis_prompt")
-def test_analyze_file_content_pdf(mock_get_prompt, mock_extract_pdf):
-    """Test analyze_file_content with a .pdf file to ensure proper analysis and filename generation."""
+@patch("src.analysis.analyzer.process_document_multi_agent")
+def test_analyze_file_content_pdf(mock_multi_agent, mock_extract_pdf):
+    """Test analyze_file_content with a .pdf file using multi-agent pipeline."""
     # Setup mocks for the .pdf file
     mock_extract_pdf.return_value = "Sample PDF content."
 
-    # Mock the prompt template
-    mock_prompt = MagicMock(spec=ChatPromptTemplate)
-    mock_get_prompt.return_value = mock_prompt
+    # Mock the multi-agent pipeline response
+    mock_multi_agent.return_value = ResolvedMetadata(
+        final_path="Financial/Banking/chase/statement-chase-savings-20230115.pdf",
+        alternative_paths=None,
+        resolution_notes=None,
+    )
 
     mock_ai_client = Mock()
-    mock_ai_client.analyze_content.return_value = Analysis(
-        category="documentation",
-        vendor="openai",
-        description="annual-report",
-        date="2023-10-01",
+
+    # Test with a .pdf file
+    result = analyze_file_content(
+        file_path="docs/report.pdf", client=mock_ai_client
     )
 
-    # Test with a .pdf file (using legacy single-agent mode for this test)
-    suggested_name, category, vendor, description, date = analyze_file_content(
-        file_path="docs/report.pdf", client=mock_ai_client, use_multi_agent=False
-    )
+    suggested_name, category, vendor, description, date = result
 
-    assert suggested_name == "openai-documentation-annual-report-2023-10-01"
-    assert category == "documentation"
-    assert vendor == "openai"
-    assert description == "annual-report"
-    assert date == "2023-10-01"
+    assert suggested_name == "statement-chase-savings-20230115.pdf"
+    assert category == "statement"
+    assert vendor == "chase"
+    assert description == "savings"
+    assert date == "20230115"
 
     mock_extract_pdf.assert_called_once_with("docs/report.pdf")
-    mock_get_prompt.assert_called_once()
-
-    # Verify analyze_content was called with prompt template and values
-    mock_ai_client.analyze_content.assert_called_once()
-    call_args = mock_ai_client.analyze_content.call_args
-    assert call_args[1]["prompt_template"] == mock_prompt
-    assert call_args[1]["prompt_values"]["filename"] == "report.pdf"
-    assert call_args[1]["prompt_values"]["content"] == "Sample PDF content."
+    mock_multi_agent.assert_called_once_with(
+        "Sample PDF content.", "report.pdf", mock_ai_client
+    )
 
 
 @patch("src.analysis.analyzer.extract_text_from_txt")
 def test_analyze_file_content_extraction_failure(mock_extract_txt):
-    """Test that analyze_file_content raises a RuntimeError when text extraction fails."""
+    """Test that analyze_file_content raises RuntimeError on extraction failure."""
     mock_extract_txt.return_value = None
     mock_ai_client = Mock()
     with pytest.raises(RuntimeError) as exc_info:
         analyze_file_content(file_path="docs/invalid.txt", client=mock_ai_client)
     assert "Error analyzing file content" in str(exc_info.value)
     mock_extract_txt.assert_called_once_with("docs/invalid.txt")
+
+
+@patch("src.analysis.analyzer.extract_text_from_pdf")
+@patch("src.analysis.analyzer.process_document_multi_agent")
+def test_analyze_file_content_complex_filename(mock_multi_agent, mock_extract_pdf):
+    """Test parsing of complex multi-part filenames."""
+    mock_extract_pdf.return_value = "Invoice content"
+
+    # Mock response with complex filename (multi-word description)
+    mock_multi_agent.return_value = ResolvedMetadata(
+        final_path="Financial/Banking/bofa/invoice-bofa-wire-transfer-fee-20240315.pdf",
+        alternative_paths=None,
+        resolution_notes=None,
+    )
+
+    mock_ai_client = Mock()
+
+    result = analyze_file_content(
+        file_path="test.pdf", client=mock_ai_client
+    )
+
+    suggested_name, category, vendor, description, date = result
+
+    assert suggested_name == "invoice-bofa-wire-transfer-fee-20240315.pdf"
+    assert category == "invoice"
+    assert vendor == "bofa"
+    assert description == "wire-transfer-fee"
+    assert date == "20240315"
+
+
+@patch("src.analysis.analyzer.extract_text_from_pdf")
+@patch("src.analysis.analyzer.process_document_multi_agent")
+def test_analyze_file_content_no_date(mock_multi_agent, mock_extract_pdf):
+    """Test parsing of filename without date."""
+    mock_extract_pdf.return_value = "Document content"
+
+    # Mock response without date in filename
+    mock_multi_agent.return_value = ResolvedMetadata(
+        final_path="Legal/Contracts/vendor-name/agreement-vendor-name-service.pdf",
+        alternative_paths=None,
+        resolution_notes=None,
+    )
+
+    mock_ai_client = Mock()
+
+    result = analyze_file_content(
+        file_path="test.pdf", client=mock_ai_client
+    )
+
+    suggested_name, category, vendor, description, date = result
+
+    assert suggested_name == "agreement-vendor-name-service.pdf"
+    assert category == "agreement"
+    assert vendor == "vendor"
+    assert description == "name-service"
+    assert date == ""

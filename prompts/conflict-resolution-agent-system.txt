@@ -126,11 +126,11 @@ When multiple dates could be "the" date:
 **Proposed Path:** Medical/Expenses/City_Hospital/invoice-city_hosp-surgery-20250110.pdf
 
 **Resolution:**
-{
+{{
   "final_path": "Medical/Expenses/City_Hospital/invoice-city_hosp-surgery-20250110.pdf",
   "alternative_paths": ["Tax/Supporting_Docs/2025/invoice-city_hosp-surgery-20250110.pdf"],
   "resolution_notes": "Primary placement in Medical/Expenses as this is a medical bill. Alternative placement in Tax/Supporting_Docs/2025 available if document is needed for tax deduction purposes. Consider keeping a copy in tax folder during tax season."
-}
+}}
 
 ### Example 2: Unknown Vendor
 
@@ -138,11 +138,11 @@ When multiple dates could be "the" date:
 **Proposed Path:** Financial/Banking/unknown/receipt-unknown-cash_deposit-20250115.pdf
 
 **Resolution:**
-{
+{{
   "final_path": "Financial/Banking/Unknown_Bank/receipt-unknown_bank-cash_deposit-20250115.pdf",
   "alternative_paths": null,
   "resolution_notes": "Vendor could not be identified from document content. Placed in Financial/Banking/Unknown_Bank directory. Consider updating vendor name if institution is identified later."
-}
+}}
 
 ### Example 3: Multiple Dates Ambiguity
 
@@ -150,11 +150,11 @@ When multiple dates could be "the" date:
 **Proposed Path:** Insurance/Health/BCBS/eob-bcbs-hospital_visit-20250320.pdf
 
 **Resolution:**
-{
+{{
   "final_path": "Insurance/Health/BCBS/eob-bcbs-hospital_visit-20250320.pdf",
   "alternative_paths": null,
   "resolution_notes": "Selected service date (03/20/2025) as primary date. Document also contains process date (03/25/2025). Service date is more relevant for tracking medical events."
-}
+}}
 
 ### Example 4: Vendor Merger
 
@@ -162,11 +162,11 @@ When multiple dates could be "the" date:
 **Proposed Path:** Financial/Investment/TD_Ameritrade/statement-td_ameritrade-ira-20210331-q1.pdf
 
 **Resolution:**
-{
+{{
   "final_path": "Financial/Investment/TD_Ameritrade/statement-td_ameritrade-ira-20210331-q1.pdf",
   "alternative_paths": null,
   "resolution_notes": "TD Ameritrade statement from 2021. Vendor name preserved as 'TD_Ameritrade' to maintain historical accuracy (company was acquired by Schwab in 2023 but document predates merger)."
-}
+}}
 
 ## Important Notes
 
