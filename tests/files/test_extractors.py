@@ -62,7 +62,9 @@ def test_extract_text_from_nonexistent_pdf(tmp_path, caplog):
     assert any(
         (
             "PDF" in record.message
-            and ("opening" in record.message.lower() or "error" in record.message.lower())
+            and (
+                "opening" in record.message.lower() or "error" in record.message.lower()
+            )
         )
         for record in caplog.records
     )
