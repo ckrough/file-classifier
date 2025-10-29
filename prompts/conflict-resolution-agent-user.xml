@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<prompt>
+  <instruction>Resolve any conflicts or ambiguities in the proposed document placement.</instruction>
+
+  <input>
+    <field name="proposed_path">{proposed_path}</field>
+    <original_metadata>
+      <field name="domain">{domain}</field>
+      <field name="category">{category}</field>
+      <field name="doctype">{doctype}</field>
+      <field name="vendor_raw">{vendor_raw}</field>
+    </original_metadata>
+    <field name="conflict_flags">{conflict_flags}</field>
+  </input>
+
+  <output>
+    <field name="final_path">confirmed or corrected path</field>
+    <field name="alternative_paths">list of alternatives if document serves multiple purposes, or null</field>
+    <field name="resolution_notes">explanation of decision, especially for edge cases</field>
+  </output>
+
+  <default_case>If no conflicts exist or the proposed path is acceptable, confirm it and note "No conflicts detected" in resolution_notes.</default_case>
+</prompt>

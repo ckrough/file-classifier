@@ -2,7 +2,7 @@
 Prompt management using LangChain templates.
 
 This module provides access to LangChain ChatPromptTemplate objects
-loaded from text files in the prompts/ directory.
+loaded from XML files in the prompts/ directory.
 
 Supports the multi-agent document processing prompts:
 - classification-agent
@@ -25,11 +25,13 @@ PROMPTS_DIR = Path(__file__).parent.parent.parent / "prompts"
 
 def load_prompt_template(prompt_name: str) -> ChatPromptTemplate:
     """
-    Load a prompt template from text files by name.
+    Load a prompt template from XML files by name.
 
     Looks for two files in the prompts/ directory:
-    - {prompt_name}-system.txt (or {prompt_name}-system-prompt.txt)
-    - {prompt_name}-user.txt (or {prompt_name}-user-prompt.txt)
+    - {prompt_name}-system.xml
+    - {prompt_name}-user.xml
+
+    Falls back to .txt files for backward compatibility.
 
     Args:
         prompt_name (str): The base name of the prompt (e.g., 'classification-agent').
@@ -42,14 +44,20 @@ def load_prompt_template(prompt_name: str) -> ChatPromptTemplate:
         IOError: If prompt files cannot be read.
     """
     try:
-        # Try both naming conventions for backward compatibility
-        system_prompt_path = PROMPTS_DIR / f"{prompt_name}-system.txt"
-        if not system_prompt_path.exists():
-            system_prompt_path = PROMPTS_DIR / f"{prompt_name}-system-prompt.txt"
+        # Try XML files first
+        system_prompt_path = PROMPTS_DIR / f"{prompt_name}-system.xml"
+        user_prompt_path = PROMPTS_DIR / f"{prompt_name}-user.xml"
 
-        user_prompt_path = PROMPTS_DIR / f"{prompt_name}-user.txt"
+        # Fall back to .txt files for backward compatibility
+        if not system_prompt_path.exists():
+            system_prompt_path = PROMPTS_DIR / f"{prompt_name}-system.txt"
+            if not system_prompt_path.exists():
+                system_prompt_path = PROMPTS_DIR / f"{prompt_name}-system-prompt.txt"
+
         if not user_prompt_path.exists():
-            user_prompt_path = PROMPTS_DIR / f"{prompt_name}-user-prompt.txt"
+            user_prompt_path = PROMPTS_DIR / f"{prompt_name}-user.txt"
+            if not user_prompt_path.exists():
+                user_prompt_path = PROMPTS_DIR / f"{prompt_name}-user-prompt.txt"
 
         logger.debug("Loading system prompt from: %s", system_prompt_path)
         system_prompt = system_prompt_path.read_text(encoding="utf-8").strip()
@@ -58,6 +66,7 @@ def load_prompt_template(prompt_name: str) -> ChatPromptTemplate:
         user_prompt = user_prompt_path.read_text(encoding="utf-8").strip()
 
         # Create ChatPromptTemplate with proper message roles
+        # XML content is passed directly - AI models work natively with XML structure
         return ChatPromptTemplate.from_messages(
             [
                 ("system", system_prompt),

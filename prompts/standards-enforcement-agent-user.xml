@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<prompt>
+  <instruction>Apply document archival system naming conventions to the following raw metadata.</instruction>
+
+  <input>
+    <field name="domain">{domain}</field>
+    <field name="category">{category}</field>
+    <field name="doctype">{doctype}</field>
+    <field name="vendor_raw">{vendor_raw}</field>
+    <field name="date_raw">{date_raw}</field>
+    <field name="subject_raw">{subject_raw}</field>
+  </input>
+
+  <output>
+    <field name="domain" rule="unchanged"/>
+    <field name="category" rule="unchanged"/>
+    <field name="doctype" rule="standardized vocabulary"/>
+    <field name="vendor_name" rule="lowercase, underscores, standard abbreviations"/>
+    <field name="date" rule="YYYYMMDD format - format the provided date"/>
+    <field name="subject" rule="1-3 words, lowercase, underscores"/>
+  </output>
+</prompt>
