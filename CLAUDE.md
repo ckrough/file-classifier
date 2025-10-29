@@ -51,6 +51,31 @@ pytest tests/ai/test_client.py::test_langchain_client_init_openai
 pytest -v --tb=long
 ```
 
+### Benchmark Testing
+```bash
+# Run all benchmark tests
+pytest -m benchmark
+
+# Run benchmarks for specific domain
+pytest tests/benchmarks/ai/           # AI component benchmarks
+pytest tests/benchmarks/files/        # File operation benchmarks
+
+# Run specific benchmark test
+pytest tests/benchmarks/ai/test_bench_prompts.py
+
+# Generate performance baseline (save current performance as reference)
+./scripts/generate_baseline.sh
+
+# Run performance gate (compare against baseline)
+./scripts/run_performance_gate.sh
+
+# Update baseline after approved performance changes
+./scripts/update_baseline.sh
+
+# Detect which benchmarks to run based on git changes
+python scripts/detect_benchmark_targets.py
+```
+
 ### Code Quality
 
 #### Pre-Commit Checklist
@@ -79,7 +104,7 @@ pytest --cov=src --cov-report=term-missing --cov-report=html
 - **Flake8**: Auto-reads `.flake8` config (extends Black compatibility)
 - **Pylint**: Configured in `pyproject.toml` (max-line-length=88)
 - **Bandit**: Configured in `pyproject.toml` (excludes tests, allows assertions)
-- **Pytest**: Configured in `pyproject.toml` (markers: unit, functional, slow, benchmark)
+- **Pytest**: Configured in `pyproject.toml` (markers: unit, functional, slow, benchmark, integration)
 
 #### Individual Tool Commands
 ```bash
@@ -115,8 +140,20 @@ python main.py path/to/directory
 # Dry-run mode (no actual renaming)
 python main.py path/to/directory --dry-run
 
-# Auto-rename without user confirmation
-python main.py path/to/directory --auto-rename
+# Move files to archive directory structure
+python main.py path/to/directory --move --destination ~/archive
+
+# Combined: move with dry-run and verbose output
+python main.py path/to/directory --move --destination ~/archive --dry-run --verbose
+
+# Quiet mode (suppress output except errors)
+python main.py path/to/directory --quiet
+
+# Verbose mode (show detailed progress and timing)
+python main.py path/to/directory --verbose
+
+# Debug mode (show full technical logging)
+python main.py path/to/directory --debug
 ```
 
 ## Architecture
@@ -157,6 +194,9 @@ src/
 │   ├── settings.py       # SUPPORTED_MIMETYPES constants
 │   └── logging.py        # setup_logging()
 │
+├── storage/          # Database and caching operations (placeholder)
+│   └── __init__.py       # Module initialization (not yet implemented)
+│
 └── recommendations/  # Folder suggestions
     └── recommender.py    # recommend_folder_structure() - Accepts change list
 ```
@@ -176,8 +216,18 @@ tests/
 │   ├── test_extractors.py   # Tests for files/extractors.py
 │   ├── test_operations.py   # Tests for files/operations.py
 │   └── test_processor.py    # Tests for files/processor.py
-└── cli/
-    └── test_arguments.py    # Tests for cli/arguments.py
+├── cli/
+│   └── test_arguments.py    # Tests for cli/arguments.py
+├── storage/
+│   └── (empty - placeholder for future tests)
+└── benchmarks/          # Performance benchmark tests
+    ├── ai/
+    │   └── test_bench_prompts.py          # Prompt template caching benchmarks
+    ├── files/
+    │   └── test_bench_mime_detection.py   # MIME detection singleton benchmarks
+    ├── analysis/        # (empty - placeholder)
+    ├── cli/             # (empty - placeholder)
+    └── conftest.py      # Shared benchmark fixtures (sample data, content)
 ```
 
 ### Core Components
@@ -235,15 +285,18 @@ A 4-stage pipeline for intelligent document processing:
 
 **File Operations** (`src/files/`)
 1. `extractors.py`: Text extraction from .txt and .pdf files
-2. `operations.py`: File validation (`is_supported_filetype()`) and bulk renaming
+2. `operations.py`: File validation and two operation modes:
+   - `is_supported_filetype()`: Validates file type support
+   - `rename_files()`: Bulk renaming files in current location (default mode)
+   - `move_files()`: Moving files to archive directory structure (requires --move --destination)
 3. `processor.py`: File processing orchestration
-   - `process_file()`: Returns `Optional[dict[str, str]]` with change metadata
+   - `process_file()`: Returns `Optional[dict[str, str]]` with change metadata including destination_relative_path
    - `process_directory()`: Returns `list[dict[str, str]]` of all changes
    - In-memory collection replaces database caching
 
 **CLI** (`src/cli/`)
-- `arguments.py`: CLI argument parsing
-- `display.py`: User prompts and suggested changes display (accepts changes list)
+- `arguments.py`: CLI argument parsing (--dry-run, --move, --destination, --quiet, --verbose, --debug)
+- `display.py`: User prompts and suggested changes display (accepts changes list, destination_root, and move_enabled)
 - `workflow.py`: Main application orchestration (collects and returns changes)
 
 ### Application Flow
@@ -252,7 +305,7 @@ A 4-stage pipeline for intelligent document processing:
 main.py
   ↓
 cli/arguments.py: parse_arguments()
-  → CLI args (path, --dry-run, --auto-rename)
+  → CLI args (path, --dry-run, --move, --destination, --quiet, --verbose, --debug)
   ↓
 ai/factory.py: create_ai_client()
   → Initialize LLM client (OpenAI/Ollama) based on AI_PROVIDER
@@ -291,7 +344,7 @@ files/processor.py: process_file() → for each supported file:
   │         ├─ ai/client.py: analyze_content(schema=ResolvedMetadata)
   │         └─ Returns: ResolvedMetadata (final_path, alternatives, notes)
   │
-  └─ Returns change dict {file_path, suggested_name, category, vendor, description, date}
+  └─ Returns change dict {file_path, suggested_name, category, vendor, description, date, destination_relative_path}
   ↓
 files/processor.py: process_directory()
   → Collect all change dicts into list
@@ -299,11 +352,11 @@ files/processor.py: process_directory()
 cli/workflow.py: process_path()
   → Return collected changes to main
   ↓
-cli/display.py: handle_suggested_changes(changes)
-  → Display suggestions, get user approval
+cli/display.py: handle_suggested_changes(changes, destination_root, move_enabled)
+  → Display suggestions (rename or move mode), get user approval
   ↓
-files/operations.py: rename_files()
-  → Apply approved changes
+files/operations.py: rename_files() OR move_files()
+  → Apply approved changes (rename in-place OR move to archive structure)
 ```
 
 ### Environment Variables
@@ -389,6 +442,7 @@ agents/        → depends on: ai/, analysis/models.py
 ai/            → depends on: analysis/models.py only
 files/         → isolated (no internal dependencies)
 config/        → isolated (leaf node)
+storage/       → isolated (placeholder, not yet used)
 ```
 
 ### Adding New Features
@@ -423,16 +477,30 @@ GitHub Actions workflows:
   - Python 3.11 (minimum version, as specified in pyproject.toml)
   - Installs dependencies via `pip install -e ".[dev]"`
   - Runs flake8 linting (two-pass: critical errors + all warnings)
-  - Runs pytest (excludes slow, functional, and benchmark tests)
+  - Runs pytest (excludes `slow`, `functional`, `benchmark`, and `integration` tests)
 - **pylint.yml** - Separate pylint workflow:
   - Python 3.11
   - Sets PYTHONPATH for import resolution
   - Runs `pylint src/` with pyproject.toml configuration
 
+**Performance Testing Infrastructure:**
+- Benchmark tests available via `pytest -m benchmark` (not run in CI)
+- Performance baseline generation: `./scripts/generate_baseline.sh`
+- Performance gate validation: `./scripts/run_performance_gate.sh`
+- Automatic benchmark target detection: `python scripts/detect_benchmark_targets.py`
+
 ## Important Notes
 
 - Only `.txt` and `.pdf` files are supported (checked via `is_supported_filetype()`)
-- File renaming preserves file extension
+- **File Operation Modes**: Two modes supported:
+  1. **Rename mode** (default) - Files renamed in current location
+  2. **Move mode** (`--move --destination`) - Files moved to archive directory structure
+- File operations preserve file extension
+- **Verbosity Levels**: Four levels available:
+  - `--quiet` - Suppress output except errors
+  - Normal (default) - Standard user-facing output
+  - `--verbose` - Detailed progress and timing information
+  - `--debug` - Full technical logging for troubleshooting
 - **Multi-Agent Pipeline**: Document processing uses a 4-stage agent pipeline
   - Each agent has specialized expertise and structured output schema
   - Conflict detection identifies edge cases requiring resolution
@@ -450,6 +518,10 @@ GitHub Actions workflows:
   - No persistent storage between runs
   - Batch review workflow: analyze all → review → apply
   - Changes passed through function calls as `list[dict[str, str]]`
+- **Performance Benchmarks**: Benchmark infrastructure for performance testing
+  - Tests marked with `@pytest.mark.benchmark` measure locally-developed code only
+  - Baseline generation and performance gates available via `scripts/` directory
+  - Not run in CI by default (excluded with other slow tests)
 - **LangChain Integration**: The application uses LangChain for multi-provider LLM support
   - Use `create_ai_client()` factory (in `src/ai/factory.py`) to initialize the AI client
   - Supports both cloud (OpenAI) and local (Ollama) model providers
