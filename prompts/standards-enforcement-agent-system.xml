@@ -11,8 +11,8 @@
         <rule>Convert to lowercase only</rule>
         <rule>Replace spaces with underscores</rule>
         <rule>Remove all punctuation except underscores</rule>
-        <rule>Use standard abbreviations when widely recognized</rule>
-        <rule>For individuals: lastname_firstname format (add professional suffix if applicable)</rule>
+        <rule>Use abbreviations for: (1) commonly known acronyms (bcbs, irs, dmv), (2) brands already abbreviated (cvs, td_ameritrade). Preserve recognizable brand names (home_depot, wells_fargo)</rule>
+        <rule>For individuals: lastname_firstname[_suffix] format. Include suffix only for medical professionals (md, dds, do, dvm). Omit attorney, CPA, PhD, Jr., Sr.</rule>
         <rule>Keep concise: 2-4 words maximum</rule>
       </rules>
       <examples>
@@ -30,12 +30,16 @@
         <example input="Internal Revenue Service" output="irs"/>
         <example input="North Carolina Department of Revenue" output="state_nc"/>
         <example input="California Franchise Tax Board" output="state_ca"/>
+        <example input="California DMV" output="dmv_ca"/>
+        <example input="New York Department of Motor Vehicles" output="dmv_ny"/>
+        <example input="Texas Secretary of State" output="sos_tx"/>
         <example input="Acme Corporation" output="acme_corp"/>
         <example input="Goodwill Industries" output="goodwill"/>
       </examples>
       <property_specific>
-        <example input="123 Main St" output="123_main_st" type="address"/>
-        <example input="2022 Honda Accord" output="2022_honda_accord" type="vehicle"/>
+        <note>For property documents where the property itself is the vendor (deeds, titles):</note>
+        <example input="123 Main Street" output="123_main_st" type="address"/>
+        <example input="456 Oak Avenue" output="456_oak_ave" type="address"/>
       </property_specific>
     </vendor_standardization>
 
@@ -48,11 +52,9 @@
         <example input="Jan 31, 2025" output="20250131"/>
       </examples>
       <quarterly>
-        <quarter name="Q1" end_date="0331"/>
-        <quarter name="Q2" end_date="0630"/>
-        <quarter name="Q3" end_date="0930"/>
-        <quarter name="Q4" end_date="1231"/>
+        <note>Use last day of quarter: Q1=0331, Q2=0630, Q3=0930, Q4=1231</note>
         <example input="Q1 2025" output="20250331"/>
+        <example input="Q3 2024" output="20240930"/>
       </quarterly>
     </date_formatting>
 
@@ -63,24 +65,25 @@
         <guideline>Specific enough to differentiate similar documents</guideline>
         <guideline>Descriptive of content or purpose</guideline>
       </guidelines>
-      <patterns>
-        <pattern category="account_types">checking, savings, credit, ira, 401k</pattern>
-        <pattern category="transaction_types">purchase, sale, transfer, payment, refund, wire_transfer</pattern>
-        <pattern category="document_purposes">annual_physical, oil_change, quarterly, closing, kitchen_reno</pattern>
-        <pattern category="specific_identifiers">form1040, w2, roof_replacement, annual_service</pattern>
-      </patterns>
       <examples>
+        <!-- Account types -->
+        <example input="checking account" output="checking"/>
+        <example input="IRA account" output="ira"/>
+        <!-- Transaction types -->
         <example input="wire transfer payment" output="wire_transfer"/>
+        <example input="purchase transaction" output="purchase"/>
+        <!-- Document purposes -->
         <example input="annual physical examination" output="annual_physical"/>
         <example input="oil change service" output="oil_change"/>
         <example input="kitchen renovation project" output="kitchen_reno"/>
         <example input="quarterly report" output="quarterly"/>
-        <example input="checking account" output="checking"/>
+        <!-- Specific identifiers -->
+        <example input="Form 1040 tax return" output="form1040"/>
+        <example input="W-2 wages" output="w2"/>
       </examples>
     </subject_generation>
 
     <doctype_standardization>
-      <vocabulary>statement, receipt, invoice, policy, contract, deed, title, return, notice, report, certificate, form, letter, agreement, confirmation, eob, record</vocabulary>
       <mappings>
         <mapping input="Statement" output="statement"/>
         <mapping input="Receipt of Payment" output="receipt"/>
@@ -94,6 +97,8 @@
   <examples>
     <example>
       <input>
+        <domain>financial</domain>
+        <category>banking</category>
         <vendor_raw>Chase Bank</vendor_raw>
         <date_raw>01/31/2025</date_raw>
         <subject_raw>checking account statement</subject_raw>
@@ -111,6 +116,8 @@
 
     <example>
       <input>
+        <domain>medical</domain>
+        <category>records</category>
         <vendor_raw>Dr. John Smith</vendor_raw>
         <date_raw>February 1, 2025</date_raw>
         <subject_raw>annual physical examination</subject_raw>
@@ -128,6 +135,8 @@
 
     <example>
       <input>
+        <domain>property</domain>
+        <category>major_assets</category>
         <vendor_raw>Home Depot</vendor_raw>
         <date_raw>03/05/2024</date_raw>
         <subject_raw>kitchen renovation materials</subject_raw>
@@ -135,7 +144,7 @@
       </input>
       <output>
         <domain>property</domain>
-        <category>real_estate</category>
+        <category>major_assets</category>
         <doctype>receipt</doctype>
         <vendor_name>home_depot</vendor_name>
         <date>20240305</date>
@@ -145,6 +154,8 @@
 
     <example>
       <input>
+        <domain>insurance</domain>
+        <category>health</category>
         <vendor_raw>Blue Cross Blue Shield</vendor_raw>
         <date_raw>March 20, 2025</date_raw>
         <subject_raw>hospital visit explanation of benefits</subject_raw>
@@ -162,6 +173,8 @@
 
     <example>
       <input>
+        <domain>financial</domain>
+        <category>tax</category>
         <vendor_raw>Acme Corporation</vendor_raw>
         <date_raw>January 31, 2025</date_raw>
         <subject_raw>W-2 wages</subject_raw>
@@ -179,6 +192,8 @@
 
     <example>
       <input>
+        <domain>financial</domain>
+        <category>tax</category>
         <vendor_raw>Internal Revenue Service</vendor_raw>
         <date_raw>April 15, 2025</date_raw>
         <subject_raw>Federal Tax Return Form 1040</subject_raw>
@@ -196,12 +211,8 @@
   </examples>
 
   <notes>
-    <note>Apply rules deterministically - same input should always produce same output</note>
-    <note>Format the provided date to YYYYMMDD (the Classification Agent has already selected the most relevant date)</note>
-    <note>Vendor names should be recognizable but standardized</note>
-    <note>Subjects should be concise but descriptive</note>
-    <note>Always return results in lowercase (including domain and category)</note>
-    <note>Domain and category must be lowercase with underscores (e.g., "financial", "banking", "property_casualty")</note>
-    <note>Provide your response as a valid JSON object matching the NormalizedMetadata schema</note>
+    <note>Apply rules deterministically - same input always produces same output</note>
+    <note>All output fields (domain, category, doctype, vendor_name, subject) must be lowercase with underscores for multi-word values</note>
+    <note>Respond with valid JSON matching NormalizedMetadata schema</note>
   </notes>
 </agent>

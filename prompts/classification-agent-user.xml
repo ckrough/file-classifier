@@ -8,8 +8,8 @@
   </input>
 
   <extract>
-    <field name="domain" required="true">Financial/Property/Insurance/Tax/Legal/Medical</field>
-    <field name="category" required="true">specific category within the domain</field>
+    <field name="domain" required="true">financial/property/insurance/legal/medical/employment/utilities/education</field>
+    <field name="category" required="true">specific category within the domain (e.g., banking, tax, real_estate)</field>
     <field name="doctype" required="true">statement/receipt/invoice/policy/etc.</field>
     <field name="vendor_raw" required="true">company/entity name as it appears</field>
     <field name="date_raw" required="true">most relevant date (invoice/document date preferred), in original format</field>
