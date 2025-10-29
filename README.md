@@ -1,139 +1,122 @@
-# File Classifier Application
+# File Classifier
 
 ## Overview
 
-AI-powered file classifier that analyzes text and PDF files using a **multi-agent document processing pipeline**. The application uses specialized AI agents to perform deep content analysis and generate intelligent directory structures and filenames based on semantic understanding of documents.
+Automatically organize and rename your documents based on their content. This tool analyzes text and PDF files using AI to understand what they are, then generates organized directory structures and standardized filenames.
 
-**Key Capabilities:**
-- Semantic document classification (Financial, Medical, Tax, Property, Legal, Insurance domains)
-- Intelligent vendor identification and normalization
-- Automatic directory taxonomy generation (`Domain/Category/Vendor/`)
-- Standardized filename generation (`doctype-vendor-subject-YYYYMMDD.ext`)
-- Support for both cloud (OpenAI) and local (Ollama) LLM providers
+**What it does:**
+- Reads and understands document content
+- Identifies document type, vendor, dates, and subject matter
+- Generates organized paths: `Domain/Category/Vendor/`
+- Creates standardized filenames: `doctype-vendor-subject-YYYYMMDD.ext`
+- Lets you review and approve changes before applying them
 
-## Features
+**Supported file types:** `.txt` and `.pdf`
 
-- **Multi-Agent Processing**: 4-stage AI pipeline for intelligent document analysis
-  - **Classification Agent**: Semantic analysis and metadata extraction
-  - **Standards Enforcement Agent**: Naming convention normalization
-  - **Path Construction Agent**: Directory structure and filename assembly
-  - **Conflict Resolution Agent**: Edge case handling and ambiguity resolution
+**AI provider options:** OpenAI (cloud) or Ollama (local models)
 
-- **Flexible AI Providers**: Choose between OpenAI (cloud) or Ollama (local models like DeepSeek)
+## Quick Start
 
-- **Smart Organization**: Generates hierarchical directory structures based on document content
-  - Financial documents: `Financial/Banking/chase/statement-chase-checking-20250131.pdf`
-  - Tax documents: `Tax/Federal/2024/1040-irs-tax-return-20240415.pdf`
-  - Medical records: `Medical/Records/smith_john_md/report-smith_john_md-annual_physical-20250201.pdf`
+### Installation
 
-- **Flexible File Operations**: Two operation modes
-  - **Rename mode** (default): Rename files in their current location
-  - **Move mode** (`--move --destination`): Move files to organized archive directory structure
-
-- **User Control**: Review all suggested changes before applying
-  - Interactive approval workflow
-  - Dry-run mode for testing
-  - Verbosity control (quiet, normal, verbose, debug)
-
-- **Supported Formats**: `.txt` and `.pdf` files
-
-## Setup Instructions
-
-### 1. Clone the Repository
 ```sh
+# Clone and navigate to repository
 git clone <repository_url>
 cd file-classifier
-```
 
-### 2. Create a Virtual Environment
-```sh
+# Create virtual environment
 python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-### 3. Install Dependencies
-```sh
-# Install runtime and development dependencies
+# Install dependencies
 pip install -e ".[dev]"
-
-# Or install only runtime dependencies
-pip install -e .
 ```
 
-### 4. Set Up Environment Variables
+### Configuration
 
-Create a `.env` file in the root directory with one of the following configurations:
+Create a `.env` file with your AI provider settings:
 
-#### Option A: Using OpenAI (Cloud)
+**Using OpenAI:**
 ```env
-# AI Provider Configuration
 AI_PROVIDER=openai
 AI_MODEL=gpt-4o-mini
-OPENAI_API_KEY=<your_openai_api_key>
-
-# Optional
-DEBUG_MODE=false
+OPENAI_API_KEY=<your_api_key>
 ```
 
-#### Option B: Using Ollama (Local)
+**Using Ollama (local):**
 ```env
-# AI Provider Configuration
 AI_PROVIDER=ollama
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=deepseek-r1:latest
-
-# Optional
-DEBUG_MODE=false
 ```
 
-**Note**: For Ollama, ensure you have Ollama installed and running locally. Install models with:
+For Ollama, install and pull the model first:
 ```sh
 ollama pull deepseek-r1:latest
 ```
 
-## Usage
+### Basic Usage
 
-### Command Line Interface
-
-#### Analyze a Single File
 ```sh
-python main.py path/to/file.pdf
-```
-
-#### Analyze an Entire Directory
-```sh
+# Analyze and rename files in current location
 python main.py path/to/directory
-```
 
-#### Dry-Run Mode (Preview Changes)
-Preview suggested changes without actually applying them:
-```sh
+# Preview changes without applying (recommended first run)
 python main.py path/to/directory --dry-run
-```
 
-#### Move Files to Archive Structure
-Move files to an organized archive directory instead of renaming in-place:
-```sh
+# Move files to organized archive structure
 python main.py path/to/directory --move --destination ~/archive
 ```
 
-#### Verbosity Control
-Control output detail level:
+## Usage Examples
+
+### Rename Mode (Default)
+
+Renames files in their current location:
+
 ```sh
-# Quiet mode (only errors)
-python main.py path/to/directory --quiet
+# Basic usage
+python main.py ~/Downloads
 
-# Verbose mode (detailed progress)
-python main.py path/to/directory --verbose
+# Preview first
+python main.py ~/Downloads --dry-run
 
-# Debug mode (full technical logging)
-python main.py path/to/directory --debug
+# With verbose output
+python main.py ~/Downloads --verbose
 ```
 
-#### Combined Flags
+### Move Mode
+
+Organizes files into archive directory structure:
+
 ```sh
-# Preview move operation with verbose output
-python main.py path/to/directory --move --destination ~/archive --dry-run --verbose
+# Move to archive
+python main.py ~/Downloads --move --destination ~/Documents/archive
+
+# Preview the move
+python main.py ~/Downloads --move --destination ~/Documents/archive --dry-run
+
+# Quiet mode (only show errors)
+python main.py ~/Downloads --move --destination ~/Documents/archive --quiet
+```
+
+### Output Control
+
+Control the amount of output:
+
+```sh
+--quiet    # Only show errors
+           # (default: normal output)
+--verbose  # Show detailed progress and timing
+--debug    # Show full technical logging
+```
+
+## Organization Structure
+
+The tool creates a hierarchical structure based on document content:
+
+```
+Domain/Category/Vendor/doctype-vendor-subject-YYYYMMDD.ext
 ```
 
 ### Example Output
@@ -143,141 +126,162 @@ Financial/Banking/chase/
 ├── statement-chase-checking-20250131.pdf
 ├── statement-chase-savings-20250131.pdf
 
+Financial/Credit_Cards/amex/
+├── statement-amex-platinum-20250115.pdf
+
 Tax/Federal/2024/
 ├── 1040-irs-tax-return-20240415.pdf
 ├── w2-acme_corp-wages-20250131.pdf
 
 Medical/Records/city_hospital/
 ├── receipt-city_hospital-surgery-20250110.pdf
-├── eob-bcbs-hospital_visit-20250320.pdf
+├── bill-city_hospital-emergency-20250320.pdf
+
+Insurance/Auto/state_farm/
+├── policy-state_farm-auto_insurance-20250101.pdf
 ```
+
+### Supported Domains
+
+- **Financial**: Banking, Credit Cards, Loans, Investments
+- **Tax**: Federal, State, Property
+- **Medical**: Records, Bills, Insurance
+- **Property**: Real Estate, Rental, Ownership
+- **Legal**: Contracts, Court Documents, Estate Planning
+- **Insurance**: Auto, Home, Life, Health
 
 ## How It Works
 
-The application uses a sophisticated **4-agent pipeline** for intelligent document processing:
+1. **Extract Text**: Reads content from `.txt` and `.pdf` files
+2. **Analyze Content**: AI examines the document to understand what it is
+3. **Generate Structure**: Creates directory path and filename based on content
+4. **Review Changes**: Shows you all proposed changes
+5. **Apply Changes**: Renames or moves files after your approval
 
-### 1. Classification Agent
-- Performs semantic analysis of document content
-- Identifies document domain (Financial, Medical, Tax, etc.)
-- Determines category (Banking, Real_Estate, Health, etc.)
-- Extracts document type (statement, receipt, invoice, policy)
-- Identifies vendor and subject matter
-- Selects most relevant date (invoice date > transaction date)
+The tool performs semantic analysis to understand document meaning, not just keyword matching. It normalizes vendor names, formats dates consistently (YYYYMMDD), and handles edge cases like documents with multiple purposes.
 
-### 2. Standards Enforcement Agent
-- Applies naming conventions (lowercase, underscores)
-- Standardizes vendor names (`Bank of America` → `bank_of_america`)
-- Formats dates to YYYYMMDD
-- Normalizes subjects to 1-3 concise words
-- Ensures consistent document type vocabulary
+## Development
 
-### 3. Path Construction Agent
-- Builds directory taxonomy: `Domain/Category/Vendor/`
-- Assembles filename: `doctype-vendor-subject-YYYYMMDD.ext`
-- Handles special cases (Tax/Federal/YYYY/, property addresses, etc.)
-- Applies archival system rules
-
-### 4. Conflict Resolution Agent
-- Handles edge cases and ambiguities
-- Resolves unknown vendors
-- Provides alternative paths for multi-purpose documents
-- Makes final placement decisions with explanatory notes
-
-### Workflow
-1. **File Discovery**: Scans directory for `.txt` and `.pdf` files
-2. **Text Extraction**: Extracts content from documents
-3. **Multi-Agent Analysis**: Processes each document through 4-agent pipeline
-4. **User Review**: Displays suggested changes for approval
-5. **Batch Renaming**: Applies approved changes to files
-
-## Architecture
-
-The codebase uses a **domain-driven architecture** with clear separation of concerns:
-
-```
-src/
-├── agents/          # Multi-agent processing pipeline
-├── ai/              # AI/LLM provider abstraction (OpenAI, Ollama)
-├── analysis/        # Data models and compatibility layer
-├── files/           # File I/O operations (extraction, renaming, moving)
-├── cli/             # User interaction and workflow orchestration
-├── config/          # Configuration and settings
-└── recommendations/ # Folder structure suggestions
-```
-
-For detailed architecture documentation, see [CLAUDE.md](CLAUDE.md).
-
-## Testing
+### Running Tests
 
 ```sh
-# Run all tests (excludes slow, benchmark, functional, integration tests)
+# Run all tests
 pytest
 
 # Run with coverage
 pytest --cov=src --cov-report=html
 
-# Run specific test domains
+# Run specific test suites
 pytest tests/ai/           # AI client & prompts
-pytest tests/agents/       # Multi-agent pipeline
 pytest tests/files/        # File operations
-pytest tests/cli/          # CLI arguments
+pytest tests/cli/          # CLI functionality
+pytest tests/analysis/     # Analysis logic
 
-# Run benchmark tests (performance testing)
+# Run benchmark tests
 pytest -m benchmark
-pytest tests/benchmarks/   # All benchmarks
 ```
 
-## Development
+### Code Quality
+
+Run before committing (in order):
 
 ```sh
-# Install development dependencies
-pip install -e ".[dev]"
-
-# Format code (always run first)
+# 1. Format code
 black src/ tests/
 
-# Run linting (two-pass approach)
-flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics  # Critical errors
-flake8 . --count --exit-zero --max-complexity=10 --statistics        # All warnings
+# 2. Lint - Flake8 (two-pass)
+flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics  # Critical
+flake8 . --count --exit-zero --max-complexity=10 --statistics        # Warnings
+
+# 3. Lint - Pylint
 PYTHONPATH=$(pwd) pylint src/
 
-# Security scanning
+# 4. Security scan
 bandit -r src/ -c pyproject.toml
 
-# Run tests with coverage
-pytest --cov=src --cov-report=term-missing --cov-report=html
+# 5. Tests with coverage
+pytest --cov=src --cov-report=term-missing
 ```
 
-For complete development workflows and configuration details, see [CLAUDE.md](CLAUDE.md).
+### Project Structure
+
+```
+src/
+├── agents/           # Document processing pipeline
+├── ai/               # LLM provider abstraction
+├── analysis/         # Data models and analysis logic
+├── files/            # File I/O operations
+├── cli/              # User interface and workflow
+├── config/           # Configuration
+└── recommendations/  # Folder suggestions
+
+tests/
+├── ai/               # AI client tests
+├── agents/           # Pipeline tests
+├── files/            # File operation tests
+├── analysis/         # Analysis logic tests
+├── cli/              # CLI tests
+└── benchmarks/       # Performance tests
+```
+
+See [CLAUDE.md](CLAUDE.md) for detailed architecture documentation and development workflows.
+
+## Configuration
+
+### Environment Variables
+
+**General:**
+- `DEBUG_MODE` - Enable debug logging (default: false)
+- `AI_PROVIDER` - AI provider: "openai" or "ollama" (default: openai)
+
+**OpenAI (when `AI_PROVIDER=openai`):**
+- `OPENAI_API_KEY` - Your OpenAI API key (required)
+- `AI_MODEL` - Model to use (default: gpt-4o-mini)
+
+**Ollama (when `AI_PROVIDER=ollama`):**
+- `OLLAMA_BASE_URL` - Ollama server URL (default: http://localhost:11434)
+- `OLLAMA_MODEL` - Model name (default: deepseek-r1:latest)
+
+## Naming Conventions
+
+The tool applies consistent naming standards:
+
+- **Lowercase with underscores**: Multi-word values use underscores (e.g., `bank_of_america`, `credit_cards`)
+- **Date format**: YYYYMMDD for all dates
+- **Vendor normalization**: Standardizes vendor names (e.g., "BofA" → `bank_of_america`)
+- **Concise subjects**: 1-3 word descriptions (e.g., `annual_physical`, `tax_return`)
+
+## Limitations
+
+- Only supports `.txt` and `.pdf` files
+- Requires AI API access (OpenAI) or local model setup (Ollama)
+- Quality depends on document content clarity and AI model capabilities
+- Large directories may take time to process (each file requires AI analysis)
+
+## Troubleshooting
+
+**"No API key found"**: Ensure `.env` file exists with `OPENAI_API_KEY` or Ollama configuration
+
+**"Unsupported file type"**: Only `.txt` and `.pdf` files are processed; others are skipped
+
+**"Connection error"**: For Ollama, verify the server is running: `ollama serve`
+
+**Unexpected classifications**: Try with `--debug` flag to see detailed analysis
 
 ## License
 
-MIT License
+MIT License - Copyright (c) 2024 Chris Krough
 
-Copyright (c) [2024] [Chris Krough]
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+See LICENSE file for full details.
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request for any improvements or bug fixes.
+Contributions welcome! Please:
+1. Create an issue to discuss major changes
+2. Follow the code quality standards (Black, Flake8, Pylint)
+3. Add tests for new functionality
+4. Ensure all tests pass before submitting PR
 
 ## Contact
 
-For questions or issues, please reach out via the repository's Issues section.
+Questions or issues? Open an issue in the repository's Issues section.
