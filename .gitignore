@@ -25,9 +25,8 @@ dist/
 # Ignore development files
 .coverage
 .vscode/
-sample-documents/
-.aider*
 *.code-workspace
+sample-documents/
 
 # Ignore pytest-benchmark local baselines
 .pytest-benchmark/
