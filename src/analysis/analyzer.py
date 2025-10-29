@@ -88,6 +88,7 @@ def analyze_file_content(file_path: str, client: AIClient) -> tuple[
             description = "-".join(parts[2:-1] if date else parts[2:])
             category = doctype  # Use doctype as category
 
+            # pylint: disable=duplicate-code
             logger.debug(
                 "Multi-agent result: suggested_name=%s, category=%s, "
                 "vendor=%s, description=%s, date=%s, destination=%s",
@@ -98,6 +99,7 @@ def analyze_file_content(file_path: str, client: AIClient) -> tuple[
                 date,
                 destination_relative_path,
             )
+            # pylint: enable=duplicate-code
             return (
                 suggested_name,
                 category,

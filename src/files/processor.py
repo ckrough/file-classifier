@@ -80,6 +80,7 @@ def process_file(
         return None
 
     try:
+        # pylint: disable=duplicate-code
         (
             suggested_name,
             category,
@@ -88,6 +89,7 @@ def process_file(
             date,
             destination_relative_path,
         ) = analyze_file_content(file_path, client)
+        # pylint: enable=duplicate-code
 
         if suggested_name:
             logger.info("  → Suggested: %s", suggested_name)
