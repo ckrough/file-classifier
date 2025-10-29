@@ -27,6 +27,11 @@
         <example input="CVS Pharmacy" output="cvs"/>
         <example input="Jiffy Lube" output="jiffy_lube"/>
         <example input="Home Depot" output="home_depot"/>
+        <example input="Internal Revenue Service" output="irs"/>
+        <example input="North Carolina Department of Revenue" output="state_nc"/>
+        <example input="California Franchise Tax Board" output="state_ca"/>
+        <example input="Acme Corporation" output="acme_corp"/>
+        <example input="Goodwill Industries" output="goodwill"/>
       </examples>
       <property_specific>
         <example input="123 Main St" output="123_main_st" type="address"/>
@@ -152,6 +157,40 @@
         <vendor_name>bcbs</vendor_name>
         <date>20250320</date>
         <subject>hospital_visit</subject>
+      </output>
+    </example>
+
+    <example>
+      <input>
+        <vendor_raw>Acme Corporation</vendor_raw>
+        <date_raw>January 31, 2025</date_raw>
+        <subject_raw>W-2 wages</subject_raw>
+        <doctype>form</doctype>
+      </input>
+      <output>
+        <domain>financial</domain>
+        <category>tax</category>
+        <doctype>form</doctype>
+        <vendor_name>acme_corp</vendor_name>
+        <date>20250131</date>
+        <subject>w2</subject>
+      </output>
+    </example>
+
+    <example>
+      <input>
+        <vendor_raw>Internal Revenue Service</vendor_raw>
+        <date_raw>April 15, 2025</date_raw>
+        <subject_raw>Federal Tax Return Form 1040</subject_raw>
+        <doctype>return</doctype>
+      </input>
+      <output>
+        <domain>financial</domain>
+        <category>tax</category>
+        <doctype>return</doctype>
+        <vendor_name>irs</vendor_name>
+        <date>20250415</date>
+        <subject>form1040</subject>
       </output>
     </example>
   </examples>

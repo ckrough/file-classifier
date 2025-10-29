@@ -12,9 +12,8 @@
     <field name="category" required="true">specific category within the domain</field>
     <field name="doctype" required="true">statement/receipt/invoice/policy/etc.</field>
     <field name="vendor_raw" required="true">company/entity name as it appears</field>
-    <field name="dates_raw" required="true">all dates found, in original format</field>
+    <field name="date_raw" required="true">most relevant date (invoice/document date preferred), in original format</field>
     <field name="subject_raw" required="true">purpose or subject matter</field>
-    <field name="amounts" required="false">significant dollar amounts</field>
-    <field name="account_types" required="false">account types mentioned</field>
+    <field name="account_types" required="false">account types mentioned (e.g., ["checking", "IRA"])</field>
   </extract>
 </prompt>

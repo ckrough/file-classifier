@@ -13,11 +13,19 @@
     <field name="conflict_flags">{conflict_flags}</field>
   </input>
 
+  <field_descriptions>
+    <description name="conflict_flags">
+      List of detected conflict types requiring resolution, or null if none detected.
+      Possible values: "unknown_vendor" (vendor could not be identified),
+      "potential_multi_purpose" (document may serve multiple archival purposes).
+    </description>
+  </field_descriptions>
+
   <output>
     <field name="final_path">confirmed or corrected path</field>
     <field name="alternative_paths">list of alternatives if document serves multiple purposes, or null</field>
-    <field name="resolution_notes">explanation of decision, especially for edge cases</field>
+    <field name="resolution_notes">explanation of decision when conflicts exist (required), or null when no conflicts</field>
   </output>
 
-  <default_case>If no conflicts exist or the proposed path is acceptable, confirm it and note "No conflicts detected" in resolution_notes.</default_case>
+  <default_case>If no conflicts exist or the proposed path is acceptable, confirm it with resolution_notes set to null (not a string).</default_case>
 </prompt>

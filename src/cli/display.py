@@ -42,59 +42,78 @@ def handle_suggested_changes(
         None
     """
     if not changes:
-        msg = "No changes were suggested."
-        logger.info(msg)
+        logger.info("No changes were suggested.")
         return
 
     # Display changes based on mode
     if move_enabled and destination_root:
-        mode_msg = "Move mode: Files will be moved to archive structure\n"
-        logger.info(mode_msg)
-
-        logger.info("Displaying %d suggested moves:", len(changes))
-        for change in changes:
-            source_basename = os.path.basename(change["file_path"])
-            destination_relative = change.get("destination_relative_path", "")
-            change_msg = f"{source_basename} → {destination_relative}\n"
-            logger.info("  %s", change_msg)
+        _display_move_mode(changes)
     else:
-        mode_msg = "Rename mode: Files will be renamed in current directory\n"
-        logger.info(mode_msg)
-
-        logger.info("Displaying %d suggested renames:", len(changes))
-        for change in changes:
-            file_path = change["file_path"]
-            suggested_name = change["suggested_name"]
-
-            current_basename = os.path.basename(file_path)
-            # Note: suggested_name already includes extension from multi-agent pipeline
-            change_msg = f"{current_basename} → {suggested_name}\n"
-            logger.info("  %s", change_msg)
+        _display_rename_mode(changes)
 
     if dry_run:
-        dry_run_msg = "Dry-run mode enabled. No changes will be made."
-        logger.info(dry_run_msg)
+        logger.info("Dry-run mode enabled. No changes will be made.")
         return
 
-    # Auto-execute (no confirmation prompt by default)
-    user_confirmation = input("Approve changes? (yes/no): ").strip().lower()
-    logger.info("User response to approval prompt: '%s'", user_confirmation)
-
-    if user_confirmation != "yes":
-        cancel_msg = "Operation canceled by user."
-        logger.info(cancel_msg)
+    # Get user approval
+    if not _get_user_approval():
+        logger.info("Operation canceled by user.")
         return
 
     # Execute based on mode
     if move_enabled and destination_root:
-        logger.info("Executing move operation for %d files...", len(changes))
-        results = move_files(changes, destination_root, dry_run=False)
-        _display_move_results(results)
+        _execute_move_operation(changes, destination_root)
     else:
-        logger.info("Executing rename operation for %d files...", len(changes))
-        rename_files(changes)
-        success_msg = f"{len(changes)} file(s) have been renamed."
-        logger.info(success_msg)
+        _execute_rename_operation(changes)
+
+
+def _display_move_mode(changes: list[dict[str, str]]) -> None:
+    """Display suggested changes in move mode."""
+    logger.info("Move mode: Files will be moved to archive structure\n")
+    logger.info("Displaying %d suggested moves:", len(changes))
+    for change in changes:
+        source_basename = os.path.basename(change["file_path"])
+        destination_relative = change.get("destination_relative_path", "")
+        logger.info("  %s → %s\n", source_basename, destination_relative)
+
+
+def _display_rename_mode(changes: list[dict[str, str]]) -> None:
+    """Display suggested changes in rename mode."""
+    logger.info("Rename mode: Files will be renamed in current directory\n")
+    logger.info("Displaying %d suggested renames:", len(changes))
+    for change in changes:
+        current_basename = os.path.basename(change["file_path"])
+        suggested_name = change["suggested_name"]
+        # Note: suggested_name already includes extension from multi-agent pipeline
+        logger.info("  %s → %s\n", current_basename, suggested_name)
+
+
+def _get_user_approval() -> bool:
+    """
+    Get user approval for applying changes.
+
+    Returns:
+        bool: True if user approves, False otherwise.
+    """
+    user_confirmation = input("Approve changes? (yes/no): ").strip().lower()
+    logger.info("User response to approval prompt: '%s'", user_confirmation)
+    return user_confirmation == "yes"
+
+
+def _execute_move_operation(
+    changes: list[dict[str, str]], destination_root: str
+) -> None:
+    """Execute move operation for all changes."""
+    logger.info("Executing move operation for %d files...", len(changes))
+    results = move_files(changes, destination_root, dry_run=False)
+    _display_move_results(results)
+
+
+def _execute_rename_operation(changes: list[dict[str, str]]) -> None:
+    """Execute rename operation for all changes."""
+    logger.info("Executing rename operation for %d files...", len(changes))
+    rename_files(changes)
+    logger.info("%d file(s) have been renamed.", len(changes))
 
 
 def _display_move_results(results: dict[str, list[str]]) -> None:

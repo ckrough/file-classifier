@@ -14,7 +14,7 @@ import os
 import logging
 import time
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import NoReturn, Optional
 
 from pydantic import ValidationError
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -40,6 +40,7 @@ class AIClient(ABC):
         self,
         prompt_template: ChatPromptTemplate,
         prompt_values: dict,
+        schema: Optional[type] = None,
     ) -> Analysis:
         """
         Analyze the content using the AI model with a prompt template.
@@ -47,9 +48,11 @@ class AIClient(ABC):
         Args:
             prompt_template (ChatPromptTemplate): The LangChain prompt template to use.
             prompt_values (dict): Variables to format into the template.
+            schema (type, optional): Pydantic model class for structured output.
+                If None, uses Analysis (legacy behavior).
 
         Returns:
-            Analysis: The analyzed metadata of the file.
+            Analysis or schema instance: The analyzed metadata in the requested format.
         """
 
 
@@ -204,97 +207,118 @@ class LangChainClient(AIClient):
             return result
 
         except KeyError as ke:
-            elapsed = time.perf_counter() - start_time
-            logger.error(
-                "Missing required prompt variable: %s (failed after %.2fs). "
-                "Available variables: %s",
-                ke.args[0],
-                elapsed,
-                list(prompt_values.keys()),
-            )
-            error_msg = (
-                f"Missing required prompt variable: {ke.args[0]}\n"
-                f"  → Check prompt template for required variables\n"
-                f"  → Available: {', '.join(prompt_values.keys())}"
-            )
-            raise RuntimeError(error_msg) from ke
-
+            self._handle_key_error(ke, start_time, prompt_values)
         except ValidationError as ve:
-            elapsed = time.perf_counter() - start_time
-            logger.error(
-                "LLM output validation failed for %s (failed after %.2fs): %s",
-                schema_name,
-                elapsed,
-                ve,
-                exc_info=True,
-            )
-            error_msg = (
-                f"LLM returned invalid {schema_name} data.\n"
-                f"  → The LLM may not support structured output correctly\n"
-                f"  → Try a different model or check prompt template\n"
-                f"  → Validation errors: {ve.error_count()} field(s)"
-            )
-            raise RuntimeError(error_msg) from ve
-
+            self._handle_validation_error(ve, start_time, schema_name)
         except ConnectionError as ce:
-            elapsed = time.perf_counter() - start_time
-            logger.error(
-                "Network error connecting to %s (failed after %.2fs): %s",
-                self.provider,
-                elapsed,
-                ce,
-                exc_info=True,
-            )
-            if self.provider == "ollama":
-                error_msg = (
-                    f"Failed to connect to Ollama server (after {elapsed:.1f}s).\n"
-                    f"  → Is Ollama running? Try: ollama serve\n"
-                    f"  → Check OLLAMA_BASE_URL in .env (current: "
-                    f"{os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')})\n"
-                    f"  → Verify the server is accessible"
-                )
-            else:
-                error_msg = (
-                    f"Network error connecting to {self.provider} "
-                    f"(after {elapsed:.1f}s).\n"
-                    f"  → Check your internet connection\n"
-                    f"  → Verify {self.provider} service is available"
-                )
-            raise RuntimeError(error_msg) from ce
+            self._handle_connection_error(ce, start_time)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            # Intentional catch-all for unexpected errors with specific guidance
+            self._handle_generic_error(e, start_time)
 
-        except Exception as e:
-            elapsed = time.perf_counter() - start_time
-            error_type = type(e).__name__
-            logger.exception(
-                "Unexpected error with %s provider (failed after %.2fs): %s",
-                self.provider,
-                elapsed,
-                error_type,
-            )
+    def _handle_key_error(
+        self, error: KeyError, start_time: float, prompt_values: dict
+    ) -> NoReturn:
+        """Handle missing prompt variable errors."""
+        elapsed = time.perf_counter() - start_time
+        logger.error(
+            "Missing required prompt variable: %s (failed after %.2fs). "
+            "Available variables: %s",
+            error.args[0],
+            elapsed,
+            list(prompt_values.keys()),
+        )
+        error_msg = (
+            f"Missing required prompt variable: {error.args[0]}\n"
+            f"  → Check prompt template for required variables\n"
+            f"  → Available: {', '.join(prompt_values.keys())}"
+        )
+        raise RuntimeError(error_msg) from error
 
-            # Provide specific guidance based on error type
-            if "auth" in str(e).lower() or "401" in str(e):
-                error_msg = (
-                    f"Authentication failed with {self.provider} "
-                    f"(after {elapsed:.1f}s).\n"
-                    f"  → Verify your API key is correct\n"
-                    f"  → Check API key has not expired\n"
-                    f"  → Ensure sufficient API credits/quota"
-                )
-            elif "timeout" in str(e).lower():
-                error_msg = (
-                    f"Request timeout with {self.provider} "
-                    f"(after {elapsed:.1f}s).\n"
-                    f"  → The model may be slow to respond\n"
-                    f"  → Try a faster model\n"
-                    f"  → Check network connection"
-                )
-            else:
-                error_msg = (
-                    f"Error communicating with {self.provider} "
-                    f"(after {elapsed:.1f}s): {error_type}\n"
-                    f"  → Check logs for details\n"
-                    f"  → Verify {self.provider} configuration\n"
-                    f"  → Error: {str(e)[:200]}"
-                )
-            raise RuntimeError(error_msg) from e
+    def _handle_validation_error(
+        self, error: ValidationError, start_time: float, schema_name: str
+    ) -> NoReturn:
+        """Handle Pydantic validation errors from LLM output."""
+        elapsed = time.perf_counter() - start_time
+        logger.error(
+            "LLM output validation failed for %s (failed after %.2fs): %s",
+            schema_name,
+            elapsed,
+            error,
+            exc_info=True,
+        )
+        error_msg = (
+            f"LLM returned invalid {schema_name} data.\n"
+            f"  → The LLM may not support structured output correctly\n"
+            f"  → Try a different model or check prompt template\n"
+            f"  → Validation errors: {error.error_count()} field(s)"
+        )
+        raise RuntimeError(error_msg) from error
+
+    def _handle_connection_error(
+        self, error: ConnectionError, start_time: float
+    ) -> NoReturn:
+        """Handle network connection errors."""
+        elapsed = time.perf_counter() - start_time
+        logger.error(
+            "Network error connecting to %s (failed after %.2fs): %s",
+            self.provider,
+            elapsed,
+            error,
+            exc_info=True,
+        )
+        if self.provider == "ollama":
+            error_msg = (
+                f"Failed to connect to Ollama server (after {elapsed:.1f}s).\n"
+                f"  → Is Ollama running? Try: ollama serve\n"
+                f"  → Check OLLAMA_BASE_URL in .env (current: "
+                f"{os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')})\n"
+                f"  → Verify the server is accessible"
+            )
+        else:
+            error_msg = (
+                f"Network error connecting to {self.provider} "
+                f"(after {elapsed:.1f}s).\n"
+                f"  → Check your internet connection\n"
+                f"  → Verify {self.provider} service is available"
+            )
+        raise RuntimeError(error_msg) from error
+
+    def _handle_generic_error(self, error: Exception, start_time: float) -> NoReturn:
+        """Handle unexpected errors with specific guidance based on error type."""
+        elapsed = time.perf_counter() - start_time
+        error_type = type(error).__name__
+        logger.exception(
+            "Unexpected error with %s provider (failed after %.2fs): %s",
+            self.provider,
+            elapsed,
+            error_type,
+        )
+
+        # Provide specific guidance based on error type
+        error_str = str(error).lower()
+        if "auth" in error_str or "401" in str(error):
+            error_msg = (
+                f"Authentication failed with {self.provider} "
+                f"(after {elapsed:.1f}s).\n"
+                f"  → Verify your API key is correct\n"
+                f"  → Check API key has not expired\n"
+                f"  → Ensure sufficient API credits/quota"
+            )
+        elif "timeout" in error_str:
+            error_msg = (
+                f"Request timeout with {self.provider} "
+                f"(after {elapsed:.1f}s).\n"
+                f"  → The model may be slow to respond\n"
+                f"  → Try a faster model\n"
+                f"  → Check network connection"
+            )
+        else:
+            error_msg = (
+                f"Error communicating with {self.provider} "
+                f"(after {elapsed:.1f}s): {error_type}\n"
+                f"  → Check logs for details\n"
+                f"  → Verify {self.provider} configuration\n"
+                f"  → Error: {str(error)[:200]}"
+            )
+        raise RuntimeError(error_msg) from error

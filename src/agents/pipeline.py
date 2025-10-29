@@ -190,7 +190,7 @@ def _detect_conflicts(
 
     # Check for multi-purpose documents
     # (e.g., Medical + Tax, or Property + Insurance)
-    if raw.domain in ["Medical", "Property"] and "receipt" in normalized.doctype:
+    if raw.domain in ["medical", "property"] and "receipt" in normalized.doctype:
         conflicts.append("potential_multi_purpose")
 
     return conflicts if conflicts else None

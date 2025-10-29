@@ -6,8 +6,8 @@ Knows about file systems, not document semantics.
 
 Responsibilities:
 - Build directory path: domain/category/vendor/ (all lowercase)
-- Handle special structures (Tax requires year subdirectories:
-  tax/federal/2024/)
+- Construct standard 3-level taxonomy: domain/category/vendor/
+- Tax documents follow standard format: financial/tax/vendor/
 - Normalize vendor names for directory use (addresses, abbreviations)
 - Apply filename to complete path
 """
@@ -30,8 +30,9 @@ def construct_path(
     Assemble directory path and filename following taxonomy structure.
 
     This agent constructs paths following the document archival system:
-    - Standard: Domain/Category/Vendor/doctype-vendor-subject-YYYYMMDD.ext
-    - Special cases: Tax/Federal/2024/return-irs-form1040-20250415.pdf
+    - Standard: domain/category/vendor/doctype-vendor-subject-YYYYMMDD.ext
+    - Example: financial/banking/chase/statement-chase-checking-20250131.pdf
+    - Tax documents: financial/tax/irs/return-irs-form1040-20250415.pdf
 
     Args:
         normalized (NormalizedMetadata): Normalized metadata from Standards Agent.
