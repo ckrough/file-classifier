@@ -202,7 +202,6 @@ src/
 ├── files/           # File I/O operations (extraction, renaming, moving)
 ├── cli/             # User interaction and workflow orchestration
 ├── config/          # Configuration and settings
-├── storage/         # Database and caching operations (placeholder)
 └── recommendations/ # Folder structure suggestions
 ```
 

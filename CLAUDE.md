@@ -194,9 +194,6 @@ src/
 │   ├── settings.py       # SUPPORTED_MIMETYPES constants
 │   └── logging.py        # setup_logging()
 │
-├── storage/          # Database and caching operations (placeholder)
-│   └── __init__.py       # Module initialization (not yet implemented)
-│
 └── recommendations/  # Folder suggestions
     └── recommender.py    # recommend_folder_structure() - Accepts change list
 ```
@@ -218,8 +215,6 @@ tests/
 │   └── test_processor.py    # Tests for files/processor.py
 ├── cli/
 │   └── test_arguments.py    # Tests for cli/arguments.py
-├── storage/
-│   └── (empty - placeholder for future tests)
 └── benchmarks/          # Performance benchmark tests
     ├── ai/
     │   └── test_bench_prompts.py          # Prompt template caching benchmarks
@@ -442,7 +437,6 @@ agents/        → depends on: ai/, analysis/models.py
 ai/            → depends on: analysis/models.py only
 files/         → isolated (no internal dependencies)
 config/        → isolated (leaf node)
-storage/       → isolated (placeholder, not yet used)
 ```
 
 ### Adding New Features
