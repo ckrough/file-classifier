@@ -136,16 +136,33 @@
   </vendor_extraction>
 
   <subject_extraction>
-    <purpose>Capture the specific purpose or subject matter to differentiate similar documents from
-      same vendor/period</purpose>
+    <purpose>Capture the specific purpose or subject matter to differentiate similar documents from same vendor/period. Focus on WHAT the document is about (content, result, thing), NOT the action performed.</purpose>
+
+    <core_principle>
+      <rule>Subject describes the CONTENT/RESULT, not the ACTION</rule>
+      <good_example context="Grocery receipt">
+        <good>groceries</good><!-- What was obtained -->
+        <bad>grocery_shopping</bad><!-- The action of shopping -->
+      </good_example>
+      <good_example context="Electronics purchase">
+        <good>electronics</good><!-- What was obtained -->
+        <bad>online_purchase</bad><!-- The action/method of purchasing -->
+      </good_example>
+      <good_example context="Service document">
+        <good>oil_change</good><!-- The service received (result) -->
+        <bad>car_maintenance</bad><!-- Too broad, action-oriented -->
+      </good_example>
+    </core_principle>
+
     <granularity>
-      <guideline>For financial: Include account type (checking, savings, credit, IRA)</guideline>
-      <guideline>For medical: Include service type (annual physical, surgery, lab work)</guideline>
-      <guideline>For property: Include transaction/maintenance type (purchase, repair, renovation)</guideline>
-      <guideline>For insurance: Include coverage type (homeowners, auto, life)</guideline>
-      <guideline>For tax: Include form type or document purpose (1040, W-2, deduction receipt)</guideline>
-      <guideline>For legal: Include document purpose (will, contract, agreement)</guideline>
+      <guideline>For financial: Include account type (checking, savings, credit, IRA) - the thing being managed</guideline>
+      <guideline>For medical: Include service type (annual physical, surgery, lab work) - the service received (result)</guideline>
+      <guideline>For property: Include what was obtained/done (groceries, electronics, kitchen_reno) - the items or completed work</guideline>
+      <guideline>For insurance: Include coverage type (homeowners, auto, life) - the coverage itself</guideline>
+      <guideline>For tax: Include form type or document purpose (1040, W-2, donation) - the document/thing itself</guideline>
+      <guideline>For legal: Include document purpose (will, contract, agreement) - the document type</guideline>
     </granularity>
+
     <examples>
       <good_vs_bad context="Multiple bank statements from same institution">
         <good>checking account</good>
@@ -156,6 +173,12 @@
         <good>annual physical</good>
         <good>follow up visit</good>
         <bad>doctor visit</bad><!-- Too generic -->
+      </good_vs_bad>
+      <good_vs_bad context="Retail purchases">
+        <good>groceries</good><!-- What was obtained -->
+        <good>electronics</good><!-- What was obtained -->
+        <bad>online shopping</bad><!-- The action -->
+        <bad>purchase</bad><!-- The action -->
       </good_vs_bad>
     </examples>
   </subject_extraction>
@@ -283,7 +306,7 @@
         <doctype>deed</doctype>
         <vendor_raw>123 Main Street</vendor_raw>
         <date_raw>March 5, 2025</date_raw>
-        <subject_raw>property purchase</subject_raw>
+        <subject_raw>ownership_transfer</subject_raw>
         <account_types>null</account_types>
       </output>
     </example>
@@ -297,7 +320,7 @@
         <doctype>receipt</doctype>
         <vendor_raw>Home Depot</vendor_raw>
         <date_raw>01/15/2025</date_raw>
-        <subject_raw>renovation materials</subject_raw>
+        <subject_raw>building_materials</subject_raw>
         <account_types>null</account_types>
       </output>
     </example>
