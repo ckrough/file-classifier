@@ -26,10 +26,14 @@ AI-powered file classifier that analyzes text and PDF files using a **multi-agen
   - Tax documents: `Tax/Federal/2024/1040-irs-tax-return-20240415.pdf`
   - Medical records: `Medical/Records/smith_john_md/report-smith_john_md-annual_physical-20250201.pdf`
 
+- **Flexible File Operations**: Two operation modes
+  - **Rename mode** (default): Rename files in their current location
+  - **Move mode** (`--move --destination`): Move files to organized archive directory structure
+
 - **User Control**: Review all suggested changes before applying
   - Interactive approval workflow
   - Dry-run mode for testing
-  - Auto-rename option for batch processing
+  - Verbosity control (quiet, normal, verbose, debug)
 
 - **Supported Formats**: `.txt` and `.pdf` files
 
@@ -49,7 +53,11 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 ### 3. Install Dependencies
 ```sh
-pip install -r requirements.txt
+# Install runtime and development dependencies
+pip install -e ".[dev]"
+
+# Or install only runtime dependencies
+pip install -e .
 ```
 
 ### 4. Set Up Environment Variables
@@ -98,20 +106,34 @@ python main.py path/to/directory
 ```
 
 #### Dry-Run Mode (Preview Changes)
-Preview suggested changes without actually renaming files:
+Preview suggested changes without actually applying them:
 ```sh
 python main.py path/to/directory --dry-run
 ```
 
-#### Auto-Rename Mode
-Automatically apply all suggested changes without user confirmation:
+#### Move Files to Archive Structure
+Move files to an organized archive directory instead of renaming in-place:
 ```sh
-python main.py path/to/directory --auto-rename
+python main.py path/to/directory --move --destination ~/archive
+```
+
+#### Verbosity Control
+Control output detail level:
+```sh
+# Quiet mode (only errors)
+python main.py path/to/directory --quiet
+
+# Verbose mode (detailed progress)
+python main.py path/to/directory --verbose
+
+# Debug mode (full technical logging)
+python main.py path/to/directory --debug
 ```
 
 #### Combined Flags
 ```sh
-python main.py path/to/directory --dry-run --auto-rename
+# Preview move operation with verbose output
+python main.py path/to/directory --move --destination ~/archive --dry-run --verbose
 ```
 
 ### Example Output
@@ -177,9 +199,10 @@ src/
 ├── agents/          # Multi-agent processing pipeline
 ├── ai/              # AI/LLM provider abstraction (OpenAI, Ollama)
 ├── analysis/        # Data models and compatibility layer
-├── files/           # File I/O operations (extraction, renaming)
+├── files/           # File I/O operations (extraction, renaming, moving)
 ├── cli/             # User interaction and workflow orchestration
 ├── config/          # Configuration and settings
+├── storage/         # Database and caching operations (placeholder)
 └── recommendations/ # Folder structure suggestions
 ```
 
@@ -188,7 +211,7 @@ For detailed architecture documentation, see [CLAUDE.md](CLAUDE.md).
 ## Testing
 
 ```sh
-# Run all tests
+# Run all tests (excludes slow, benchmark, functional, integration tests)
 pytest
 
 # Run with coverage
@@ -199,21 +222,34 @@ pytest tests/ai/           # AI client & prompts
 pytest tests/agents/       # Multi-agent pipeline
 pytest tests/files/        # File operations
 pytest tests/cli/          # CLI arguments
+
+# Run benchmark tests (performance testing)
+pytest -m benchmark
+pytest tests/benchmarks/   # All benchmarks
 ```
 
 ## Development
 
 ```sh
 # Install development dependencies
-pip install -r dev-requirements.txt
+pip install -e ".[dev]"
 
-# Run linting
-pylint src/
-flake8 .
-
-# Format code
+# Format code (always run first)
 black src/ tests/
+
+# Run linting (two-pass approach)
+flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics  # Critical errors
+flake8 . --count --exit-zero --max-complexity=10 --statistics        # All warnings
+PYTHONPATH=$(pwd) pylint src/
+
+# Security scanning
+bandit -r src/ -c pyproject.toml
+
+# Run tests with coverage
+pytest --cov=src --cov-report=term-missing --cov-report=html
 ```
+
+For complete development workflows and configuration details, see [CLAUDE.md](CLAUDE.md).
 
 ## License
 
