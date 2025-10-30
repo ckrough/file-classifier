@@ -9,14 +9,14 @@ import os
 import logging
 from typing import Optional
 
-from src.ai.client import AIClient, LangChainClient
+from src.ai.client import AIClient, AIProvider, LangChainClient
 
 __all__ = ["create_ai_client"]
 
 logger = logging.getLogger(__name__)
 
-# Allowed AI provider names
-ALLOWED_PROVIDERS = {"openai", "ollama"}
+# Allowed AI provider names (derived from AIProvider enum)
+ALLOWED_PROVIDERS = {p.value for p in AIProvider}
 
 
 def create_ai_client(
@@ -66,7 +66,7 @@ def create_ai_client(
             f"  → Check your .env file or provider parameter"
         )
 
-    logger.info("Creating AI client with provider: %s", provider)
+    logger.debug("Creating AI client with provider: %s", provider)
 
     return LangChainClient(
         provider=provider, model=model, api_key=api_key, base_url=base_url, **kwargs

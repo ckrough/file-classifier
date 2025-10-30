@@ -14,11 +14,13 @@ import os
 import logging
 import time
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Any, NoReturn, Optional, TypeVar, overload
 
 from pydantic import BaseModel, ValidationError
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.exceptions import OutputParserException
 from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
 
@@ -30,11 +32,22 @@ from src.analysis.models import (
     ResolvedMetadata,
 )
 
+
+class AIProvider(str, Enum):
+    """Supported AI provider names."""
+
+    OPENAI = "openai"
+    OLLAMA = "ollama"
+    # Future providers can be added here:
+    # ANTHROPIC = "anthropic"
+    # GOOGLE = "google"
+
+
 # TypeVar for generic schema support in analyze_content
 # Using 'T' prefix per PEP 8 naming convention for TypeVars
 T = TypeVar("T", bound=BaseModel)
 
-__all__ = ["AIClient", "LangChainClient"]
+__all__ = ["AIClient", "LangChainClient", "AIProvider"]
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +66,7 @@ class AIClient(ABC):
     def analyze_content(
         self,
         prompt_template: ChatPromptTemplate,
-        prompt_values: dict,
+        prompt_values: dict[str, Any],
         schema: None = None,
     ) -> Analysis:
         """Overload for default Analysis schema."""
@@ -62,7 +75,7 @@ class AIClient(ABC):
     def analyze_content(
         self,
         prompt_template: ChatPromptTemplate,
-        prompt_values: dict,
+        prompt_values: dict[str, Any],
         schema: type[T],
     ) -> T:
         """Overload for custom schema."""
@@ -71,7 +84,7 @@ class AIClient(ABC):
     def analyze_content(
         self,
         prompt_template: ChatPromptTemplate,
-        prompt_values: dict,
+        prompt_values: dict[str, Any],
         schema: Optional[type[T]] = None,
     ) -> Analysis | T:
         """
@@ -149,6 +162,9 @@ class LangChainClient(AIClient):
         # Legacy property for backward compatibility
         self.structured_llm = self._schema_cache[Analysis]
 
+        # Log successful initialization at INFO level
+        logger.info("AI client initialized with provider: %s", self.provider)
+
     def _initialize_llm(
         self,
         model: Optional[str],
@@ -171,7 +187,7 @@ class LangChainClient(AIClient):
         Raises:
             ValueError: If provider is unsupported or configuration is invalid.
         """
-        if self.provider == "openai":
+        if self.provider == AIProvider.OPENAI.value:
             if not api_key:
                 api_key = os.getenv("OPENAI_API_KEY")
             if not api_key:
@@ -202,7 +218,7 @@ class LangChainClient(AIClient):
             timeout = kwargs.pop("timeout", DEFAULT_TIMEOUT)
             max_retries = kwargs.pop("max_retries", DEFAULT_MAX_RETRIES)
 
-            logger.info(
+            logger.debug(
                 "Initializing ChatOpenAI with model: %s, API key: %s, "
                 "timeout: %.1fs, retries: %d",
                 model,
@@ -218,7 +234,7 @@ class LangChainClient(AIClient):
                 **kwargs,
             )
 
-        if self.provider == "ollama":
+        if self.provider == AIProvider.OLLAMA.value:
             base_url = base_url or os.getenv(
                 "OLLAMA_BASE_URL", "http://localhost:11434"
             )
@@ -227,7 +243,7 @@ class LangChainClient(AIClient):
             # Set reasonable default for timeout
             timeout = kwargs.pop("timeout", DEFAULT_TIMEOUT)
 
-            logger.info(
+            logger.debug(
                 "Initializing ChatOllama with model: %s at %s, timeout: %.1fs",
                 model,
                 base_url,
@@ -237,9 +253,10 @@ class LangChainClient(AIClient):
 
         # Future providers can be added here (anthropic, google, etc.)
         logger.error("Unsupported provider: %s", self.provider)
+        supported = ", ".join([f"'{p.value}'" for p in AIProvider])
         error_msg = (
             f"Unsupported AI provider: {self.provider}\n"
-            f"  → Supported providers: 'openai', 'ollama'\n"
+            f"  → Supported providers: {supported}\n"
             f"  → Set AI_PROVIDER in .env file"
         )
         raise ValueError(error_msg)
@@ -265,7 +282,7 @@ class LangChainClient(AIClient):
     def analyze_content(
         self,
         prompt_template: ChatPromptTemplate,
-        prompt_values: dict,
+        prompt_values: dict[str, Any],
         schema: None = None,
     ) -> Analysis:
         """Overload for default Analysis schema."""
@@ -276,7 +293,7 @@ class LangChainClient(AIClient):
     def analyze_content(
         self,
         prompt_template: ChatPromptTemplate,
-        prompt_values: dict,
+        prompt_values: dict[str, Any],
         schema: type[T],
     ) -> T:
         """Overload for custom schema."""
@@ -285,7 +302,7 @@ class LangChainClient(AIClient):
     def analyze_content(
         self,
         prompt_template: ChatPromptTemplate,
-        prompt_values: dict,
+        prompt_values: dict[str, Any],
         schema: Optional[type[T]] = None,
     ) -> Analysis | T:
         """
@@ -340,6 +357,8 @@ class LangChainClient(AIClient):
             self._handle_key_error(ke, start_time, prompt_values)
         except ValidationError as ve:
             self._handle_validation_error(ve, start_time, schema_name)
+        except OutputParserException as ope:
+            self._handle_output_parser_error(ope, start_time, schema_name)
         except ConnectionError as ce:
             self._handle_connection_error(ce, start_time)
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -347,7 +366,7 @@ class LangChainClient(AIClient):
             self._handle_generic_error(e, start_time)
 
     def _handle_key_error(
-        self, error: KeyError, start_time: float, prompt_values: dict
+        self, error: KeyError, start_time: float, prompt_values: dict[str, Any]
     ) -> NoReturn:
         """Handle missing prompt variable errors."""
         elapsed = time.perf_counter() - start_time
@@ -385,6 +404,27 @@ class LangChainClient(AIClient):
         )
         raise RuntimeError(error_msg) from error
 
+    def _handle_output_parser_error(
+        self, error: OutputParserException, start_time: float, schema_name: str
+    ) -> NoReturn:
+        """Handle LangChain output parsing errors."""
+        elapsed = time.perf_counter() - start_time
+        logger.error(
+            "LangChain output parsing failed for %s (failed after %.2fs): %s",
+            schema_name,
+            elapsed,
+            error,
+            exc_info=True,
+        )
+        error_msg = (
+            f"LangChain failed to parse {schema_name} output.\n"
+            f"  → The LLM response format may be incompatible\n"
+            f"  → Try updating LangChain or using a different model\n"
+            f"  → Check prompt template structure\n"
+            f"  → Error: {str(error)[:200]}"
+        )
+        raise RuntimeError(error_msg) from error
+
     def _handle_connection_error(
         self, error: ConnectionError, start_time: float
     ) -> NoReturn:
@@ -397,7 +437,7 @@ class LangChainClient(AIClient):
             error,
             exc_info=True,
         )
-        if self.provider == "ollama":
+        if self.provider == AIProvider.OLLAMA.value:
             error_msg = (
                 f"Failed to connect to Ollama server (after {elapsed:.1f}s).\n"
                 f"  → Is Ollama running? Try: ollama serve\n"
