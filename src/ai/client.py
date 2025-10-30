@@ -14,15 +14,19 @@ import os
 import logging
 import time
 from abc import ABC, abstractmethod
-from typing import NoReturn, Optional
+from typing import NoReturn, Optional, TypeVar, overload
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
 
 from src.analysis.models import Analysis
+
+# TypeVar for generic schema support in analyze_content
+# Using 'T' prefix per PEP 8 naming convention for TypeVars
+T = TypeVar("T", bound=BaseModel)
 
 __all__ = ["AIClient", "LangChainClient"]
 
@@ -35,24 +39,47 @@ class AIClient(ABC):
     # pylint: disable=too-few-public-methods
     # This class intentionally has few public methods as it serves as an interface.
 
+    @overload
+    def analyze_content(
+        self,
+        prompt_template: ChatPromptTemplate,
+        prompt_values: dict,
+        schema: None = None,
+    ) -> Analysis:
+        """Overload for default Analysis schema."""
+
+    @overload
+    def analyze_content(
+        self,
+        prompt_template: ChatPromptTemplate,
+        prompt_values: dict,
+        schema: type[T],
+    ) -> T:
+        """Overload for custom schema."""
+
     @abstractmethod
     def analyze_content(
         self,
         prompt_template: ChatPromptTemplate,
         prompt_values: dict,
-        schema: Optional[type] = None,
-    ) -> Analysis:
+        schema: Optional[type[T]] = None,
+    ) -> Analysis | T:
         """
         Analyze the content using the AI model with a prompt template.
 
+        This method uses type overloads to provide proper type safety:
+        - When schema=None (default), returns Analysis
+        - When schema=SomeModel, returns SomeModel instance
+
         Args:
-            prompt_template (ChatPromptTemplate): The LangChain prompt template to use.
+            prompt_template (ChatPromptTemplate): LangChain prompt template.
             prompt_values (dict): Variables to format into the template.
-            schema (type, optional): Pydantic model class for structured output.
-                If None, uses Analysis (legacy behavior).
+            schema (type[BaseModel], optional): Pydantic model class for
+                structured output. If None, uses Analysis (legacy behavior).
 
         Returns:
-            Analysis or schema instance: The analyzed metadata in the requested format.
+            Analysis | T: The analyzed metadata in the requested format.
+                Type checkers infer the correct type based on schema param.
         """
 
 
@@ -156,27 +183,53 @@ class LangChainClient(AIClient):
         )
         raise ValueError(error_msg)
 
+    @overload
     def analyze_content(
         self,
         prompt_template: ChatPromptTemplate,
         prompt_values: dict,
-        schema: Optional[type] = None,
+        schema: None = None,
     ) -> Analysis:
-        """
-        Analyze the content using LangChain's structured output extraction.
+        """Overload for default Analysis schema."""
 
-        Supports dynamic schema selection for multi-agent workflows. If no schema
-        is provided, uses the cached Analysis schema for backward compatibility.
+    # pylint: disable=signature-differs
+    # Signature intentionally differs due to @overload providing type safety
+    @overload
+    def analyze_content(
+        self,
+        prompt_template: ChatPromptTemplate,
+        prompt_values: dict,
+        schema: type[T],
+    ) -> T:
+        """Overload for custom schema."""
+
+    # pylint: disable=signature-differs
+    def analyze_content(
+        self,
+        prompt_template: ChatPromptTemplate,
+        prompt_values: dict,
+        schema: Optional[type[T]] = None,
+    ) -> Analysis | T:
+        """
+        Analyze content using LangChain's structured output extraction.
+
+        Supports dynamic schema selection for multi-agent workflows. If no
+        schema is provided, uses the cached Analysis schema for backward
+        compatibility.
+
+        This method uses type overloads to provide proper type safety:
+        - When schema=None (default), returns Analysis
+        - When schema=SomeModel, returns SomeModel instance
 
         Args:
             prompt_template (ChatPromptTemplate): LangChain prompt.
-            prompt_values (dict): Variables for template
-                (e.g., filename, content).
-            schema (type, optional): Pydantic model class for structured output.
-                If None, uses Analysis (legacy behavior).
+            prompt_values (dict): Variables for template (filename, content).
+            schema (type[BaseModel], optional): Pydantic model class for
+                structured output. If None, uses Analysis (legacy behavior).
 
         Returns:
-            Analysis or schema instance: The analyzed metadata in the requested format.
+            Analysis | T: The analyzed metadata in the requested format.
+                Type checkers infer correct type based on schema parameter.
 
         Raises:
             RuntimeError: If there's an error during analysis.
