@@ -19,7 +19,7 @@ def test_langchain_client_init_openai(mock_getenv):
 
     def side_effect(key, default=None):
         if key == "OPENAI_API_KEY":
-            return "test_api_key"
+            return "sk-test_api_key_1234567890"
         if key == "AI_MODEL":
             return "gpt-4o-mini"
         return default
@@ -65,7 +65,7 @@ def test_langchain_client_analyze_content(mock_getenv):
 
     def side_effect(key, default=None):
         if key == "OPENAI_API_KEY":
-            return "test_api_key"
+            return "sk-test_api_key_1234567890"
         if key == "AI_MODEL":
             return "gpt-4o-mini"
         return default
@@ -116,7 +116,7 @@ def test_create_ai_client_default_openai(mock_getenv):
         if key == "AI_PROVIDER":
             return "openai"
         if key == "OPENAI_API_KEY":
-            return "test_api_key"
+            return "sk-test_api_key_1234567890"
         if key == "AI_MODEL":
             return "gpt-4o-mini"
         return default

@@ -162,8 +162,23 @@ class LangChainClient(AIClient):
                 )
                 raise ValueError(error_msg)
 
+            # Validate API key format (OpenAI keys start with sk-)
+            if not api_key.startswith("sk-"):
+                logger.critical("Invalid OPENAI_API_KEY format detected.")
+                raise ValueError(
+                    "OPENAI_API_KEY must start with 'sk-'\n"
+                    "  → Verify your API key is correct\n"
+                    "  → OpenAI API keys follow format: sk-..."
+                )
+
+            # Mask API key in logs (show only first/last few chars)
+            masked_key = f"{api_key[:7]}...{api_key[-4:]}"
             model = model or os.getenv("AI_MODEL", "gpt-4o-mini")
-            logger.info("Initializing ChatOpenAI with model: %s", model)
+            logger.info(
+                "Initializing ChatOpenAI with model: %s, API key: %s",
+                model,
+                masked_key,
+            )
             return ChatOpenAI(api_key=api_key, model=model, **kwargs)
 
         if self.provider == "ollama":

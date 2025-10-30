@@ -15,6 +15,9 @@ __all__ = ["create_ai_client"]
 
 logger = logging.getLogger(__name__)
 
+# Allowed AI provider names
+ALLOWED_PROVIDERS = {"openai", "ollama"}
+
 
 def create_ai_client(
     provider: Optional[str] = None,
@@ -52,6 +55,16 @@ def create_ai_client(
     # Default to OpenAI provider if not specified
     if provider is None:
         provider = os.getenv("AI_PROVIDER", "openai")
+
+    # Validate provider against allowlist
+    provider = provider.lower()
+    if provider not in ALLOWED_PROVIDERS:
+        logger.error("Invalid AI_PROVIDER: %s", provider)
+        raise ValueError(
+            f"Invalid AI_PROVIDER: {provider}\n"
+            f"  → Allowed values: {', '.join(sorted(ALLOWED_PROVIDERS))}\n"
+            f"  → Check your .env file or provider parameter"
+        )
 
     logger.info("Creating AI client with provider: %s", provider)
 
