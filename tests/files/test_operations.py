@@ -22,22 +22,29 @@ def test_is_supported_filetype(tmp_path):
 
 
 @pytest.mark.unit
+@mock.patch("os.path.exists", return_value=False)
 @mock.patch("os.rename")
 @mock.patch("src.files.operations.logger")
-def test_rename_files_success(mock_logger, mock_rename):
-    """Test that rename_files successfully renames files as per suggested changes."""
+def test_rename_files_success(mock_logger, mock_rename, mock_exists):
+    """Test that rename_files successfully renames files and returns results."""
     suggested_changes = [
         {"file_path": "/path/to/file1.txt", "suggested_name": "new_file1"},
         {"file_path": "/path/to/file2.pdf", "suggested_name": "new_file2"},
     ]
 
-    rename_files(suggested_changes)
+    results = rename_files(suggested_changes)
 
     expected_calls = [
         mock.call("/path/to/file1.txt", "/path/to/new_file1.txt"),
         mock.call("/path/to/file2.pdf", "/path/to/new_file2.pdf"),
     ]
     mock_rename.assert_has_calls(expected_calls, any_order=False)
+
+    # Check results dict
+    assert results["succeeded"] == ["/path/to/file1.txt", "/path/to/file2.pdf"]
+    assert results["skipped"] == []
+    assert results["failed"] == []
+
     assert mock_logger.info.call_count == 2
     mock_logger.info.assert_any_call(
         "File '%s' renamed to '%s'.", "/path/to/file1.txt", "/path/to/new_file1.txt"
@@ -48,24 +55,57 @@ def test_rename_files_success(mock_logger, mock_rename):
 
 
 @pytest.mark.unit
+@mock.patch("os.path.exists", return_value=False)
 @mock.patch("os.rename", side_effect=OSError("Rename failed"))
 @mock.patch("src.files.operations.logger")
-def test_rename_files_rename_error(mock_logger, mock_rename):
-    """Test that rename_files handles rename errors gracefully."""
+def test_rename_files_rename_error(mock_logger, mock_rename, mock_exists):
+    """Test that rename_files handles rename errors gracefully and reports failures."""
     suggested_changes = [
         {"file_path": "/path/to/file1.txt", "suggested_name": "new_file1"},
     ]
 
-    with pytest.raises(OSError, match="Rename failed"):
-        rename_files(suggested_changes)
+    results = rename_files(suggested_changes)
 
     mock_rename.assert_called_once_with("/path/to/file1.txt", "/path/to/new_file1.txt")
+
+    # Check results dict - error should be in 'failed' list
+    assert results["succeeded"] == []
+    assert results["skipped"] == []
+    assert results["failed"] == ["/path/to/file1.txt"]
+
     # Check that error was logged with the key information
     assert mock_logger.error.called
     call_args = str(mock_logger.error.call_args)
     assert "/path/to/file1.txt" in call_args
     assert "new_file1" in call_args
     assert "Rename failed" in call_args
+
+
+@pytest.mark.unit
+@mock.patch("os.path.exists", return_value=True)
+@mock.patch("os.rename")
+@mock.patch("src.files.operations.logger")
+def test_rename_files_collision_detection(mock_logger, mock_rename, mock_exists):
+    """Test that rename_files detects and skips collisions (existing files)."""
+    suggested_changes = [
+        {"file_path": "/path/to/file1.txt", "suggested_name": "existing_file"},
+    ]
+
+    results = rename_files(suggested_changes)
+
+    # os.rename should not be called since destination exists
+    mock_rename.assert_not_called()
+
+    # Check results dict - file should be in 'skipped' list
+    assert results["succeeded"] == []
+    assert results["skipped"] == ["/path/to/file1.txt"]
+    assert results["failed"] == []
+
+    # Check that warning was logged
+    assert mock_logger.warning.called
+    call_args = str(mock_logger.warning.call_args)
+    assert "already exists" in call_args.lower()
+    assert "/path/to/file1.txt" in call_args
 
 
 @pytest.mark.integration
