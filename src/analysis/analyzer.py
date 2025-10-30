@@ -7,28 +7,41 @@ for document processing with a 4-agent system for intelligent file classificatio
 
 import logging
 import os
-from typing import Optional
+from typing import Optional, TypedDict
 
 from src.ai.client import AIClient
 from src.files.extractors import extract_text_from_pdf, extract_text_from_txt
 from src.agents.pipeline import process_document_multi_agent
 
-__all__ = ["analyze_file_content"]
+__all__ = ["analyze_file_content", "AnalysisResult"]
 
 logger = logging.getLogger(__name__)
 
 
-def analyze_file_content(file_path: str, client: AIClient) -> tuple[
-    Optional[str],
-    Optional[str],
-    Optional[str],
-    Optional[str],
-    Optional[str],
-    Optional[str],
-]:
+class AnalysisResult(TypedDict):
+    """
+    Result of file content analysis.
+
+    Attributes:
+        suggested_name: Suggested basename for the file
+        category: File category (doctype)
+        vendor: Vendor or source name
+        description: Brief description or subject
+        date: Date in YYYYMMDD format
+        destination_relative_path: Full path relative to archive root
+    """
+
+    suggested_name: str
+    category: str
+    vendor: str
+    description: str
+    date: str
+    destination_relative_path: str
+
+
+def analyze_file_content(file_path: str, client: AIClient) -> AnalysisResult:
     """
     Analyze the content of a file using the multi-agent pipeline.
-    Returns suggested name, category, vendor, description, date, and destination path.
 
     Uses a 4-agent pipeline for intelligent document processing:
     1. Classification Agent: Semantic analysis and metadata extraction
@@ -41,11 +54,14 @@ def analyze_file_content(file_path: str, client: AIClient) -> tuple[
         client (AIClient): The AI client to use for analysis.
 
     Returns:
-        tuple: (suggested_name, category, vendor, description, date,
-               destination_relative_path)
-               - suggested_name: basename only (for backward compatibility)
-               - destination_relative_path: full path relative to archive root
-                 (e.g., "Financial/Banking/chase/statement-chase-checking-20240115.pdf")
+        AnalysisResult: Dictionary containing:
+            - suggested_name: basename only (for backward compatibility)
+            - category: file category (doctype)
+            - vendor: vendor or source name
+            - description: brief description or subject
+            - date: date in YYYYMMDD format
+            - destination_relative_path: full path relative to archive root
+              (e.g., "Financial/Banking/chase/statement-chase-...")
     """
     try:
         # Extract content based on file type
@@ -88,7 +104,6 @@ def analyze_file_content(file_path: str, client: AIClient) -> tuple[
             description = "-".join(parts[2:-1] if date else parts[2:])
             category = doctype  # Use doctype as category
 
-            # pylint: disable=duplicate-code
             logger.debug(
                 "Multi-agent result: suggested_name=%s, category=%s, "
                 "vendor=%s, description=%s, date=%s, destination=%s",
@@ -99,19 +114,25 @@ def analyze_file_content(file_path: str, client: AIClient) -> tuple[
                 date,
                 destination_relative_path,
             )
-            # pylint: enable=duplicate-code
-            return (
-                suggested_name,
-                category,
-                vendor,
-                description,
-                date,
-                destination_relative_path,
+            return AnalysisResult(
+                suggested_name=suggested_name,
+                category=category,
+                vendor=vendor,
+                description=description,
+                date=date,
+                destination_relative_path=destination_relative_path,
             )
 
         # Fallback if parsing fails
         logger.warning("Failed to parse filename: %s", suggested_name)
-        return suggested_name, "", "", "", "", destination_relative_path
+        return AnalysisResult(
+            suggested_name=suggested_name,
+            category="",
+            vendor="",
+            description="",
+            date="",
+            destination_relative_path=destination_relative_path,
+        )
 
     except ValueError as e:
         logger.error(

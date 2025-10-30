@@ -80,27 +80,18 @@ def process_file(
         return None
 
     try:
-        # pylint: disable=duplicate-code
-        (
-            suggested_name,
-            category,
-            vendor,
-            description,
-            date,
-            destination_relative_path,
-        ) = analyze_file_content(file_path, client)
-        # pylint: enable=duplicate-code
+        result = analyze_file_content(file_path, client)
 
-        if suggested_name:
-            logger.info("  → Suggested: %s", suggested_name)
+        if result["suggested_name"]:
+            logger.info("  → Suggested: %s", result["suggested_name"])
             return {
                 "file_path": file_path,
-                "suggested_name": suggested_name,
-                "category": category or "",
-                "vendor": vendor or "",
-                "description": description or "",
-                "date": date or "",
-                "destination_relative_path": destination_relative_path or "",
+                "suggested_name": result["suggested_name"],
+                "category": result["category"],
+                "vendor": result["vendor"],
+                "description": result["description"],
+                "date": result["date"],
+                "destination_relative_path": result["destination_relative_path"],
             }
 
         logger.error(
