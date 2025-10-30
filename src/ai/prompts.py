@@ -12,6 +12,7 @@ Supports the multi-agent document processing prompts:
 """
 
 import logging
+import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -21,6 +22,9 @@ logger = logging.getLogger(__name__)
 
 # Prompts directory (relative to project root)
 PROMPTS_DIR = Path(__file__).parent.parent.parent / "prompts"
+
+# Valid prompt name pattern (lowercase alphanumeric with hyphens)
+VALID_PROMPT_NAME = re.compile(r"^[a-z][a-z0-9-]*$")
 
 
 def load_prompt_template(prompt_name: str) -> ChatPromptTemplate:
@@ -34,15 +38,28 @@ def load_prompt_template(prompt_name: str) -> ChatPromptTemplate:
     Falls back to .txt files for backward compatibility.
 
     Args:
-        prompt_name (str): The base name of the prompt (e.g., 'classification-agent').
+        prompt_name (str): The base name of the prompt (alphanumeric with hyphens).
+                          Must match pattern: ^[a-z][a-z0-9-]*$
 
     Returns:
         ChatPromptTemplate: A LangChain prompt template with system and human messages.
 
     Raises:
+        ValueError: If prompt_name contains invalid characters
+                   (path traversal prevention).
         FileNotFoundError: If prompt files are missing.
         IOError: If prompt files cannot be read.
     """
+    # Validate prompt name to prevent path traversal attacks
+    if not VALID_PROMPT_NAME.match(prompt_name):
+        logger.error("Invalid prompt name format: %s", prompt_name)
+        raise ValueError(
+            f"Invalid prompt name: {prompt_name}\n"
+            f"  → Prompt names must match pattern: ^[a-z][a-z0-9-]*$\n"
+            f"  → Example: 'classification-agent'\n"
+            f"  → This prevents path traversal attacks"
+        )
+
     try:
         # Try XML files first
         system_prompt_path = PROMPTS_DIR / f"{prompt_name}-system.xml"
