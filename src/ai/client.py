@@ -12,6 +12,7 @@ Classes:
 
 import os
 import logging
+import re
 import time
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -54,6 +55,18 @@ logger = logging.getLogger(__name__)
 # Default timeout and retry configuration for LLM calls
 DEFAULT_TIMEOUT = 300.0  # 5 minutes for LLM calls
 DEFAULT_MAX_RETRIES = 3
+
+# Known OpenAI models (for validation warnings)
+KNOWN_OPENAI_MODELS = {
+    "gpt-4o",
+    "gpt-4o-mini",
+    "gpt-4-turbo",
+    "gpt-4",
+    "gpt-3.5-turbo",
+}
+
+# Valid Ollama model format: name:tag (e.g., "llama2:latest")
+VALID_OLLAMA_MODEL_PATTERN = re.compile(r"^[a-z0-9_-]+:[a-z0-9._-]+$")
 
 
 class AIClient(ABC):
@@ -214,6 +227,14 @@ class LangChainClient(AIClient):
             masked_key = f"{api_key[:7]}...{api_key[-4:]}"
             model = model or os.getenv("AI_MODEL", "gpt-4o-mini")
 
+            # Warn if model not in known list (but allow it)
+            if model not in KNOWN_OPENAI_MODELS:
+                logger.warning(
+                    "Unrecognized OpenAI model: %s. Known models: %s",
+                    model,
+                    ", ".join(sorted(KNOWN_OPENAI_MODELS)),
+                )
+
             # Set reasonable defaults for timeouts and retries
             timeout = kwargs.pop("timeout", DEFAULT_TIMEOUT)
             max_retries = kwargs.pop("max_retries", DEFAULT_MAX_RETRIES)
@@ -239,6 +260,23 @@ class LangChainClient(AIClient):
                 "OLLAMA_BASE_URL", "http://localhost:11434"
             )
             model = model or os.getenv("OLLAMA_MODEL", "deepseek-r1:latest")
+
+            # Validate Ollama model format
+            if not VALID_OLLAMA_MODEL_PATTERN.match(model):
+                logger.warning(
+                    "Invalid Ollama model format: %s. Expected format: name:tag "
+                    "(e.g., 'llama2:latest')",
+                    model,
+                )
+
+            # Validate base URL format
+            if not base_url.startswith(("http://", "https://")):
+                logger.error("Invalid OLLAMA_BASE_URL: %s", base_url)
+                raise ValueError(
+                    f"Invalid OLLAMA_BASE_URL: {base_url}\n"
+                    f"  → URL must start with http:// or https://\n"
+                    f"  → Example: http://localhost:11434"
+                )
 
             # Set reasonable default for timeout
             timeout = kwargs.pop("timeout", DEFAULT_TIMEOUT)
