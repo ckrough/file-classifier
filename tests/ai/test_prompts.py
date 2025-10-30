@@ -80,3 +80,71 @@ def test_prompt_template_formats_correctly():
     assert len(messages) == 2
     assert "test.pdf" in messages[1].content
     assert "Sample content" in messages[1].content
+
+
+# Security Tests - Path Traversal Protection
+
+
+@pytest.mark.unit
+def test_load_prompt_template_path_traversal_protection():
+    """Test that path traversal attempts in prompt names are blocked."""
+    malicious_names = [
+        "../../../etc/passwd",
+        "../../sensitive-data",
+        "prompt/../../../attack",
+        "../prompts/classification-agent",
+        "subdir/../classification-agent",
+    ]
+    for name in malicious_names:
+        with pytest.raises(ValueError) as exc:
+            load_prompt_template(name)
+        assert "Invalid prompt name" in str(exc.value)
+        assert "path traversal" in str(exc.value).lower()
+
+
+@pytest.mark.unit
+def test_load_prompt_template_uppercase_rejected():
+    """Test that uppercase prompt names are rejected."""
+    invalid_names = [
+        "Classification-Agent",
+        "CLASSIFICATION-AGENT",
+        "classification-Agent",
+    ]
+    for name in invalid_names:
+        with pytest.raises(ValueError) as exc:
+            load_prompt_template(name)
+        assert "Invalid prompt name" in str(exc.value)
+        assert "must match pattern" in str(exc.value)
+
+
+@pytest.mark.unit
+def test_load_prompt_template_special_chars_rejected():
+    """Test that prompt names with invalid special characters are rejected."""
+    invalid_names = [
+        "classification agent",  # Spaces
+        "classification/agent",  # Forward slash
+        "classification\\agent",  # Backslash
+        "classification@agent",  # Special char
+        "classification;agent",  # Semicolon
+        "classification&agent",  # Ampersand
+    ]
+    for name in invalid_names:
+        with pytest.raises(ValueError) as exc:
+            load_prompt_template(name)
+        assert "Invalid prompt name" in str(exc.value)
+
+
+@pytest.mark.unit
+def test_load_prompt_template_valid_names():
+    """Test that valid prompt names are accepted."""
+    # These are actual valid prompts that exist
+    valid_names = [
+        "classification-agent",
+        "standards-enforcement-agent",
+        "path-construction-agent",
+        "conflict-resolution-agent",
+    ]
+    for name in valid_names:
+        # Should not raise ValueError
+        prompt = load_prompt_template(name)
+        assert isinstance(prompt, ChatPromptTemplate)
