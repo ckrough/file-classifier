@@ -14,7 +14,7 @@ import os
 import logging
 import time
 from abc import ABC, abstractmethod
-from typing import NoReturn, Optional, TypeVar, overload
+from typing import Any, NoReturn, Optional, TypeVar, overload
 
 from pydantic import BaseModel, ValidationError
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -22,7 +22,13 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
 
-from src.analysis.models import Analysis
+from src.analysis.models import (
+    Analysis,
+    RawMetadata,
+    NormalizedMetadata,
+    PathMetadata,
+    ResolvedMetadata,
+)
 
 # TypeVar for generic schema support in analyze_content
 # Using 'T' prefix per PEP 8 naming convention for TypeVars
@@ -31,6 +37,10 @@ T = TypeVar("T", bound=BaseModel)
 __all__ = ["AIClient", "LangChainClient"]
 
 logger = logging.getLogger(__name__)
+
+# Default timeout and retry configuration for LLM calls
+DEFAULT_TIMEOUT = 300.0  # 5 minutes for LLM calls
+DEFAULT_MAX_RETRIES = 3
 
 
 class AIClient(ABC):
@@ -121,10 +131,23 @@ class LangChainClient(AIClient):
         self.provider = provider.lower()
         self.llm = self._initialize_llm(model, api_key, base_url, **kwargs)
 
-        # Cache structured output chain for legacy Analysis model
-        # (for backward compatibility with existing code)
-        self.structured_llm = self.llm.with_structured_output(Analysis)
-        logger.debug("Cached structured output chain for Analysis model")
+        # Cache for structured output chains by schema class
+        self._schema_cache: dict[type[BaseModel], Any] = {}
+
+        # Pre-cache commonly used schemas for better performance
+        schemas_to_cache = [
+            Analysis,
+            RawMetadata,
+            NormalizedMetadata,
+            PathMetadata,
+            ResolvedMetadata,
+        ]
+        for schema in schemas_to_cache:
+            self._schema_cache[schema] = self.llm.with_structured_output(schema)
+            logger.debug("Pre-cached structured output chain for %s", schema.__name__)
+
+        # Legacy property for backward compatibility
+        self.structured_llm = self._schema_cache[Analysis]
 
     def _initialize_llm(
         self,
@@ -174,20 +197,43 @@ class LangChainClient(AIClient):
             # Mask API key in logs (show only first/last few chars)
             masked_key = f"{api_key[:7]}...{api_key[-4:]}"
             model = model or os.getenv("AI_MODEL", "gpt-4o-mini")
+
+            # Set reasonable defaults for timeouts and retries
+            timeout = kwargs.pop("timeout", DEFAULT_TIMEOUT)
+            max_retries = kwargs.pop("max_retries", DEFAULT_MAX_RETRIES)
+
             logger.info(
-                "Initializing ChatOpenAI with model: %s, API key: %s",
+                "Initializing ChatOpenAI with model: %s, API key: %s, "
+                "timeout: %.1fs, retries: %d",
                 model,
                 masked_key,
+                timeout,
+                max_retries,
             )
-            return ChatOpenAI(api_key=api_key, model=model, **kwargs)
+            return ChatOpenAI(
+                api_key=api_key,
+                model=model,
+                timeout=timeout,
+                max_retries=max_retries,
+                **kwargs,
+            )
 
         if self.provider == "ollama":
             base_url = base_url or os.getenv(
                 "OLLAMA_BASE_URL", "http://localhost:11434"
             )
             model = model or os.getenv("OLLAMA_MODEL", "deepseek-r1:latest")
-            logger.info("Initializing ChatOllama with model: %s at %s", model, base_url)
-            return ChatOllama(model=model, base_url=base_url, **kwargs)
+
+            # Set reasonable default for timeout
+            timeout = kwargs.pop("timeout", DEFAULT_TIMEOUT)
+
+            logger.info(
+                "Initializing ChatOllama with model: %s at %s, timeout: %.1fs",
+                model,
+                base_url,
+                timeout,
+            )
+            return ChatOllama(model=model, base_url=base_url, timeout=timeout, **kwargs)
 
         # Future providers can be added here (anthropic, google, etc.)
         logger.error("Unsupported provider: %s", self.provider)
@@ -197,6 +243,23 @@ class LangChainClient(AIClient):
             f"  → Set AI_PROVIDER in .env file"
         )
         raise ValueError(error_msg)
+
+    def _get_structured_llm(self, schema: type[T]) -> Any:
+        """
+        Get or create a cached structured LLM for the given schema.
+
+        Args:
+            schema (type[BaseModel]): Pydantic model class for structured output.
+
+        Returns:
+            Any: The structured LLM chain for the schema.
+        """
+        if schema not in self._schema_cache:
+            logger.debug("Creating new structured LLM for schema: %s", schema.__name__)
+            self._schema_cache[schema] = self.llm.with_structured_output(schema)
+        else:
+            logger.debug("Using cached structured LLM for schema: %s", schema.__name__)
+        return self._schema_cache[schema]
 
     @overload
     def analyze_content(
@@ -260,13 +323,12 @@ class LangChainClient(AIClient):
             logger.debug("Formatted prompt with values: %s", list(prompt_values.keys()))
             logger.debug("Invoking %s LLM for schema: %s", self.provider, schema_name)
 
-            # Use custom schema if provided, otherwise use cached Analysis schema
+            # Use cached structured LLM for the schema
             if schema is not None:
-                logger.debug("Using custom schema: %s", schema.__name__)
-                structured_llm = self.llm.with_structured_output(schema)
+                structured_llm = self._get_structured_llm(schema)
                 result = structured_llm.invoke(messages)
             else:
-                # Use cached structured LLM chain (initialized in __init__)
+                # Use cached Analysis schema (default, for backward compatibility)
                 result = self.structured_llm.invoke(messages)
 
             elapsed = time.perf_counter() - start_time
