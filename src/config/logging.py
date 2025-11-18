@@ -14,6 +14,60 @@ VERBOSE = "verbose"
 DEBUG = "debug"
 
 
+def _validate_log_dir(log_dir: str) -> str:
+    """
+    Validate and sanitize LOG_DIR environment variable to prevent path injection.
+
+    Args:
+        log_dir: The log directory path to validate
+
+    Returns:
+        str: Validated log directory path (defaults to /tmp if invalid)
+
+    Security: Prevents path traversal, symlink attacks, and restricts to safe directories.
+    """
+    # Check for path traversal BEFORE normalization (detect attack attempts)
+    if ".." in log_dir or log_dir.startswith("/.."):
+        return "/tmp"
+
+    # Resolve symbolic links AND normalize to absolute canonical path
+    # os.path.realpath() resolves symlinks, preventing symlink bypass attacks
+    try:
+        log_dir = os.path.realpath(log_dir)
+    except (OSError, ValueError):
+        # Path resolution failed (e.g., circular symlink, permission denied)
+        return "/tmp"
+
+    # Check for path traversal again after resolution
+    if ".." in log_dir:
+        return "/tmp"
+
+    # Restrict to safe directories only (whitelist approach)
+    # /tmp - ephemeral container logs
+    # /var/tmp - persistent temp logs
+    # /var/log - system log directory
+    # /app/logs - application-specific log directory in container
+    allowed_prefixes = ("/tmp", "/var/tmp", "/var/log", "/app/logs")
+    if not any(log_dir.startswith(prefix) for prefix in allowed_prefixes):
+        return "/tmp"
+
+    # Verify directory exists and is writable
+    if not os.path.exists(log_dir):
+        # Try to create the directory if it doesn't exist
+        try:
+            os.makedirs(log_dir, mode=0o755, exist_ok=True)
+        except (OSError, PermissionError):
+            return "/tmp"
+
+    if not os.path.isdir(log_dir):
+        return "/tmp"
+
+    if not os.access(log_dir, os.W_OK):
+        return "/tmp"
+
+    return log_dir
+
+
 def setup_logging(verbosity: Optional[str] = None):
     """
     Configure and set up logging for the application.
@@ -99,7 +153,9 @@ def setup_logging(verbosity: Optional[str] = None):
                 "level": logging.DEBUG,
                 "formatter": "file_format",
                 "class": "logging.FileHandler",
-                "filename": "app.log",
+                "filename": os.path.join(
+                    _validate_log_dir(os.getenv("LOG_DIR", "/tmp")), "app.log"
+                ),
                 "mode": "a",
             },
         },

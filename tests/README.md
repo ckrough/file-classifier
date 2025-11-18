@@ -8,7 +8,7 @@ AI-powered file classifier that analyzes text and PDF files using a **multi-agen
 - **Multiple LLM Providers**: Support for OpenAI (cloud) and Ollama (local models like DeepSeek)
 - **Flexible File Operations**: Two operation modes
   - **Rename mode** (default): Rename files in their current location
-  - **Move mode** (`--move --destination`): Move files to organized archive directory structure
+  - **Move mode** (`--move --destination`): Move files to organized output directory structure
 - **Intelligent Path Construction**: Generates hierarchical directory structures and filenames based on document analysis
   - Example: `Financial/Banking/chase/statement-chase-checking-20250131.pdf`
 - **User Control**: Interactive approval workflow with dry-run mode and verbosity control
@@ -74,9 +74,9 @@ AI-powered file classifier that analyzes text and PDF files using a **multi-agen
   python main.py path/to/directory --dry-run
   ```
 
-- **Move Files to Archive** (instead of renaming in-place):
+- **Move Files to Output Directory** (instead of renaming in-place):
   ```sh
-  python main.py path/to/directory --move --destination ~/archive
+  python main.py path/to/directory --move --destination ~/output
   ```
 
 - **Verbosity Control**:
@@ -88,7 +88,7 @@ AI-powered file classifier that analyzes text and PDF files using a **multi-agen
 
 - **Combined Flags**:
   ```sh
-  python main.py path/to/directory --move --destination ~/archive --dry-run --verbose
+  python main.py path/to/directory --move --destination ~/output --dry-run --verbose
   ```
 
 ## How It Works
@@ -102,7 +102,7 @@ AI-powered file classifier that analyzes text and PDF files using a **multi-agen
    - **Path Construction Agent**: Builds directory structure and filename
    - **Conflict Resolution Agent**: Handles edge cases and ambiguities
 4. **User Review**: Presents suggested changes with clear before/after comparison
-5. **File Operations**: Applies approved changes (rename in-place OR move to archive structure)
+5. **File Operations**: Applies approved changes (rename in-place OR move to output structure)
 
 ### Architecture
 - **In-Memory Processing**: All changes collected in memory for batch review

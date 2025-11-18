@@ -1,0 +1,87 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Python caches
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Testing
+tests/
+.coverage
+htmlcov/
+.tox/
+*.coverage
+coverage.xml
+pytest.json
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment files (mount instead)
+.env
+.env.*
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Code quality
+.flake8
+.pylintrc
+mypy.ini
+
+# Documentation (not needed in container)
+*.md
+docs/
+
+# Benchmark and performance data
+benchmarks/
+performance/
+baselines/
+
+# Scripts (not needed in container)
+scripts/
+
+# User data and output directories (mount as volumes instead)
+files/
+archive/
+sample_files/
+data/
+outputs/
+results/
+temp/
+tmp/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Logs
+*.log
+logs/

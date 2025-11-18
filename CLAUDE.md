@@ -140,11 +140,11 @@ python main.py path/to/directory
 # Dry-run mode (no actual renaming)
 python main.py path/to/directory --dry-run
 
-# Move files to archive directory structure
-python main.py path/to/directory --move --destination ~/archive
+# Move files to output directory structure
+python main.py path/to/directory --move --destination ~/output
 
 # Combined: move with dry-run and verbose output
-python main.py path/to/directory --move --destination ~/archive --dry-run --verbose
+python main.py path/to/directory --move --destination ~/output --dry-run --verbose
 
 # Quiet mode (suppress output except errors)
 python main.py path/to/directory --quiet
@@ -283,7 +283,7 @@ A 4-stage pipeline for intelligent document processing:
 2. `operations.py`: File validation and two operation modes:
    - `is_supported_filetype()`: Validates file type support
    - `rename_files()`: Bulk renaming files in current location (default mode)
-   - `move_files()`: Moving files to archive directory structure (requires --move --destination)
+   - `move_files()`: Moving files to output directory structure (requires --move --destination)
 3. `processor.py`: File processing orchestration
    - `process_file()`: Returns `Optional[dict[str, str]]` with change metadata including destination_relative_path
    - `process_directory()`: Returns `list[dict[str, str]]` of all changes
@@ -351,7 +351,7 @@ cli/display.py: handle_suggested_changes(changes, destination_root, move_enabled
   → Display suggestions (rename or move mode), get user approval
   ↓
 files/operations.py: rename_files() OR move_files()
-  → Apply approved changes (rename in-place OR move to archive structure)
+  → Apply approved changes (rename in-place OR move to output structure)
 ```
 
 ### Environment Variables
@@ -488,7 +488,7 @@ GitHub Actions workflows:
 - Only `.txt` and `.pdf` files are supported (checked via `is_supported_filetype()`)
 - **File Operation Modes**: Two modes supported:
   1. **Rename mode** (default) - Files renamed in current location
-  2. **Move mode** (`--move --destination`) - Files moved to archive directory structure
+  2. **Move mode** (`--move --destination`) - Files moved to output directory structure
 - File operations preserve file extension
 - **Verbosity Levels**: Four levels available:
   - `--quiet` - Suppress output except errors
