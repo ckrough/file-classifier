@@ -140,11 +140,8 @@ python main.py path/to/directory
 # Dry-run mode (no actual renaming)
 python main.py path/to/directory --dry-run
 
-# Move files to output directory structure
-python main.py path/to/directory --move --destination ~/output
-
-# Combined: move with dry-run and verbose output
-python main.py path/to/directory --move --destination ~/output --dry-run --verbose
+# Combined: dry-run with verbose output
+python main.py path/to/directory --dry-run --verbose
 
 # Quiet mode (suppress output except errors)
 python main.py path/to/directory --quiet
@@ -305,18 +302,17 @@ A 4-stage pipeline for intelligent document processing:
 
 **File Operations** (`src/files/`)
 1. `extractors.py`: Text extraction from .txt and .pdf files
-2. `operations.py`: File validation and two operation modes:
+2. `operations.py`: File validation and renaming:
    - `is_supported_filetype()`: Validates file type support
-   - `rename_files()`: Bulk renaming files in current location (default mode)
-   - `move_files()`: Moving files to output directory structure (requires --move --destination)
+   - `rename_files()`: Bulk renaming files in current location
 3. `processor.py`: File processing orchestration
-   - `process_file()`: Returns `Optional[dict[str, str]]` with change metadata including destination_relative_path
+   - `process_file()`: Returns `Optional[dict[str, str]]` with change metadata
    - `process_directory()`: Returns `list[dict[str, str]]` of all changes
    - In-memory collection replaces database caching
 
 **CLI** (`src/cli/`)
-- `arguments.py`: CLI argument parsing (--dry-run, --move, --destination, --quiet, --verbose, --debug)
-- `display.py`: User prompts and suggested changes display (accepts changes list, destination_root, and move_enabled)
+- `arguments.py`: CLI argument parsing (--dry-run, --quiet, --verbose, --debug, extraction options)
+- `display.py`: User prompts and suggested changes display
 - `workflow.py`: Main application orchestration (collects and returns changes)
 
 ### Application Flow
@@ -325,7 +321,7 @@ A 4-stage pipeline for intelligent document processing:
 main.py
   ↓
 cli/arguments.py: parse_arguments()
-  → CLI args (path, --dry-run, --move, --destination, --quiet, --verbose, --debug)
+  → CLI args (path, --dry-run, --quiet, --verbose, --debug, extraction options)
   ↓
 ai/factory.py: create_ai_client()
   → Initialize LLM client (OpenAI/Ollama) based on AI_PROVIDER
@@ -364,7 +360,7 @@ files/processor.py: process_file() → for each supported file:
   │         ├─ ai/client.py: analyze_content(schema=ResolvedMetadata)
   │         └─ Returns: ResolvedMetadata (final_path, alternatives, notes)
   │
-  └─ Returns change dict {file_path, suggested_name, category, vendor, description, date, destination_relative_path}
+  └─ Returns change dict {file_path, suggested_name, category, vendor, description, date}
   ↓
 files/processor.py: process_directory()
   → Collect all change dicts into list
@@ -372,11 +368,11 @@ files/processor.py: process_directory()
 cli/workflow.py: process_path()
   → Return collected changes to main
   ↓
-cli/display.py: handle_suggested_changes(changes, destination_root, move_enabled)
-  → Display suggestions (rename or move mode), get user approval
+cli/display.py: handle_suggested_changes(changes, dry_run)
+  → Display suggestions, get user approval
   ↓
-files/operations.py: rename_files() OR move_files()
-  → Apply approved changes (rename in-place OR move to output structure)
+files/operations.py: rename_files()
+  → Apply approved changes (renames files in current location)
 ```
 
 ### Environment Variables
@@ -530,9 +526,7 @@ GitHub Actions workflows:
 ## Important Notes
 
 - Only `.txt` and `.pdf` files are supported (checked via `is_supported_filetype()`)
-- **File Operation Modes**: Two modes supported:
-  1. **Rename mode** (default) - Files renamed in current location
-  2. **Move mode** (`--move --destination`) - Files moved to output directory structure
+- **File Operations**: Files are renamed in their current location
 - File operations preserve file extension
 - **Verbosity Levels**: Four levels available:
   - `--quiet` - Suppress output except errors

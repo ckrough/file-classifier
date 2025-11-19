@@ -63,9 +63,6 @@ python main.py path/to/directory
 
 # Preview changes without applying (recommended first run)
 python main.py path/to/directory --dry-run
-
-# Move files to organized output directory structure
-python main.py path/to/directory --move --destination ~/output
 ```
 
 ## Docker Usage (Recommended)
@@ -128,7 +125,7 @@ done
 # The script automatically:
 #   - Converts relative paths to absolute paths
 #   - Mounts the parent directory as a Docker volume
-#   - Renames files in-place (no --move support)
+#   - Renames files in-place
 #   - Handles file permissions correctly
 #   - Builds the Docker image if needed
 ```
@@ -136,9 +133,9 @@ done
 **Note:** The wrapper script is intentionally minimal and only supports:
 - Single file processing (not directories)
 - Dry-run mode
-- Rename in-place (no --move/--destination)
+- Rename in-place
 
-For directory processing or move operations, use `docker-compose` directly (see below).
+For directory processing, use `docker-compose` directly (see below).
 
 ### Docker Usage Patterns
 
@@ -161,19 +158,15 @@ for file in ~/ingest/*.pdf; do
 done
 ```
 
-**Limitations:** The wrapper script only supports single files with rename-in-place. For directories or move operations, use Method 2 below.
+**Limitations:** The wrapper script only supports single files with rename-in-place. For directories, use Method 2 below.
 
-#### Method 2: Docker Compose (For Directories and Move Operations)
+#### Method 2: Docker Compose (For Directories)
 
 **Process entire directories using environment variables:**
 ```sh
 # Set INPUT_DIR to process any directory
 INPUT_DIR=./sample-documents docker-compose run --rm file-classifier /app/input --dry-run
 INPUT_DIR=/Users/username/Downloads docker-compose run --rm file-classifier /app/input
-
-# Use both INPUT_DIR and OUTPUT_DIR
-INPUT_DIR=./documents OUTPUT_DIR=./my-output \
-  docker-compose run --rm file-classifier /app/input --move --destination /app/output
 ```
 
 **Use the default ./files directory:**
@@ -201,17 +194,13 @@ The docker-compose.yml configuration supports flexible directory mounting:
 
 **Default mounts** (when using `docker-compose` without environment variables):
 - **`./files`** → `/app/input` - Place documents to classify here
-- **`./output`** → `/app/output` - Destination for `--move` operations
 - **`./.env`** → `/app/.env` - Configuration file (read-only)
 
 **Custom mounts** using environment variables:
 ```sh
 # Override input directory
 INPUT_DIR=./sample-documents docker-compose run --rm file-classifier /app/input
-
-# Override both input and output directories
-INPUT_DIR=/Users/username/Documents OUTPUT_DIR=/Users/username/Output \
-  docker-compose run --rm file-classifier /app/input --move --destination /app/output
+INPUT_DIR=/Users/username/Documents docker-compose run --rm file-classifier /app/input
 ```
 
 **Using standalone Docker** (without docker-compose):
@@ -333,21 +322,6 @@ python main.py ~/Downloads --dry-run
 
 # With verbose output
 python main.py ~/Downloads --verbose
-```
-
-### Move Mode
-
-Organizes files into output directory structure:
-
-```sh
-# Move to output directory
-python main.py ~/Downloads --move --destination ~/Documents/output
-
-# Preview the move
-python main.py ~/Downloads --move --destination ~/Documents/output --dry-run
-
-# Quiet mode (only show errors)
-python main.py ~/Downloads --move --destination ~/Documents/output --quiet
 ```
 
 ### Output Control

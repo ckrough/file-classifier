@@ -77,8 +77,6 @@ def main() -> None:
             handle_suggested_changes(
                 changes,
                 dry_run=args.dry_run,
-                destination_root=args.destination,
-                move_enabled=args.move,
             )
         else:
             logger.error(

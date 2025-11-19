@@ -155,7 +155,8 @@ def setup_logging(verbosity: Optional[str] = None):
                 "formatter": "file_format",
                 "class": "logging.FileHandler",
                 "filename": os.path.join(
-                    _validate_log_dir(os.getenv("LOG_DIR", "/tmp")), "app.log"  # nosec B108
+                    _validate_log_dir(os.getenv("LOG_DIR", "/tmp")),
+                    "app.log",  # nosec B108
                 ),
                 "mode": "a",
             },
