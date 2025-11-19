@@ -65,8 +65,8 @@ KNOWN_OPENAI_MODELS = {
     "gpt-3.5-turbo",
 }
 
-# Valid Ollama model format: name:tag (e.g., "llama2:latest")
-VALID_OLLAMA_MODEL_PATTERN = re.compile(r"^[a-z0-9_-]+:[a-z0-9._-]+$")
+# Valid Ollama model format: name:tag (e.g., "llama3.2:latest", "qwen2.5:7b")
+VALID_OLLAMA_MODEL_PATTERN = re.compile(r"^[a-z0-9._-]+:[a-z0-9._-]+$")
 
 
 class AIClient(ABC):

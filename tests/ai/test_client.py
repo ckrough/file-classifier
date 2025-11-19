@@ -429,9 +429,7 @@ def test_langchain_client_lazy_caches_new_schemas(mock_getenv):
 
         mock_llm_instance = MagicMock()
         mock_structured_llm = MagicMock()
-        mock_structured_llm.invoke.return_value = CustomSchema(
-            field1="test", field2=42
-        )
+        mock_structured_llm.invoke.return_value = CustomSchema(field1="test", field2=42)
         mock_llm_instance.with_structured_output.return_value = mock_structured_llm
         mock_chat_openai.return_value = mock_llm_instance
 
@@ -542,9 +540,7 @@ def test_langchain_client_warns_invalid_ollama_model_format(mock_getenv, caplog)
 
     with patch("src.ai.client.ChatOllama"):
         with caplog.at_level(logging.WARNING):
-            client = LangChainClient(
-                provider="ollama", model="invalid-model-format"
-            )
+            client = LangChainClient(provider="ollama", model="invalid-model-format")
             assert client is not None
 
             # Verify warning was logged
@@ -555,3 +551,39 @@ def test_langchain_client_warns_invalid_ollama_model_format(mock_getenv, caplog)
             assert any(
                 "invalid-model-format" in record.message for record in caplog.records
             )
+
+
+@pytest.mark.unit
+@patch("src.ai.client.os.getenv")
+def test_langchain_client_accepts_valid_ollama_model_formats(mock_getenv, caplog):
+    """Test that client accepts valid Ollama model formats including dots."""
+    import logging
+
+    def side_effect(key, default=None):
+        if key == "OLLAMA_BASE_URL":
+            return "http://localhost:11434"
+        return default
+
+    mock_getenv.side_effect = side_effect
+
+    # Test various valid Ollama model formats
+    valid_models = [
+        "llama3.2:latest",  # With dot in name
+        "qwen2.5:7b",  # With dot and version tag
+        "deepseek-r1:latest",  # With dash
+        "llama2:13b-chat",  # With dash in tag
+        "mistral:7b-instruct-v0.2",  # Complex tag with dots and dashes
+    ]
+
+    with patch("src.ai.client.ChatOllama"):
+        for model in valid_models:
+            caplog.clear()
+            with caplog.at_level(logging.WARNING):
+                client = LangChainClient(provider="ollama", model=model)
+                assert client is not None
+
+                # Verify NO warning was logged for valid model format
+                assert not any(
+                    "Invalid Ollama model format" in record.message
+                    for record in caplog.records
+                ), f"Model {model} should be valid but triggered a warning"
