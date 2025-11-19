@@ -22,15 +22,10 @@ services:
     # Volume mounts
     # You can customize these paths using environment variables:
     #   INPUT_DIR=./my-documents docker-compose run --rm file-classifier /app/input
-    #   OUTPUT_DIR=./my-output docker-compose run --rm file-classifier /app/input --move --destination /app/output
     volumes:
       # Mount directory containing files to classify
       # Default: ./files, override with INPUT_DIR environment variable
       - ${INPUT_DIR:-./files}:/app/input:rw
-
-      # Mount directory for output files (if using --move flag)
-      # Default: ./output, override with OUTPUT_DIR environment variable
-      - ${OUTPUT_DIR:-./output}:/app/output:rw
 
       # Mount .env file for configuration
       - ./.env:/app/.env:ro
@@ -50,7 +45,6 @@ services:
       # Examples:
       #   docker-compose run --rm file-classifier /app/input/sample.pdf
       #   docker-compose run --rm file-classifier /app/input --dry-run
-      #   docker-compose run --rm file-classifier /app/input --move --destination /app/output
       #   INPUT_DIR=./sample-documents docker-compose run --rm file-classifier /app/input --dry-run
     command: [ "--help" ]
     # Network configuration (required if using Ollama service)
