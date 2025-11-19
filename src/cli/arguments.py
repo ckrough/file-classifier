@@ -20,18 +20,13 @@ def parse_arguments() -> argparse.Namespace:
     Returns:
         argparse.Namespace: The parsed command line arguments with:
             - path: File or directory to analyze
-            - destination: Archive root directory (optional)
-            - move: Enable file moving (requires --destination)
             - dry_run: Preview mode (no actual changes)
             - full_extraction: Force full content extraction (overrides env var)
             - extraction_strategy: Extraction strategy override (optional)
             - verbosity: One of 'quiet', 'normal', 'verbose', 'debug'
-
-    Raises:
-        SystemExit: If --move is specified without --destination.
     """
     parser = argparse.ArgumentParser(
-        description="AI-powered file classifier and archival tool",
+        description="AI-powered file classifier and renaming tool",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 verbosity levels:
@@ -43,7 +38,6 @@ verbosity levels:
 examples:
   %(prog)s document.pdf                    # Analyze single file
   %(prog)s documents/ --verbose            # Analyze directory with details
-  %(prog)s docs/ --move --destination=~/archive/  # Move files to archive
   %(prog)s docs/ --dry-run                 # Preview without changes
   %(prog)s docs/ --full-extraction         # Use full content (slower, higher accuracy)
   %(prog)s docs/ --extraction-strategy=adaptive  # Smart sampling (default)
@@ -58,21 +52,9 @@ examples:
     # File operation modes
     operation_group = parser.add_argument_group("file operations")
     operation_group.add_argument(
-        "--destination",
-        type=str,
-        help="Root directory for archive structure (files will be moved to "
-        "Domain/Category/Vendor/ subdirectories under this root)",
-    )
-    operation_group.add_argument(
-        "--move",
-        action="store_true",
-        help="Enable file moving to destination archive structure "
-        "(requires --destination)",
-    )
-    operation_group.add_argument(
         "--dry-run",
         action="store_true",
-        help="Preview changes without executing (works for both rename and move)",
+        help="Preview changes without executing",
     )
 
     # Performance tuning
@@ -130,10 +112,6 @@ examples:
     parser.set_defaults(verbosity="normal")
 
     args = parser.parse_args()
-
-    # Validate that --move requires --destination
-    if args.move and not args.destination:
-        parser.error("--move requires --destination to be specified")
 
     # Handle --full-extraction flag (overrides --extraction-strategy)
     if args.full_extraction:

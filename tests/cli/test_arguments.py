@@ -27,8 +27,6 @@ def test_get_user_arguments_with_dry_run() -> None:
 
     assert args.dry_run is True, "dry_run should be True when --dry-run flag is present"
     assert args.path == test_path, f"Path should be '{test_path}'"
-    assert args.destination is None, "destination should be None by default"
-    assert args.move is False, "move should be False by default"
 
 
 @pytest.mark.unit
@@ -43,51 +41,6 @@ def test_get_user_arguments_without_dry_run() -> None:
         args.dry_run is False
     ), "dry_run should be False when --dry-run flag is absent"
     assert args.path == test_path, f"Path should be '{test_path}'"
-    assert args.destination is None, "destination should be None by default"
-    assert args.move is False, "move should be False by default"
-
-
-@pytest.mark.unit
-@pytest.mark.usefixtures("clear_sys_argv")
-def test_get_user_arguments_with_destination_and_move() -> None:
-    """Test that --destination and --move flags are correctly parsed together."""
-    test_path = "another/path"
-    test_dest = "/archive/root"
-    sys.argv = ["script.py", test_path, "--destination", test_dest, "--move"]
-
-    args = get_user_arguments()
-
-    assert args.destination == test_dest, f"destination should be '{test_dest}'"
-    assert args.move is True, "move should be True when --move flag is present"
-    assert args.path == test_path, f"Path should be '{test_path}'"
-
-
-@pytest.mark.unit
-@pytest.mark.usefixtures("clear_sys_argv")
-def test_get_user_arguments_with_destination_only() -> None:
-    """Test that --destination without --move is accepted (but move is disabled)."""
-    test_path = "path/to/file"
-    test_dest = "/archive/root"
-    sys.argv = ["script.py", test_path, "--destination", test_dest]
-
-    args = get_user_arguments()
-
-    assert args.destination == test_dest, f"destination should be '{test_dest}'"
-    assert args.move is False, "move should be False when --move flag is absent"
-    assert args.path == test_path, f"Path should be '{test_path}'"
-
-
-@pytest.mark.unit
-@pytest.mark.usefixtures("clear_sys_argv")
-def test_get_user_arguments_move_without_destination_fails() -> None:
-    """Test that --move without --destination raises SystemExit."""
-    test_path = "path/to/file"
-    sys.argv = ["script.py", test_path, "--move"]
-
-    with pytest.raises(SystemExit) as exc_info:
-        get_user_arguments()
-
-    assert exc_info.value.code == 2, "SystemExit code should be 2 for validation error"
 
 
 @pytest.mark.unit
