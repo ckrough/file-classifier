@@ -19,6 +19,7 @@ from src.ai.client import AIClient
 from src.cli.arguments import parse_arguments
 from src.cli.workflow import process_path
 from src.cli.display import handle_suggested_changes
+from src.files.extractors import ExtractionConfig
 
 # Load environment variables
 load_dotenv()
@@ -47,8 +48,26 @@ def main() -> None:
         # The factory will read AI_PROVIDER from .env to determine which provider to use
         client: AIClient = create_ai_client()
 
+        # Create extraction config from CLI args (if provided) or env vars
+        extraction_config = None
+        if hasattr(args, 'extraction_strategy') and args.extraction_strategy:
+            extraction_config = ExtractionConfig(
+                strategy=args.extraction_strategy  # type: ignore
+            )
+            logger.info(
+                "Using extraction strategy from CLI: %s",
+                args.extraction_strategy
+            )
+        else:
+            # Will use default from environment variables
+            extraction_config = ExtractionConfig.from_env()
+            logger.debug(
+                "Using extraction strategy from environment: %s",
+                extraction_config.strategy
+            )
+
         if args.path:
-            changes = process_path(args.path, client)
+            changes = process_path(args.path, client, extraction_config)
 
             if not changes:
                 logger.warning("No changes generated for path: %s", args.path)

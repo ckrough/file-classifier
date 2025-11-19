@@ -12,6 +12,7 @@ from typing import Optional
 from src.ai.client import AIClient
 from src.analysis.analyzer import analyze_file_content
 from src.files.operations import is_supported_filetype
+from src.files.extractors import ExtractionConfig
 
 __all__ = ["process_file", "process_directory"]
 
@@ -24,23 +25,25 @@ def process_file(
     validate_type: bool = True,
     file_index: Optional[int] = None,
     total_files: Optional[int] = None,
+    extraction_config: Optional[ExtractionConfig] = None,
 ) -> Optional[dict[str, str]]:
     """
     Process a single file by analyzing its content and returning the change.
 
     Args:
-        file_path (str): Path to the file.
-        client (AIClient): The AI client used for file analysis.
-        validate_type (bool): Whether to validate file type. Set to False
+        file_path: Path to the file
+        client: The AI client used for file analysis
+        validate_type: Whether to validate file type. Set to False
             when caller has already validated to avoid redundant checks.
             Defaults to True for safety.
-        file_index (int, optional): Current file number (1-based) for progress display.
-        total_files (int, optional): Total number of files for progress display.
+        file_index: Current file number (1-based) for progress display
+        total_files: Total number of files for progress display
+        extraction_config: Optional extraction configuration for performance tuning.
+            If None, will be loaded from environment variables.
 
     Returns:
-        Optional[dict[str, str]]: Dictionary containing file_path, suggested_name,
-            and metadata (category, vendor, description, date), or None if
-            processing fails.
+        Dictionary containing file_path, suggested_name, and metadata
+        (category, vendor, description, date), or None if processing fails.
     """
     # Log progress if batch processing
     if file_index is not None and total_files is not None:
@@ -80,7 +83,7 @@ def process_file(
         return None
 
     try:
-        result = analyze_file_content(file_path, client)
+        result = analyze_file_content(file_path, client, extraction_config)
 
         if result["suggested_name"]:
             logger.info("  → Suggested: %s", result["suggested_name"])
@@ -107,7 +110,11 @@ def process_file(
         raise
 
 
-def process_directory(directory: str, client: AIClient) -> list[dict[str, str]]:
+def process_directory(
+    directory: str,
+    client: AIClient,
+    extraction_config: Optional[ExtractionConfig] = None,
+) -> list[dict[str, str]]:
     """
     Process all supported files in a directory.
 
@@ -115,12 +122,13 @@ def process_directory(directory: str, client: AIClient) -> list[dict[str, str]]:
     improving performance for batch operations. Shows progress for each file.
 
     Args:
-        directory (str): Path to the directory.
-        client (AIClient): The AI client used for file analysis.
+        directory: Path to the directory
+        client: The AI client used for file analysis
+        extraction_config: Optional extraction configuration for performance tuning.
+            If None, will be loaded from environment variables.
 
     Returns:
-        list[dict[str, str]]: List of change dictionaries for successfully
-            processed files.
+        List of change dictionaries for successfully processed files.
     """
     # First, collect all supported files to show total count
     supported_files = []
@@ -152,6 +160,7 @@ def process_directory(directory: str, client: AIClient) -> list[dict[str, str]]:
             validate_type=False,
             file_index=index,
             total_files=total_files,
+            extraction_config=extraction_config,
         )
         if change:
             changes.append(change)

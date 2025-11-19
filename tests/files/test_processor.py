@@ -83,7 +83,7 @@ def test_process_file_analysis_failure(
     with pytest.raises(RuntimeError, match="Analysis failed"):
         process_file(file_path, client, validate_type=False)
 
-    mock_analyze.assert_called_once_with(file_path, client)
+    mock_analyze.assert_called_once_with(file_path, client, None)
     assert mock_logger.error.called
     call_msg = str(mock_logger.error.call_args)
     assert "failed" in call_msg.lower()

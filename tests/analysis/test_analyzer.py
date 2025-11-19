@@ -1,6 +1,6 @@
 """Unit tests for the multi-agent file analyzer module."""
 
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, ANY
 import pytest
 from src.analysis.analyzer import analyze_file_content
 from src.analysis.models import ResolvedMetadata
@@ -38,7 +38,7 @@ def test_analyze_file_content_txt(mock_multi_agent, mock_extract_txt):
         == "financial/banking/acme/statement-acme-checking-20231001.txt"
     )
 
-    mock_extract_txt.assert_called_once_with("docs/user_guide.txt")
+    mock_extract_txt.assert_called_once_with("docs/user_guide.txt", ANY)
     mock_multi_agent.assert_called_once_with(
         "Sample text content.", "user_guide.txt", mock_ai_client
     )
@@ -74,7 +74,7 @@ def test_analyze_file_content_pdf(mock_multi_agent, mock_extract_pdf):
         == "financial/banking/chase/statement-chase-savings-20230115.pdf"
     )
 
-    mock_extract_pdf.assert_called_once_with("docs/report.pdf")
+    mock_extract_pdf.assert_called_once_with("docs/report.pdf", ANY)
     mock_multi_agent.assert_called_once_with(
         "Sample PDF content.", "report.pdf", mock_ai_client
     )
@@ -89,7 +89,7 @@ def test_analyze_file_content_extraction_failure(mock_extract_txt):
     with pytest.raises(RuntimeError) as exc_info:
         analyze_file_content(file_path="docs/invalid.txt", client=mock_ai_client)
     assert "Failed to extract content" in str(exc_info.value)
-    mock_extract_txt.assert_called_once_with("docs/invalid.txt")
+    mock_extract_txt.assert_called_once_with("docs/invalid.txt", ANY)
 
 
 @pytest.mark.unit

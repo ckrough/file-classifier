@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   file-classifier:
     build:
@@ -36,54 +34,52 @@ services:
 
       # Mount .env file for configuration
       - ./.env:/app/.env:ro
-
       # Optional: Mount persistent log directory
       # Uncomment to preserve logs across container restarts
       # - ${LOG_DIR:-./logs}:/tmp:rw
 
-    # Environment variables (alternative to .env file mount)
-    # Uncomment and configure if not using .env file
-    # environment:
-    #   - AI_PROVIDER=openai
-    #   - OPENAI_API_KEY=your-api-key-here
-    #   - AI_MODEL=gpt-4o-mini
-    #   - DEBUG_MODE=false
+      # Environment variables (alternative to .env file mount)
+      # Uncomment and configure if not using .env file
+      # environment:
+      #   - AI_PROVIDER=openai
+      #   - OPENAI_API_KEY=your-api-key-here
+      #   - AI_MODEL=gpt-4o-mini
+      #   - DEBUG_MODE=false
 
-    # Command to run (override this when running)
-    # Examples:
-    #   docker-compose run --rm file-classifier /app/input/sample.pdf
-    #   docker-compose run --rm file-classifier /app/input --dry-run
-    #   docker-compose run --rm file-classifier /app/input --move --destination /app/output
-    #   INPUT_DIR=./sample-documents docker-compose run --rm file-classifier /app/input --dry-run
-    command: ["--help"]
-
+      # Command to run (override this when running)
+      # Examples:
+      #   docker-compose run --rm file-classifier /app/input/sample.pdf
+      #   docker-compose run --rm file-classifier /app/input --dry-run
+      #   docker-compose run --rm file-classifier /app/input --move --destination /app/output
+      #   INPUT_DIR=./sample-documents docker-compose run --rm file-classifier /app/input --dry-run
+    command: [ "--help" ]
     # Network configuration (required if using Ollama service)
     # networks:
     #   - classifier-network
 
-  # Optional: Ollama service for local LLM models
-  # Uncomment this section if using AI_PROVIDER=ollama
-  # ollama:
-  #   image: ollama/ollama:latest
-  #   container_name: ollama
-  #   ports:
-  #     - "11434:11434"
-  #   volumes:
-  #     - ollama-data:/root/.ollama
-  #   networks:
-  #     - classifier-network
-  #   # For GPU support (NVIDIA), uncomment:
-  #   # deploy:
-  #   #   resources:
-  #   #     reservations:
-  #   #       devices:
-  #   #         - driver: nvidia
-  #   #           count: 1
-  #   #           capabilities: [gpu]
+    # Optional: Ollama service for local LLM models
+    # Uncomment this section if using AI_PROVIDER=ollama
+    # ollama:
+    #   image: ollama/ollama:latest
+    #   container_name: ollama
+    #   ports:
+    #     - "11434:11434"
+    #   volumes:
+    #     - ollama-data:/root/.ollama
+    #   networks:
+    #     - classifier-network
+    #   # For GPU support (NVIDIA), uncomment:
+    #   # deploy:
+    #   #   resources:
+    #   #     reservations:
+    #   #       devices:
+    #   #         - driver: nvidia
+    #   #           count: 1
+    #   #           capabilities: [gpu]
 
-# networks:
-#   classifier-network:
-#     driver: bridge
+    # networks:
+    #   classifier-network:
+    #     driver: bridge
 
-# volumes:
-#   ollama-data:
+    # volumes:
+    #   ollama-data:

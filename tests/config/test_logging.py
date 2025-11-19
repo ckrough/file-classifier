@@ -8,8 +8,6 @@ Tests the _validate_log_dir() function to ensure it properly prevents:
 """
 
 import os
-import tempfile
-from pathlib import Path
 
 import pytest
 

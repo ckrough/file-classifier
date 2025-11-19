@@ -10,7 +10,11 @@ import os
 from typing import Optional, TypedDict
 
 from src.ai.client import AIClient
-from src.files.extractors import extract_text_from_pdf, extract_text_from_txt
+from src.files.extractors import (
+    extract_text_from_pdf,
+    extract_text_from_txt,
+    ExtractionConfig,
+)
 from src.agents.pipeline import process_document_multi_agent
 
 __all__ = ["analyze_file_content", "AnalysisResult"]
@@ -39,7 +43,11 @@ class AnalysisResult(TypedDict):
     destination_relative_path: str
 
 
-def analyze_file_content(file_path: str, client: AIClient) -> AnalysisResult:
+def analyze_file_content(
+    file_path: str,
+    client: AIClient,
+    extraction_config: Optional[ExtractionConfig] = None,
+) -> AnalysisResult:
     """
     Analyze the content of a file using the multi-agent pipeline.
 
@@ -50,8 +58,10 @@ def analyze_file_content(file_path: str, client: AIClient) -> AnalysisResult:
     4. Conflict Resolution Agent: Handle edge cases and ambiguities
 
     Args:
-        file_path (str): The path to the file to analyze.
-        client (AIClient): The AI client to use for analysis.
+        file_path: The path to the file to analyze
+        client: The AI client to use for analysis
+        extraction_config: Optional extraction configuration for performance tuning.
+            If None, loads from environment variables (default: adaptive strategy).
 
     Returns:
         AnalysisResult: Dictionary containing:
@@ -64,11 +74,21 @@ def analyze_file_content(file_path: str, client: AIClient) -> AnalysisResult:
               (e.g., "Financial/Banking/chase/statement-chase-...")
     """
     try:
+        # Load extraction config from environment if not provided
+        if extraction_config is None:
+            extraction_config = ExtractionConfig.from_env()
+            logger.debug(
+                "Using extraction strategy: %s (max_pages=%s, max_chars=%s)",
+                extraction_config.strategy,
+                extraction_config.max_pages,
+                extraction_config.max_chars,
+            )
+
         # Extract content based on file type
         if file_path.lower().endswith(".pdf"):
-            content: Optional[str] = extract_text_from_pdf(file_path)
+            content: Optional[str] = extract_text_from_pdf(file_path, extraction_config)
         else:
-            content: Optional[str] = extract_text_from_txt(file_path)
+            content: Optional[str] = extract_text_from_txt(file_path, extraction_config)
 
         if content is None:
             raise ValueError(f"Failed to extract content from file: {file_path}")
