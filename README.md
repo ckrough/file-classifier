@@ -2,19 +2,17 @@
 
 ## Overview
 
-A Unix-style command-line tool that analyzes documents and outputs suggested file paths. Designed for composability with standard Unix tools like `grep`, `awk`, and shell scripts.
+A command-line tool that analyzes text documents and outputs JSON metadata with suggested file paths based on document content and context. Designed for composability with `jq` and other JSON-aware tools.
 
 **What it does:**
 - Reads and understands document content using AI
-- Identifies document type, vendor, dates, and subject matter
-- Outputs suggested paths to stdout for piping
+- Identifies document metadata; type, purpose, vendor, dates, and subject matter
+- Outputs JSON metadata to stdout for piping
 - Generates organized paths: `Domain/Category/Vendor/doctype-vendor-subject-YYYYMMDD.ext`
 
 **Supported file types:** `.txt` and `.pdf`
 
 **AI provider options:** OpenAI (cloud) or Ollama (local models)
-
-**Unix philosophy:** Do one thing well, output simple paths, compose with other tools.
 
 ## Quick Start
 
@@ -58,70 +56,70 @@ ollama pull deepseek-r1:latest
 
 ### Basic Usage
 
+**Requires jq:** `brew install jq` (macOS) or `apt install jq` (Linux)
+
 ```sh
-# Classify a single file (outputs suggested path)
+# Classify a single file (outputs JSON with metadata)
 python main.py document.pdf
-# Output: financial/invoices/acme_corp/statement-acme-services-20240115.pdf
+# Output: {"original": "document.pdf", "suggested_path": "financial/invoices/acme/statement-acme-services-20240115.pdf", "domain": "financial", "category": "invoices", "doctype": "statement", "vendor": "acme", "date": "20240115", "subject": "services"}
+
+# Extract just the suggested path
+python main.py document.pdf | jq -r .suggested_path
+# Output: financial/invoices/acme/statement-acme-services-20240115.pdf
 
 # Move file to suggested path
-mv document.pdf "$(python main.py document.pdf)"
+mv document.pdf "$(python main.py document.pdf | jq -r .suggested_path)"
 
-# Process multiple files via find + batch mode (tab-separated output)
+# Process multiple files via find + batch mode (JSON Lines output)
 find ~/Documents -type f \( -name "*.pdf" -o -name "*.txt" \) | python main.py --batch
-# Output: doc1.pdf<TAB>financial/invoices/acme/statement-acme-services-20240115.pdf
-#         doc2.pdf<TAB>tax/federal/2024/1040-irs-return-20240415.pdf
+# Output: One JSON object per line (newline-delimited JSON)
 
 # Quiet mode (errors only to stderr)
 python main.py document.pdf --quiet
 ```
 
-## Unix-Style Examples
+## More Examples
 
-The tool outputs paths to stdout and logs to stderr, making it composable with Unix tools:
+The tool outputs JSON to stdout and logs to stderr, making it composable with `jq` and other JSON tools:
 
 ### Move Files to Suggested Paths
 
 ```sh
 # Single file - get suggested path and move
-new_path="$(python main.py invoice.pdf)"
+new_path="$(python main.py invoice.pdf | jq -r .suggested_path)"
 mkdir -p "$(dirname "$new_path")"
 mv invoice.pdf "$new_path"
 
 # Or in one command
-mv invoice.pdf "$(python main.py invoice.pdf)"
+mv invoice.pdf "$(python main.py invoice.pdf | jq -r .suggested_path)"
 ```
 
 ### Batch Processing with Move Script
 
 ```sh
-# Generate and execute move script from batch mode
-find . -name "*.pdf" | python main.py --batch | while IFS=$'\t' read orig new; do
-  echo "Moving: $orig → $new"
-  mkdir -p "$(dirname "$new")"
-  mv "$orig" "$new"
-done
-
-# Or generate script for review first
+# Generate and execute move commands from batch mode
 find . -name "*.pdf" | python main.py --batch | \
-  awk -F'\t' '{print "mv \"" $1 "\" \"" $2 "\""}' > moves.sh
-bash moves.sh  # Execute after review
+  jq -r '"echo \"Moving: " + .original + " → " + .suggested_path + "\" && mkdir -p \"" + (.suggested_path | dirname) + "\" && mv \"" + .original + "\" \"" + .suggested_path + "\""' | \
+  bash
 ```
 
 ### Filter by Domain or Category
 
 ```sh
-# Find all financial documents (first path component)
-find . -type f | python main.py --batch | grep -E '\tfinancial/'
+# Find all financial documents
+find . -type f | python main.py --batch | jq 'select(.domain == "financial")'
 
 # Find tax documents
-find . -type f | python main.py --batch | grep -E '\ttax/'
+find . -type f | python main.py --batch | jq 'select(.domain == "tax")'
 
 # Get unique domains
-find . -type f | python main.py --batch | cut -f2 | cut -d/ -f1 | sort -u
+find . -type f | python main.py --batch | jq -r .domain | sort -u
 
-# Get unique vendors (3rd path component)
-find . -name "*.pdf" | python main.py --batch | \
-  cut -f2 | awk -F/ '{print $3}' | sort -u
+# Get unique vendors
+find . -name "*.pdf" | python main.py --batch | jq -r .vendor | sort -u
+
+# Filter by date range (e.g., 2024)
+find . -type f | python main.py --batch | jq 'select(.date | startswith("2024"))'
 ```
 
 ### Parallel Processing
@@ -134,44 +132,57 @@ find . -name "*.pdf" | xargs -P 4 -I {} python main.py {}
 find . -name "*.pdf" | parallel -j 4 python main.py {}
 
 # Parallel with batch mode and filtering
-find . -name "*.pdf" | parallel -j 4 python main.py {} | grep "financial/"
+find . -name "*.pdf" | parallel -j 4 python main.py {} | jq 'select(.domain == "financial")'
 ```
 
 ### Build Custom Workflows
 
 ```sh
 # Create directory structure before moving
-find ~/Downloads -type f | python main.py --batch | cut -f2 | \
-  xargs -I {} dirname {} | sort -u | \
+find ~/Downloads -type f | python main.py --batch | \
+  jq -r .suggested_path | xargs -I {} dirname {} | sort -u | \
   xargs -I {} mkdir -p ~/Organized/{}
 
 # Then move files
-find ~/Downloads -type f | python main.py --batch | while IFS=$'\t' read orig new; do
-  mkdir -p "$(dirname "~/Organized/$new")"
-  mv "$orig" "~/Organized/$new"
-done
+find ~/Downloads -type f | python main.py --batch | \
+  jq -r '"mkdir -p \"~/Organized/" + (.suggested_path | dirname) + "\" && mv \"" + .original + "\" \"~/Organized/" + .suggested_path + "\""' | \
+  bash
 ```
 
 ## Output Format
 
-The tool outputs suggested file paths in two modes:
+The tool outputs JSON metadata (JSON Lines format for batch):
+
+**JSON Fields:**
+```json
+{
+  "original": "document.pdf",
+  "suggested_path": "financial/banking/chase/statement-chase-checking-20240115.pdf",
+  "domain": "financial",
+  "category": "banking",
+  "doctype": "statement",
+  "vendor": "chase",
+  "date": "20240115",
+  "subject": "checking"
+}
+```
 
 **Single File Mode:**
-Outputs just the suggested path (one line):
-```
-financial/banking/chase/statement-chase-checking-20240115.pdf
+Outputs one JSON object:
+```json
+{"original": "doc.pdf", "suggested_path": "financial/banking/chase/statement-chase-checking-20240115.pdf", "domain": "financial", "category": "banking", "doctype": "statement", "vendor": "chase", "date": "20240115", "subject": "checking"}
 ```
 
 **Batch Mode:**
-Outputs tab-separated `original<TAB>suggested_path` (one pair per line):
-```
-doc1.pdf	financial/banking/chase/statement-chase-checking-20240115.pdf
-doc2.pdf	tax/federal/2024/1040-irs-return-20240415.pdf
+Outputs JSON Lines (one JSON object per line):
+```json
+{"original": "doc1.pdf", "suggested_path": "financial/banking/chase/statement-chase-checking-20240115.pdf", "domain": "financial", "category": "banking", "doctype": "statement", "vendor": "chase", "date": "20240115", "subject": "checking"}
+{"original": "doc2.pdf", "suggested_path": "tax/federal/2024/1040-irs-return-20240415.pdf", "domain": "tax", "category": "federal", "doctype": "1040", "vendor": "irs", "date": "20240415", "subject": "return"}
 ```
 
-All metadata is encoded in the path structure itself:
-- **Domain**: First path component (`financial/`)
-- **Category**: Second component (`banking/`)
+Metadata is provided both as structured JSON fields and encoded in the path:
+- **Domain**: JSON field + first path component (`financial/`)
+- **Category**: JSON field + second path component (`banking/`)
 - **Vendor**: Third component (`chase/`)
 - **Doctype, Subject, Date**: Encoded in filename (`statement-chase-checking-20240115.pdf`)
 

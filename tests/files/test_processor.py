@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-from src.files.processor import process_file
+from src.files.processor import process_file, ProcessingOptions
 
 
 @pytest.mark.unit
@@ -80,8 +80,9 @@ def test_process_file_analysis_failure(
     client = mock.MagicMock()
 
     # Expect a RuntimeError to be raised
+    options = ProcessingOptions(validate_type=False)
     with pytest.raises(RuntimeError, match="Analysis failed"):
-        process_file(file_path, client, validate_type=False)
+        process_file(file_path, client, options)
 
     mock_analyze.assert_called_once_with(file_path, client, None)
     assert mock_logger.error.called

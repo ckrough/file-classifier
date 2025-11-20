@@ -11,7 +11,7 @@ import sys
 from typing import Optional
 
 from src.ai.client import AIClient
-from src.files.processor import process_file, PathResult
+from src.files.processor import process_file, PathResult, ProcessingOptions
 from src.files.extractors import ExtractionConfig
 
 __all__ = ["process_path", "process_stdin_batch"]
@@ -56,7 +56,8 @@ def process_path(
         return []
 
     logger.info("Processing file: %s", path)
-    result = process_file(path, client, extraction_config=extraction_config)
+    options = ProcessingOptions(extraction_config=extraction_config)
+    result = process_file(path, client, options)
     return [result] if result else []
 
 
@@ -91,16 +92,19 @@ def process_stdin_batch(
         logger.debug("Processing: %s", file_path)
 
         try:
-            result = process_file(
-                file_path, client, extraction_config=extraction_config
-            )
+            options = ProcessingOptions(extraction_config=extraction_config)
+            result = process_file(file_path, client, options)
             if result:
                 results.append(result)
                 logger.debug("Successfully classified: %s", file_path)
             else:
                 logger.warning("Skipped (unsupported or failed): %s", file_path)
-        except Exception as e:
-            # Log error but continue processing other files
+        except (RuntimeError, ValueError, OSError) as e:
+            # Catch expected exceptions from file processing:
+            # - RuntimeError: AI processing failures
+            # - ValueError: Invalid content or configuration
+            # - OSError: File system errors (FileNotFoundError, PermissionError, etc.)
+            # Log error but continue processing other files in batch
             logger.error("Error processing '%s': %s", file_path, str(e))
             continue
 

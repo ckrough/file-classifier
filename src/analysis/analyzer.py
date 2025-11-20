@@ -28,7 +28,9 @@ class AnalysisResult(TypedDict):
 
     Attributes:
         suggested_name: Suggested basename for the file
-        category: File category (doctype)
+        domain: Primary domain (Financial, Property, Insurance, Tax, Legal, Medical)
+        category: Functional category within domain
+        doctype: Document type (statement, receipt, invoice, etc.)
         vendor: Vendor or source name
         description: Brief description or subject
         date: Date in YYYYMMDD format
@@ -36,7 +38,9 @@ class AnalysisResult(TypedDict):
     """
 
     suggested_name: str
+    domain: str
     category: str
+    doctype: str
     vendor: str
     description: str
     date: str
@@ -96,7 +100,9 @@ def analyze_file_content(
         filename = os.path.basename(file_path)
 
         logger.info("Using multi-agent pipeline for analysis")
-        resolved = process_document_multi_agent(content, filename, client)
+        raw_metadata, normalized, resolved = process_document_multi_agent(
+            content, filename, client
+        )
 
         # Extract filename from the final path
         # Path format: Domain/Category/Vendor/doctype-vendor-subject-YYYYMMDD.ext
@@ -111,46 +117,27 @@ def analyze_file_content(
         if resolved.resolution_notes:
             logger.info("Resolution notes: %s", resolved.resolution_notes)
 
-        # For backward compatibility, extract category, vendor, description, date
-        # Filename format: doctype-vendor-subject-YYYYMMDD.ext
-        parts = os.path.splitext(suggested_name)[0].split("-")
+        # Get metadata directly from pipeline instead of parsing path
+        logger.debug(
+            "Multi-agent result: domain=%s, category=%s, doctype=%s, "
+            "vendor=%s, date=%s, subject=%s, destination=%s",
+            raw_metadata.domain,
+            raw_metadata.category,
+            raw_metadata.doctype,
+            normalized.vendor_name,
+            normalized.date,
+            normalized.subject,
+            destination_relative_path,
+        )
 
-        if len(parts) >= 4:
-            doctype = parts[0]
-            vendor = parts[1]
-            # Subject may be multiple parts
-            date_str = parts[-1]
-            date = date_str if date_str.isdigit() and len(date_str) == 8 else ""
-            description = "-".join(parts[2:-1] if date else parts[2:])
-            category = doctype  # Use doctype as category
-
-            logger.debug(
-                "Multi-agent result: suggested_name=%s, category=%s, "
-                "vendor=%s, description=%s, date=%s, destination=%s",
-                suggested_name,
-                category,
-                vendor,
-                description,
-                date,
-                destination_relative_path,
-            )
-            return AnalysisResult(
-                suggested_name=suggested_name,
-                category=category,
-                vendor=vendor,
-                description=description,
-                date=date,
-                destination_relative_path=destination_relative_path,
-            )
-
-        # Fallback if parsing fails
-        logger.warning("Failed to parse filename: %s", suggested_name)
         return AnalysisResult(
             suggested_name=suggested_name,
-            category="",
-            vendor="",
-            description="",
-            date="",
+            domain=raw_metadata.domain,
+            category=raw_metadata.category,
+            doctype=raw_metadata.doctype,
+            vendor=normalized.vendor_name,
+            description=normalized.subject,
+            date=normalized.date,
             destination_relative_path=destination_relative_path,
         )
 

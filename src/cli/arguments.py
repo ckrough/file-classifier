@@ -26,12 +26,14 @@ def parse_arguments() -> argparse.Namespace:
             - verbosity: One of 'quiet', 'normal', 'verbose', 'debug'
     """
     parser = argparse.ArgumentParser(
-        description="AI-powered file classification tool - outputs suggested paths",
+        description="AI-powered file classification tool - outputs JSON metadata",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-output:
-  Single file mode: outputs suggested path only
-  Batch mode:       outputs tab-separated "original<TAB>suggested_path"
+output format (JSON Lines):
+  Both modes output JSON with metadata fields:
+    original, suggested_path, domain, category, doctype, vendor, date, subject
+
+  Batch mode outputs one JSON object per line (newline-delimited JSON)
 
 verbosity levels (logs go to stderr):
   (default)    Normal progress logging
@@ -39,19 +41,23 @@ verbosity levels (logs go to stderr):
   --verbose    Detailed progress with timing
   --debug      Full technical logging
 
-unix-style examples:
-  %(prog)s document.pdf                    # Output: financial/invoices/acme/...pdf
-  mv doc.pdf "$(%(prog)s document.pdf)"    # Move file to suggested path
+jq examples (jq required: brew install jq):
+  # Extract just the suggested path
+  %(prog)s document.pdf | jq -r .suggested_path
 
-  find . -name "*.pdf" | %(prog)s --batch  # Batch: original<TAB>suggested
+  # Move file to suggested path
+  mv doc.pdf "$(%(prog)s document.pdf | jq -r .suggested_path)"
 
-  # Generate move script
-  find . -name "*.pdf" | %(prog)s --batch | while IFS=$'\\t' read orig new; do
-    mkdir -p "$(dirname "$new")" && mv "$orig" "$new"
-  done
+  # Batch process and generate move commands
+  find . -name "*.pdf" | %(prog)s --batch | \\
+    jq -r '"mkdir -p \\(.suggested_path | dirname) && " +
+           "mv \\(.original) \\(.suggested_path)"' | bash
 
-  # Filter by domain (first path component)
-  find . -type f | %(prog)s --batch | grep -E '\\tfinancial/'
+  # Filter by domain
+  find . -type f | %(prog)s --batch | jq 'select(.domain == "financial")'
+
+  # Extract vendor list
+  find . -type f | %(prog)s --batch | jq -r .vendor | sort -u
         """,
     )
 

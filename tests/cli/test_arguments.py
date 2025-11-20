@@ -83,19 +83,6 @@ def test_get_user_arguments_invalid_flag() -> None:
 
 @pytest.mark.unit
 @pytest.mark.usefixtures("clear_sys_argv")
-def test_get_user_arguments_invalid_format() -> None:
-    """Test that an invalid format value raises SystemExit."""
-    test_path = "some/path"
-    sys.argv = ["script.py", test_path, "--format", "xml"]
-
-    with pytest.raises(SystemExit) as exc_info:
-        get_user_arguments()
-
-    assert exc_info.value.code == 2, "SystemExit code should be 2 for invalid format"
-
-
-@pytest.mark.unit
-@pytest.mark.usefixtures("clear_sys_argv")
 def test_get_user_arguments_path_with_spaces() -> None:
     """Test that paths containing spaces are handled correctly."""
     test_path = "path with spaces/file"
