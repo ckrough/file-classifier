@@ -19,42 +19,66 @@ def parse_arguments() -> argparse.Namespace:
 
     Returns:
         argparse.Namespace: The parsed command line arguments with:
-            - path: File or directory to analyze
-            - dry_run: Preview mode (no actual changes)
+            - path: File or directory to analyze (optional with --batch)
+            - batch: Read file paths from stdin
+            - format: Output format (json, csv, tsv)
             - full_extraction: Force full content extraction (overrides env var)
             - extraction_strategy: Extraction strategy override (optional)
             - verbosity: One of 'quiet', 'normal', 'verbose', 'debug'
     """
     parser = argparse.ArgumentParser(
-        description="AI-powered file classifier and renaming tool",
+        description="AI-powered file classification tool - Unix-style with JSON output",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-verbosity levels:
-  (default)    Normal output with progress indicators
-  --quiet      Only errors to stderr, no progress output
-  --verbose    Detailed progress with timing for each operation
-  --debug      Full technical logging for troubleshooting
+output formats:
+  json (default)  Newline-delimited JSON (one object per line)
+  csv             Comma-separated values with header
+  tsv             Tab-separated values with header
 
-examples:
-  %(prog)s document.pdf                    # Analyze single file
-  %(prog)s documents/ --verbose            # Analyze directory with details
-  %(prog)s docs/ --dry-run                 # Preview without changes
-  %(prog)s docs/ --full-extraction         # Use full content (slower, higher accuracy)
-  %(prog)s docs/ --extraction-strategy=adaptive  # Smart sampling (default)
+verbosity levels (logs go to stderr):
+  (default)    Normal progress logging
+  --quiet      Only errors to stderr
+  --verbose    Detailed progress with timing
+  --debug      Full technical logging
+
+unix-style examples:
+  %(prog)s document.pdf                          # Single file, JSON output
+  %(prog)s document.pdf | jq -r '.suggested_name'  # Extract field with jq
+
+  find . -name "*.pdf" | %(prog)s --batch        # Batch mode from stdin
+  find . -type f | %(prog)s --batch --format=csv # CSV output
+
+  # Generate move script
+  find . -name "*.pdf" | %(prog)s --batch | \\
+    jq -r '"mv \\"\\(.original)\\" \\"\\(.full_path)\\""' > moves.sh
+
+  # Filter by domain
+  find . -type f | %(prog)s --batch | \\
+    jq -r 'select(.metadata.domain == "financial")'
         """,
     )
 
-    # Required arguments
+    # Positional arguments
     parser.add_argument(
-        "path", type=str, help="Path to the file or directory to be analyzed"
+        "path",
+        type=str,
+        nargs="?",
+        help="Path to file to analyze (required unless --batch)",
     )
 
-    # File operation modes
-    operation_group = parser.add_argument_group("file operations")
-    operation_group.add_argument(
-        "--dry-run",
+    # Input/output modes
+    io_group = parser.add_argument_group("input/output")
+    io_group.add_argument(
+        "--batch",
         action="store_true",
-        help="Preview changes without executing",
+        help="Batch mode: read file paths from stdin (one per line)",
+    )
+    io_group.add_argument(
+        "--format",
+        type=str,
+        choices=["json", "csv", "tsv"],
+        default="json",
+        help="Output format (default: json)",
     )
 
     # Performance tuning
@@ -112,6 +136,14 @@ examples:
     parser.set_defaults(verbosity="normal")
 
     args = parser.parse_args()
+
+    # Validation: --batch mode doesn't require path, but non-batch does
+    if not args.batch and not args.path:
+        parser.error("path argument is required unless using --batch mode")
+
+    # Validation: can't specify both path and --batch
+    if args.batch and args.path:
+        parser.error("cannot specify path argument with --batch mode")
 
     # Handle --full-extraction flag (overrides --extraction-strategy)
     if args.full_extraction:

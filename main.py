@@ -1,9 +1,10 @@
 """
 Main module for the AI File Classifier application.
 
-This module contains the main entry point for the application, which processes
-files or directories to suggest and apply file renaming based on AI analysis.
-It handles command-line arguments and sets up logging.
+This module contains the main entry point for the Unix-style classification tool.
+It processes files or directories and outputs structured JSON/CSV/TSV to stdout,
+following Unix philosophy for composability with standard tools like jq, xargs, etc.
+All logs are sent to stderr to keep stdout clean for piping.
 """
 
 import logging
@@ -17,8 +18,8 @@ from src.config.logging import setup_logging
 from src.ai.factory import create_ai_client
 from src.ai.client import AIClient
 from src.cli.arguments import parse_arguments
-from src.cli.workflow import process_path
-from src.cli.display import handle_suggested_changes
+from src.cli.workflow import process_path, process_stdin_batch
+from src.output.formatter import OutputFormatter
 from src.files.extractors import ExtractionConfig
 
 # Load environment variables
@@ -50,40 +51,45 @@ def main() -> None:
 
         # Create extraction config from CLI args (if provided) or env vars
         extraction_config = None
-        if hasattr(args, 'extraction_strategy') and args.extraction_strategy:
+        if hasattr(args, "extraction_strategy") and args.extraction_strategy:
             extraction_config = ExtractionConfig(
                 strategy=args.extraction_strategy  # type: ignore
             )
             logger.info(
-                "Using extraction strategy from CLI: %s",
-                args.extraction_strategy
+                "Using extraction strategy from CLI: %s", args.extraction_strategy
             )
         else:
             # Will use default from environment variables
             extraction_config = ExtractionConfig.from_env()
             logger.debug(
                 "Using extraction strategy from environment: %s",
-                extraction_config.strategy
+                extraction_config.strategy,
             )
 
-        if args.path:
-            changes = process_path(args.path, client, extraction_config)
+        # Initialize output formatter
+        formatter = OutputFormatter(format_type=args.format)
 
-            if not changes:
-                logger.warning("No changes generated for path: %s", args.path)
-            else:
-                logger.info("Generated %d suggested change(s)", len(changes))
-
-            handle_suggested_changes(
-                changes,
-                dry_run=args.dry_run,
-            )
+        # Process files based on mode (batch vs path)
+        if args.batch:
+            logger.info("Batch mode: reading file paths from stdin")
+            results = process_stdin_batch(client, extraction_config)
+        elif args.path:
+            results = process_path(args.path, client, extraction_config)
         else:
             logger.error(
                 "No path provided\n"
                 "  → Use: python main.py <path> [options]\n"
+                "  → Or use --batch to read from stdin\n"
                 "  → Run with --help for usage"
             )
+            sys.exit(2)  # Invalid arguments
+
+        # Output results to stdout
+        if not results:
+            logger.warning("No results generated")
+        else:
+            logger.info("Generated %d classification result(s)", len(results))
+            formatter.write_batch(results, file=sys.stdout)
 
         elapsed = time.perf_counter() - start_time
         logger.info("Application completed successfully (%.2fs)", elapsed)
