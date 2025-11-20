@@ -13,8 +13,9 @@ from src.ai.client import AIClient
 from src.analysis.analyzer import analyze_file_content
 from src.files.operations import is_supported_filetype
 from src.files.extractors import ExtractionConfig
+from src.output.models import ClassificationResult, ClassificationMetadata
 
-__all__ = ["process_file", "process_directory"]
+__all__ = ["process_file"]
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +27,9 @@ def process_file(
     file_index: Optional[int] = None,
     total_files: Optional[int] = None,
     extraction_config: Optional[ExtractionConfig] = None,
-) -> Optional[dict[str, str]]:
+) -> Optional[ClassificationResult]:
     """
-    Process a single file by analyzing its content and returning the change.
+    Process a single file by analyzing its content and returning classification result.
 
     Args:
         file_path: Path to the file
@@ -42,8 +43,8 @@ def process_file(
             If None, will be loaded from environment variables.
 
     Returns:
-        Dictionary containing file_path, suggested_name, and metadata
-        (category, vendor, description, date), or None if processing fails.
+        ClassificationResult object containing original path, suggested path/name,
+        and metadata, or None if processing fails.
     """
     # Log progress if batch processing
     if file_index is not None and total_files is not None:
@@ -87,15 +88,30 @@ def process_file(
 
         if result["suggested_name"]:
             logger.info("  → Suggested: %s", result["suggested_name"])
-            return {
-                "file_path": file_path,
-                "suggested_name": result["suggested_name"],
-                "category": result["category"],
-                "vendor": result["vendor"],
-                "description": result["description"],
-                "date": result["date"],
-                "destination_relative_path": result["destination_relative_path"],
-            }
+
+            # Build full path from destination_relative_path
+            full_path = result["destination_relative_path"]
+            suggested_path = os.path.dirname(full_path) if full_path else ""
+
+            # Extract domain from path (first component)
+            path_parts = suggested_path.split(os.sep) if suggested_path else []
+            domain = path_parts[0] if len(path_parts) > 0 else "uncategorized"
+
+            # Create ClassificationResult
+            return ClassificationResult(
+                original=file_path,
+                suggested_path=suggested_path,
+                suggested_name=result["suggested_name"],
+                full_path=full_path,
+                metadata=ClassificationMetadata(
+                    domain=domain,
+                    category=result.get("category", ""),
+                    vendor=result.get("vendor", ""),
+                    date=result.get("date", ""),
+                    doctype=result.get("doctype", ""),
+                    subject=result.get("description", ""),
+                ),
+            )
 
         logger.error(
             "Could not determine suitable name for %s\n"
@@ -108,67 +124,3 @@ def process_file(
     except RuntimeError as e:
         logger.error("File processing failed: %s", str(e))
         raise
-
-
-def process_directory(
-    directory: str,
-    client: AIClient,
-    extraction_config: Optional[ExtractionConfig] = None,
-) -> list[dict[str, str]]:
-    """
-    Process all supported files in a directory.
-
-    Filters files by type before processing to avoid redundant validation,
-    improving performance for batch operations. Shows progress for each file.
-
-    Args:
-        directory: Path to the directory
-        client: The AI client used for file analysis
-        extraction_config: Optional extraction configuration for performance tuning.
-            If None, will be loaded from environment variables.
-
-    Returns:
-        List of change dictionaries for successfully processed files.
-    """
-    # First, collect all supported files to show total count
-    supported_files = []
-    for root, _, files in os.walk(directory):
-        for file in files:
-            file_path: str = os.path.join(root, file)
-            if is_supported_filetype(file_path):
-                supported_files.append(file_path)
-
-    total_files = len(supported_files)
-    if total_files == 0:
-        logger.warning(
-            "No supported files found in directory: %s\n"
-            "  → Only .pdf and .txt files are supported\n"
-            "  → Check directory contains files",
-            directory,
-        )
-        return []
-
-    logger.info("Found %d supported file(s) in %s", total_files, directory)
-
-    # Process each file with progress tracking
-    changes: list[dict[str, str]] = []
-    for index, file_path in enumerate(supported_files, start=1):
-        # Skip validation in process_file since we already validated
-        change = process_file(
-            file_path,
-            client,
-            validate_type=False,
-            file_index=index,
-            total_files=total_files,
-            extraction_config=extraction_config,
-        )
-        if change:
-            changes.append(change)
-
-    logger.info(
-        "Batch processing complete: %d/%d files successfully processed",
-        len(changes),
-        total_files,
-    )
-
-    return changes

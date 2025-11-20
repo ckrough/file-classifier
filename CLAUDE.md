@@ -131,35 +131,45 @@ pytest -m "not slow and not benchmark"          # Exclude slow tests (matches CI
 
 ### Running the Application
 ```bash
-# Analyze a single file
+# Classify a single file (JSON output to stdout)
 python main.py path/to/file.pdf
 
-# Analyze a directory
-python main.py path/to/directory
+# Process multiple files via find + batch mode
+find . -name "*.pdf" | python main.py --batch
+find . -type f \( -name "*.pdf" -o -name "*.txt" \) | python main.py --batch
 
-# Dry-run mode (no actual renaming)
-python main.py path/to/directory --dry-run
+# Output in CSV/TSV format
+python main.py file.pdf --format=csv
+find . -type f | python main.py --batch --format=csv
+find . -type f | python main.py --batch --format=tsv
 
-# Combined: dry-run with verbose output
-python main.py path/to/directory --dry-run --verbose
-
-# Quiet mode (suppress output except errors)
-python main.py path/to/directory --quiet
-
-# Verbose mode (show detailed progress and timing)
-python main.py path/to/directory --verbose
-
-# Debug mode (show full technical logging)
-python main.py path/to/directory --debug
+# Verbosity control
+python main.py file.pdf --quiet      # Only errors
+python main.py file.pdf --verbose    # Detailed progress
+python main.py file.pdf --debug      # Full technical logging
 
 # Performance tuning: Use full content extraction (slower, higher accuracy)
-python main.py path/to/directory --full-extraction
+python main.py file.pdf --full-extraction
 
 # Performance tuning: Use specific extraction strategy
-python main.py path/to/directory --extraction-strategy=adaptive
-python main.py path/to/directory --extraction-strategy=first_n_pages
-python main.py path/to/directory --extraction-strategy=char_limit
-python main.py path/to/directory --extraction-strategy=full
+python main.py file.pdf --extraction-strategy=adaptive
+python main.py file.pdf --extraction-strategy=first_n_pages
+python main.py file.pdf --extraction-strategy=char_limit
+python main.py file.pdf --extraction-strategy=full
+
+# Unix-style composability examples
+# Extract field with jq
+python main.py file.pdf | jq -r '.suggested_name'
+
+# Filter by domain
+find . -type f | python main.py --batch | jq 'select(.metadata.domain == "financial")'
+
+# Generate move script
+find . -name "*.pdf" | python main.py --batch | \
+  jq -r '"mv \"\\(.original)\" \"\\(.full_path)\""' > moves.sh
+
+# Count classifications by category
+find . -type f | python main.py --batch | jq -r '.metadata.category' | sort | uniq -c
 ```
 
 **Performance Optimization CLI Flags:**
@@ -204,13 +214,17 @@ src/
 │
 ├── files/            # File I/O operations
 │   ├── extractors.py     # extract_text_from_pdf(), extract_text_from_txt()
-│   ├── operations.py     # is_supported_filetype(), rename_files()
-│   └── processor.py      # process_file(), process_directory() - Returns change dicts
+│   ├── operations.py     # is_supported_filetype() - File type validation
+│   └── processor.py      # process_file(), process_directory() - Returns ClassificationResult
 │
-├── cli/              # User interaction
+├── cli/              # Command-line interface
 │   ├── arguments.py      # parse_arguments() - CLI argument parsing
-│   ├── display.py        # handle_suggested_changes() - Display & user prompts
-│   └── workflow.py       # process_path() - Main orchestration, collects changes
+│   └── workflow.py       # process_path(), process_stdin_batch() - Main orchestration
+│
+├── output/           # Structured output formatting
+│   ├── models.py         # ClassificationResult, ClassificationMetadata Pydantic models
+│   ├── formatter.py      # OutputFormatter - JSON/CSV/TSV formatting
+│   └── __init__.py       # Module exports
 │
 ├── config/           # Configuration
 │   ├── settings.py       # SUPPORTED_MIMETYPES constants
@@ -237,6 +251,9 @@ tests/
 │   └── test_processor.py    # Tests for files/processor.py
 ├── cli/
 │   └── test_arguments.py    # Tests for cli/arguments.py
+├── output/
+│   ├── test_models.py       # Tests for output/models.py
+│   └── test_formatter.py    # Tests for output/formatter.py
 └── benchmarks/          # Performance benchmark tests
     ├── ai/
     │   └── test_bench_prompts.py          # Prompt template caching benchmarks
@@ -302,18 +319,24 @@ A 4-stage pipeline for intelligent document processing:
 
 **File Operations** (`src/files/`)
 1. `extractors.py`: Text extraction from .txt and .pdf files
-2. `operations.py`: File validation and renaming:
-   - `is_supported_filetype()`: Validates file type support
-   - `rename_files()`: Bulk renaming files in current location
+2. `operations.py`: File type validation only
+   - `is_supported_filetype()`: Validates file type support using MIME detection
 3. `processor.py`: File processing orchestration
-   - `process_file()`: Returns `Optional[dict[str, str]]` with change metadata
-   - `process_directory()`: Returns `list[dict[str, str]]` of all changes
-   - In-memory collection replaces database caching
+   - `process_file()`: Returns `Optional[ClassificationResult]` with classification data
+
+**Output Formatting** (`src/output/`)
+- `models.py`: Pydantic models for structured output
+  - `ClassificationResult`: Complete classification result with metadata
+  - `ClassificationMetadata`: Extracted metadata (domain, category, vendor, date, doctype, subject)
+- `formatter.py`: OutputFormatter class
+  - Supports JSON (newline-delimited), CSV, and TSV formats
+  - Methods: `format_single()`, `format_batch()`, `write_result()`, `write_batch()`
 
 **CLI** (`src/cli/`)
-- `arguments.py`: CLI argument parsing (--dry-run, --quiet, --verbose, --debug, extraction options)
-- `display.py`: User prompts and suggested changes display
-- `workflow.py`: Main application orchestration (collects and returns changes)
+- `arguments.py`: CLI argument parsing (--batch, --format, --quiet, --verbose, --debug, extraction options)
+- `workflow.py`: Main application orchestration
+  - `process_path()`: Process single file
+  - `process_stdin_batch()`: Process file paths from stdin (batch mode)
 
 ### Application Flow
 
@@ -321,15 +344,18 @@ A 4-stage pipeline for intelligent document processing:
 main.py
   ↓
 cli/arguments.py: parse_arguments()
-  → CLI args (path, --dry-run, --quiet, --verbose, --debug, extraction options)
+  → CLI args (path, --batch, --format, --quiet, --verbose, --debug, extraction options)
   ↓
 ai/factory.py: create_ai_client()
   → Initialize LLM client (OpenAI/Ollama) based on AI_PROVIDER
   ↓
-cli/workflow.py: process_path()
-  → Determine if file or directory, collect changes
+output/formatter.py: OutputFormatter(format_type)
+  → Initialize formatter (JSON/CSV/TSV)
   ↓
-files/processor.py: process_file() → for each supported file:
+cli/workflow.py: process_path() OR process_stdin_batch()
+  → Process single file or read file paths from stdin
+  ↓
+files/processor.py: process_file() → for each file:
   ├─ files/extractors.py: extract_text_from_{pdf|txt}()
   │   → Extract document content
   │
@@ -360,19 +386,13 @@ files/processor.py: process_file() → for each supported file:
   │         ├─ ai/client.py: analyze_content(schema=ResolvedMetadata)
   │         └─ Returns: ResolvedMetadata (final_path, alternatives, notes)
   │
-  └─ Returns change dict {file_path, suggested_name, category, vendor, description, date}
+  └─ Returns ClassificationResult (original, suggested_path, suggested_name, full_path, metadata)
   ↓
-files/processor.py: process_directory()
-  → Collect all change dicts into list
+cli/workflow.py: Collect results into list[ClassificationResult]
+  → Return to main
   ↓
-cli/workflow.py: process_path()
-  → Return collected changes to main
-  ↓
-cli/display.py: handle_suggested_changes(changes, dry_run)
-  → Display suggestions, get user approval
-  ↓
-files/operations.py: rename_files()
-  → Apply approved changes (renames files in current location)
+main.py: formatter.write_batch(results, file=sys.stdout)
+  → Output structured JSON/CSV/TSV to stdout (logs to stderr)
 ```
 
 ### Environment Variables
@@ -471,7 +491,8 @@ This reduces context noise by 70-80% compared to flat structure!
 Clean, acyclic dependency graph:
 
 ```
-cli/           → depends on: analysis/, files/
+cli/           → depends on: analysis/, files/, output/
+output/        → isolated (Pydantic models only)
 analysis/      → depends on: agents/, files/
 agents/        → depends on: ai/, analysis/models.py
 ai/            → depends on: analysis/models.py only
@@ -501,8 +522,13 @@ config/        → isolated (leaf node)
 
 **Adding a new CLI flag:**
 1. Update `cli/arguments.py`: Add argument to parser
-2. Update `cli/workflow.py` or `cli/display.py`: Handle new flag
+2. Update `cli/workflow.py` or `main.py`: Handle new flag
 3. Add tests to `tests/cli/test_arguments.py`
+
+**Adding a new output format:**
+1. Update `output/formatter.py`: Add new format type and formatting method
+2. Update `cli/arguments.py`: Add new format choice to --format argument
+3. Add tests to `tests/output/test_formatter.py`
 
 ## CI/CD
 
@@ -526,18 +552,27 @@ GitHub Actions workflows:
 ## Important Notes
 
 - Only `.txt` and `.pdf` files are supported (checked via `is_supported_filetype()`)
-- **File Operations**: Files are renamed in their current location
-- File operations preserve file extension
-- **Verbosity Levels**: Four levels available:
-  - `--quiet` - Suppress output except errors
-  - Normal (default) - Standard user-facing output
+- **Unix-Style Output**: Tool outputs structured data to stdout, logs to stderr
+  - JSON (newline-delimited), CSV, or TSV formats
+  - Composable with standard Unix tools (jq, xargs, etc.)
+  - Does not perform file operations - metadata only
+- **Verbosity Levels**: Four levels available (all logs go to stderr):
+  - `--quiet` - Suppress all logs except errors
+  - Normal (default) - Standard progress logging
   - `--verbose` - Detailed progress and timing information
   - `--debug` - Full technical logging for troubleshooting
+- **Batch Mode**: Supports stdin input for pipeline processing
+  - `--batch` flag reads file paths from stdin (one per line)
+  - Ideal for use with `find`, `xargs`, and other Unix tools
+- **Unix Philosophy**: Single-file processing, composable with standard tools
+  - Processes individual files only (no built-in directory walking)
+  - Directory processing via `find`: `find . -type f | python main.py --batch`
+  - Delegates directory traversal to Unix tools for maximum flexibility
 - **Multi-Agent Pipeline**: Document processing uses a 4-stage agent pipeline
   - Each agent has specialized expertise and structured output schema
   - Conflict detection identifies edge cases requiring resolution
   - Alternative paths provided for multi-purpose documents
-- **Directory Structure**: Follows hierarchical taxonomy
+- **Directory Structure**: Suggests hierarchical taxonomy
   - Format: `Domain/Category/Vendor/doctype-vendor-subject-YYYYMMDD.ext`
   - Examples: `Financial/Banking/chase/statement-chase-checking-20240115.pdf`
   - Special cases: `Tax/Federal/2024/1040-irs-tax-return-20240415.pdf`
@@ -546,10 +581,10 @@ GitHub Actions workflows:
   - Vendor names standardized (e.g., "bank_of_america", "smith_john_md")
   - Dates in YYYYMMDD format
   - Subjects concise (1-3 words)
-- **In-Memory Processing**: File changes are collected in-memory during processing
-  - No persistent storage between runs
-  - Batch review workflow: analyze all → review → apply
-  - Changes passed through function calls as `list[dict[str, str]]`
+- **Output Models**: Classification results are Pydantic models
+  - `ClassificationResult`: Complete result with metadata
+  - `ClassificationMetadata`: Domain, category, vendor, date, doctype, subject
+  - Returned as `list[ClassificationResult]` from processing functions
 - **Performance Benchmarks**: Benchmark infrastructure for performance testing
   - Tests marked with `@pytest.mark.benchmark` measure locally-developed code only
   - Baseline generation and performance gates available via `scripts/` directory

@@ -2,18 +2,20 @@
 
 ## Overview
 
-Automatically organize and rename your documents based on their content. This tool analyzes text and PDF files using AI to understand what they are, then generates organized directory structures and standardized filenames.
+A Unix-style command-line tool that analyzes documents and outputs structured classification metadata in JSON, CSV, or TSV format. Designed for composability with standard Unix tools like `jq`, `xargs`, and shell scripts.
 
 **What it does:**
-- Reads and understands document content
+- Reads and understands document content using AI
 - Identifies document type, vendor, dates, and subject matter
+- Outputs structured JSON/CSV/TSV to stdout for piping
 - Generates organized paths: `Domain/Category/Vendor/`
 - Creates standardized filenames: `doctype-vendor-subject-YYYYMMDD.ext`
-- Lets you review and approve changes before applying them
 
 **Supported file types:** `.txt` and `.pdf`
 
 **AI provider options:** OpenAI (cloud) or Ollama (local models)
+
+**Unix philosophy:** Do one thing well, output structured data, compose with other tools.
 
 ## Quick Start
 
@@ -58,292 +60,143 @@ ollama pull deepseek-r1:latest
 ### Basic Usage
 
 ```sh
-# Analyze and rename files in current location
-python main.py path/to/directory
+# Classify a single file (JSON output to stdout)
+python main.py document.pdf
 
-# Preview changes without applying (recommended first run)
-python main.py path/to/directory --dry-run
+# Process multiple files via find + batch mode
+find ~/Documents -type f \( -name "*.pdf" -o -name "*.txt" \) | python main.py --batch
+
+# Output in CSV format
+python main.py document.pdf --format=csv
+find . -type f | python main.py --batch --format=csv
+
+# Quiet mode (errors only to stderr)
+python main.py document.pdf --quiet
 ```
 
-## Docker Usage (Recommended)
+## Unix-Style Examples
 
-Docker provides a consistent environment without requiring Python installation on your system.
+The tool outputs structured data to stdout and logs to stderr, making it composable with Unix tools:
 
-### Prerequisites
-
-- [Docker](https://docs.docker.com/get-docker/) installed on your system
-- [Docker Compose](https://docs.docker.com/compose/install/) (usually included with Docker Desktop)
-
-### Quick Start with Docker
-
-1. **Clone the repository:**
-   ```sh
-   git clone <repository_url>
-   cd file-classifier
-   ```
-
-2. **Configure environment:**
-   ```sh
-   # Copy the example configuration
-   cp .env.example .env
-
-   # Edit .env with your preferred AI provider settings
-   # For OpenAI: Set OPENAI_API_KEY
-   # For Ollama: Configure OLLAMA_BASE_URL and OLLAMA_MODEL
-   ```
-
-3. **Build the Docker image:**
-   ```sh
-   docker-compose build
-   ```
-
-4. **Run the application:**
-   ```sh
-   # Analyze files in the ./files directory (default)
-   docker-compose run --rm file-classifier /app/input
-
-   # Preview changes first (recommended)
-   docker-compose run --rm file-classifier /app/input --dry-run
-   ```
-
-### Easy Mode: Using the Wrapper Script
-
-The simplest way to use Docker is with the included `classify.sh` wrapper script. It's designed for processing **single files** in automated scripts:
+### Extract Specific Fields with jq
 
 ```sh
-# Process a single file
-./classify.sh ./invoice.pdf
+# Get just the suggested filename
+python main.py invoice.pdf | jq -r '.suggested_name'
+# Output: invoice-acme-services-20240115.pdf
 
-# Preview changes without applying
-./classify.sh ./invoice.pdf --dry-run
+# Get the full suggested path
+python main.py invoice.pdf | jq -r '.full_path'
+# Output: business/invoices/acme_corp/invoice-acme-services-20240115.pdf
 
-# Use in iteration scripts
-for file in /ingest/dir/*.pdf; do
-    ./classify.sh "$file" --dry-run
-done
-
-# The script automatically:
-#   - Converts relative paths to absolute paths
-#   - Mounts the parent directory as a Docker volume
-#   - Renames files in-place
-#   - Handles file permissions correctly
-#   - Builds the Docker image if needed
+# Extract all metadata
+python main.py document.pdf | jq '.metadata'
 ```
 
-**Note:** The wrapper script is intentionally minimal and only supports:
-- Single file processing (not directories)
-- Dry-run mode
-- Rename in-place
-
-For directory processing, use `docker-compose` directly (see below).
-
-### Docker Usage Patterns
-
-#### Method 1: Wrapper Script (For Single Files)
-
-**Process individual files:**
-```sh
-# Basic usage
-./classify.sh ./invoice.pdf
-
-# Preview changes first
-./classify.sh ./invoice.pdf --dry-run
-
-# Works with absolute and relative paths
-./classify.sh /Users/username/Documents/tax-form.pdf --dry-run
-
-# Perfect for automation scripts
-for file in ~/ingest/*.pdf; do
-    ./classify.sh "$file" --dry-run
-done
-```
-
-**Limitations:** The wrapper script only supports single files with rename-in-place. For directories, use Method 2 below.
-
-#### Method 2: Docker Compose (For Directories)
-
-**Process entire directories using environment variables:**
-```sh
-# Set INPUT_DIR to process any directory
-INPUT_DIR=./sample-documents docker-compose run --rm file-classifier /app/input --dry-run
-INPUT_DIR=/Users/username/Downloads docker-compose run --rm file-classifier /app/input
-```
-
-**Use the default ./files directory:**
-```sh
-# Copy files to the default location
-mkdir -p ./files
-cp /path/to/your/documents/* ./files/
-
-# Run analysis
-docker-compose run --rm file-classifier /app/input --dry-run
-docker-compose run --rm file-classifier /app/input
-```
-
-**Different output verbosity levels:**
-```sh
-# Using docker-compose for verbosity control
-INPUT_DIR=./documents docker-compose run --rm file-classifier /app/input --quiet
-INPUT_DIR=./documents docker-compose run --rm file-classifier /app/input --verbose
-INPUT_DIR=./documents docker-compose run --rm file-classifier /app/input --debug
-```
-
-### Volume Mounting
-
-The docker-compose.yml configuration supports flexible directory mounting:
-
-**Default mounts** (when using `docker-compose` without environment variables):
-- **`./files`** → `/app/input` - Place documents to classify here
-- **`./.env`** → `/app/.env` - Configuration file (read-only)
-
-**Custom mounts** using environment variables:
-```sh
-# Override input directory
-INPUT_DIR=./sample-documents docker-compose run --rm file-classifier /app/input
-INPUT_DIR=/Users/username/Documents docker-compose run --rm file-classifier /app/input
-```
-
-**Using standalone Docker** (without docker-compose):
-```sh
-# Directly mount any directory
-docker run --rm \
-  -v /path/to/my/docs:/app/input:rw \
-  -v /path/to/output:/app/output:rw \
-  -v $(pwd)/.env:/app/.env:ro \
-  file-classifier:latest /app/input
-
-# Or use the wrapper script for single files (easiest)
-./classify.sh /path/to/my/docs/invoice.pdf
-```
-
-### Using Docker with Ollama
-
-To use local models via Ollama in Docker:
-
-1. **Uncomment the Ollama service** in `docker-compose.yml`
-
-2. **Update your `.env`:**
-   ```env
-   AI_PROVIDER=ollama
-   OLLAMA_BASE_URL=http://ollama:11434
-   OLLAMA_MODEL=deepseek-r1:latest
-   ```
-
-3. **Start Ollama and pull the model:**
-   ```sh
-   docker-compose up -d ollama
-   docker-compose exec ollama ollama pull deepseek-r1:latest
-   ```
-
-4. **Run the classifier:**
-   ```sh
-   docker-compose run --rm file-classifier /app/files
-   ```
-
-### Standalone Docker (without docker-compose)
-
-If you prefer using Docker directly:
+### Generate Move/Rename Scripts
 
 ```sh
-# Build the image
-docker build -t file-classifier:latest .
+# Create a shell script to move files
+find . -name "*.pdf" | python main.py --batch | \
+  jq -r '"mv \"\\(.original)\" \"\\(.full_path)\""' > moves.sh
 
-# Run with volume mounts
-docker run --rm \
-  -v $(pwd)/files:/app/input:rw \
-  -v $(pwd)/output:/app/output:rw \
-  -v $(pwd)/.env:/app/.env:ro \
-  file-classifier:latest /app/input --dry-run
+# Review the generated script
+cat moves.sh
+
+# Execute after review
+bash moves.sh
 ```
 
-### Docker Troubleshooting and Notes
-
-#### File Permission Issues
-
-The docker-compose.yml configuration runs the container as your current user (UID:GID) to ensure files are owned by you. By default, it uses `1000:1000`. If you encounter permission issues:
-
-**Check your UID/GID:**
-```sh
-id -u  # Shows your user ID
-id -g  # Shows your group ID
-```
-
-**If your UID/GID is not 1000, export them before running docker-compose:**
-```sh
-export UID=$(id -u)
-export GID=$(id -g)
-docker-compose run --rm file-classifier /app/input --dry-run
-```
-
-**Or set them inline:**
-```sh
-UID=$(id -u) GID=$(id -g) docker-compose run --rm file-classifier /app/input
-```
-
-#### Log Persistence
-
-By default, application logs are written to `/tmp/app.log` inside the container, which means they are **ephemeral** and disappear when the container stops.
-
-**To preserve logs across container runs**, uncomment the log volume mount in `docker-compose.yml`:
-```yaml
-volumes:
-  # Uncomment this line:
-  - ${LOG_DIR:-./logs}:/tmp:rw
-```
-
-Then create the logs directory and run:
-```sh
-mkdir -p ./logs
-docker-compose run --rm file-classifier /app/input
-# Logs will be saved to ./logs/app.log on your host machine
-```
-
-#### Resource Limits
-
-The docker-compose.yml configuration includes resource limits to prevent unbounded memory/CPU usage during AI processing:
-- **Memory limit**: 2GB maximum
-- **CPU limit**: 2.0 cores
-- **Memory reservation**: 512MB minimum
-
-If you need to adjust these limits for your hardware, edit the `deploy.resources` section in `docker-compose.yml`.
-
-## Usage Examples
-
-### Rename Mode (Default)
-
-Renames files in their current location:
+### Filter by Domain or Category
 
 ```sh
-# Basic usage
-python main.py ~/Downloads
+# Find all financial documents
+find . -type f | python main.py --batch | \
+  jq -r 'select(.metadata.domain == "financial")'
 
-# Preview first
-python main.py ~/Downloads --dry-run
+# Find all bank statements
+find . -type f | python main.py --batch | \
+  jq -r 'select(.metadata.category == "banking" and .metadata.doctype == "statement")'
 
-# With verbose output
-python main.py ~/Downloads --verbose
+# Get unique vendors
+find . -name "*.pdf" | python main.py --batch | \
+  jq -r '.metadata.vendor' | sort -u
 ```
 
-### Output Control
-
-Control the amount of output:
+### CSV/TSV for Spreadsheet Import
 
 ```sh
---quiet    # Only show errors
-           # (default: normal output)
---verbose  # Show detailed progress and timing
---debug    # Show full technical logging
+# Generate CSV for import to Excel/Google Sheets
+find ~/Documents -type f | python main.py --batch --format=csv > classifications.csv
+
+# TSV format for tab-delimited
+find ~/Documents -type f | python main.py --batch --format=tsv > classifications.tsv
+
+# Process large archive in CSV
+find /archive -type f | python main.py --batch --format=csv > archive-index.csv
 ```
+
+### Parallel Processing
+
+```sh
+# Process files in parallel using xargs
+find . -name "*.pdf" | \
+  xargs -P 4 -I {} python main.py {} | \
+  jq -s '.'  # Combine into single JSON array
+
+# GNU parallel for better load balancing
+find . -name "*.pdf" | \
+  parallel -j 4 python main.py {} | \
+  jq -s 'map(select(.metadata.domain == "financial"))'
+```
+
+### Build Custom Workflows
+
+```sh
+# Create directory structure before moving
+find ~/Downloads -type f | python main.py --batch | \
+  jq -r '.suggested_path' | \
+  sort -u | \
+  xargs -I {} mkdir -p ~/Organized/{}
+
+# Then move files
+find ~/Downloads -type f | python main.py --batch | \
+  jq -r '"mv \"\\(.original)\" \"~/Organized/\\(.full_path)\""' | \
+  bash
+```
+
+## Output Formats
+
+### JSON (default)
+
+Newline-delimited JSON (NDJSON) for streaming:
+
+```json
+{"original": "doc.pdf", "suggested_path": "financial/banking/chase", "suggested_name": "statement-chase-checking-20240115.pdf", "full_path": "financial/banking/chase/statement-chase-checking-20240115.pdf", "metadata": {"domain": "financial", "category": "banking", "vendor": "chase", "date": "20240115", "doctype": "statement", "subject": "checking"}}
+```
+
+### CSV
+
+Comma-separated with header row:
+
+```csv
+original,suggested_path,suggested_name,full_path,domain,category,vendor,date,doctype,subject
+doc.pdf,financial/banking/chase,statement-chase-checking-20240115.pdf,financial/banking/chase/statement-chase-checking-20240115.pdf,financial,banking,chase,20240115,statement,checking
+```
+
+### TSV
+
+Tab-separated with header row (same fields as CSV).
 
 ## Organization Structure
 
-The tool creates a hierarchical structure based on document content:
+The tool suggests a hierarchical structure based on document content:
 
 ```
 Domain/Category/Vendor/doctype-vendor-subject-YYYYMMDD.ext
 ```
 
-### Example Output
+### Example Output Structure
 
 ```
 Financial/Banking/chase/
@@ -377,12 +230,69 @@ Insurance/Auto/state_farm/
 ## How It Works
 
 1. **Extract Text**: Reads content from `.txt` and `.pdf` files
-2. **Analyze Content**: AI examines the document to understand what it is
+2. **Analyze Content**: AI examines the document using a multi-agent pipeline
 3. **Generate Structure**: Creates directory path and filename based on content
-4. **Review Changes**: Shows you all proposed changes
-5. **Apply Changes**: Renames or moves files after your approval
+4. **Output Metadata**: Prints structured JSON/CSV/TSV to stdout
 
 The tool performs semantic analysis to understand document meaning, not just keyword matching. It normalizes vendor names, formats dates consistently (YYYYMMDD), and handles edge cases like documents with multiple purposes.
+
+**Multi-Agent Pipeline:**
+- **Classification Agent**: Semantic analysis and metadata extraction
+- **Standards Enforcement Agent**: Naming convention normalization
+- **Path Construction Agent**: Directory structure and filename assembly
+- **Conflict Resolution Agent**: Edge case handling
+
+## Command-Line Options
+
+```
+python main.py [PATH] [OPTIONS]
+
+Positional Arguments:
+  PATH                  File to analyze (required unless --batch)
+
+Input/Output:
+  --batch               Read file paths from stdin (one per line)
+  --format {json,csv,tsv}
+                        Output format (default: json)
+
+Performance Tuning:
+  --full-extraction     Extract full document content (highest accuracy, slower)
+  --extraction-strategy {full,first_n_pages,char_limit,adaptive}
+                        Override extraction strategy (default: adaptive)
+
+Verbosity (logs to stderr):
+  --quiet, -q           Only show errors
+  --verbose, -v         Show detailed progress and timing
+  --debug               Show full technical logging
+```
+
+## Performance Optimization
+
+The tool supports adaptive content extraction to reduce API costs and improve speed:
+
+```sh
+# Use adaptive strategy (default) - smart sampling based on document size
+python main.py document.pdf
+
+# Force full content extraction for maximum accuracy
+python main.py document.pdf --full-extraction
+
+# Use specific strategy for batch processing
+find ~/Documents -type f | python main.py --batch --extraction-strategy=first_n_pages
+```
+
+**Adaptive strategy benefits:**
+- **60-80% API cost reduction** for large documents
+- **30-50% faster processing**
+- **<5% accuracy impact** in most cases
+
+Configure via environment variables in `.env`:
+```env
+CLASSIFICATION_STRATEGY=adaptive
+CLASSIFICATION_MAX_PAGES=3
+CLASSIFICATION_MAX_CHARS=10000
+CLASSIFICATION_INCLUDE_LAST_PAGE=true
+```
 
 ## Development
 
@@ -400,6 +310,7 @@ pytest tests/ai/           # AI client & prompts
 pytest tests/files/        # File operations
 pytest tests/cli/          # CLI functionality
 pytest tests/analysis/     # Analysis logic
+pytest tests/output/       # Output formatting
 
 # Run benchmark tests
 pytest -m benchmark
@@ -431,13 +342,13 @@ pytest --cov=src --cov-report=term-missing
 
 ```
 src/
-├── agents/           # Document processing pipeline
-├── ai/               # LLM provider abstraction
+├── agents/           # Multi-agent document processing pipeline
+├── ai/               # LLM provider abstraction (OpenAI, Ollama)
 ├── analysis/         # Data models and analysis logic
-├── files/            # File I/O operations
-├── cli/              # User interface and workflow
-├── config/           # Configuration
-└── recommendations/  # Folder suggestions
+├── files/            # File I/O and text extraction
+├── cli/              # Command-line interface
+├── config/           # Configuration and logging
+└── output/           # JSON/CSV/TSV formatters
 
 tests/
 ├── ai/               # AI client tests
@@ -445,6 +356,7 @@ tests/
 ├── files/            # File operation tests
 ├── analysis/         # Analysis logic tests
 ├── cli/              # CLI tests
+├── output/           # Formatter tests
 └── benchmarks/       # Performance tests
 ```
 
@@ -466,6 +378,12 @@ See [CLAUDE.md](CLAUDE.md) for detailed architecture documentation and developme
 - `OLLAMA_BASE_URL` - Ollama server URL (default: http://localhost:11434)
 - `OLLAMA_MODEL` - Model name (default: deepseek-r1:latest)
 
+**Performance Tuning:**
+- `CLASSIFICATION_STRATEGY` - Extraction strategy: "full", "first_n_pages", "char_limit", or "adaptive" (default: adaptive)
+- `CLASSIFICATION_MAX_PAGES` - Maximum pages to extract (default: 3)
+- `CLASSIFICATION_MAX_CHARS` - Maximum characters to extract (default: 10000)
+- `CLASSIFICATION_INCLUDE_LAST_PAGE` - Include last page in extraction (default: true)
+
 ## Naming Conventions
 
 The tool applies consistent naming standards:
@@ -480,7 +398,9 @@ The tool applies consistent naming standards:
 - Only supports `.txt` and `.pdf` files
 - Requires AI API access (OpenAI) or local model setup (Ollama)
 - Quality depends on document content clarity and AI model capabilities
-- Large directories may take time to process (each file requires AI analysis)
+- Processes individual files only - use `find` for directory traversal
+- Each file requires AI analysis (may be slow for large batches)
+- Does not perform file operations - outputs metadata only (use with `mv`, `cp`, etc.)
 
 ## Troubleshooting
 
@@ -491,6 +411,8 @@ The tool applies consistent naming standards:
 **"Connection error"**: For Ollama, verify the server is running: `ollama serve`
 
 **Unexpected classifications**: Try with `--debug` flag to see detailed analysis
+
+**Empty output**: Check stderr for errors (add `--debug` for detailed logging)
 
 ## License
 
