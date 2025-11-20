@@ -2,7 +2,7 @@
 Application workflow orchestration.
 
 This module coordinates the main application workflow, processing
-files from paths or stdin in batch mode, generating classification results.
+files from paths or stdin in batch mode, generating path suggestions.
 """
 
 import logging
@@ -11,9 +11,8 @@ import sys
 from typing import Optional
 
 from src.ai.client import AIClient
-from src.files.processor import process_file
+from src.files.processor import process_file, PathResult
 from src.files.extractors import ExtractionConfig
-from src.output.models import ClassificationResult
 
 __all__ = ["process_path", "process_stdin_batch"]
 
@@ -24,7 +23,7 @@ def process_path(
     path: str,
     client: AIClient,
     extraction_config: Optional[ExtractionConfig] = None,
-) -> list[ClassificationResult]:
+) -> list[PathResult]:
     """
     Process a single file.
 
@@ -35,7 +34,7 @@ def process_path(
             If None, will be loaded from environment variables.
 
     Returns:
-        List containing the ClassificationResult for the file, or empty list if failed.
+        List containing the PathResult for the file, or empty list if failed.
     """
     if not os.path.exists(path):
         logger.error(
@@ -64,12 +63,12 @@ def process_path(
 def process_stdin_batch(
     client: AIClient,
     extraction_config: Optional[ExtractionConfig] = None,
-) -> list[ClassificationResult]:
+) -> list[PathResult]:
     """
     Process files from stdin in batch mode.
 
     Reads file paths from stdin (one per line), processes each file,
-    and returns classification results. Skips invalid or unsupported files.
+    and returns path results. Skips invalid or unsupported files.
 
     Args:
         client: The AI client to use for analysis
@@ -77,9 +76,9 @@ def process_stdin_batch(
             If None, will be loaded from environment variables.
 
     Returns:
-        List of ClassificationResult objects for successfully processed files.
+        List of PathResult objects for successfully processed files.
     """
-    results: list[ClassificationResult] = []
+    results: list[PathResult] = []
 
     logger.info("Batch mode: reading file paths from stdin")
 

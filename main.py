@@ -2,8 +2,8 @@
 Main module for the AI File Classifier application.
 
 This module contains the main entry point for the Unix-style classification tool.
-It processes files or directories and outputs structured JSON/CSV/TSV to stdout,
-following Unix philosophy for composability with standard tools like jq, xargs, etc.
+It processes files and outputs suggested paths to stdout,
+following Unix philosophy for composability with standard tools.
 All logs are sent to stderr to keep stdout clean for piping.
 """
 
@@ -19,7 +19,6 @@ from src.ai.factory import create_ai_client
 from src.ai.client import AIClient
 from src.cli.arguments import parse_arguments
 from src.cli.workflow import process_path, process_stdin_batch
-from src.output.formatter import OutputFormatter
 from src.files.extractors import ExtractionConfig
 
 # Load environment variables
@@ -66,9 +65,6 @@ def main() -> None:
                 extraction_config.strategy,
             )
 
-        # Initialize output formatter
-        formatter = OutputFormatter(format_type=args.format)
-
         # Process files based on mode (batch vs path)
         if args.batch:
             logger.info("Batch mode: reading file paths from stdin")
@@ -88,8 +84,14 @@ def main() -> None:
         if not results:
             logger.warning("No results generated")
         else:
-            logger.info("Generated %d classification result(s)", len(results))
-            formatter.write_batch(results, file=sys.stdout)
+            logger.info("Generated %d path suggestion(s)", len(results))
+            # Single file mode: output just the suggested path
+            # Batch mode: output tab-separated "original\tsuggested_path"
+            for result in results:
+                if args.batch:
+                    print(f"{result.original}\t{result.suggested_path}")
+                else:
+                    print(result.suggested_path)
 
         elapsed = time.perf_counter() - start_time
         logger.info("Application completed successfully (%.2fs)", elapsed)

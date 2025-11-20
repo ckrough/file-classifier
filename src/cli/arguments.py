@@ -19,21 +19,19 @@ def parse_arguments() -> argparse.Namespace:
 
     Returns:
         argparse.Namespace: The parsed command line arguments with:
-            - path: File or directory to analyze (optional with --batch)
+            - path: File to analyze (optional with --batch)
             - batch: Read file paths from stdin
-            - format: Output format (json, csv, tsv)
             - full_extraction: Force full content extraction (overrides env var)
             - extraction_strategy: Extraction strategy override (optional)
             - verbosity: One of 'quiet', 'normal', 'verbose', 'debug'
     """
     parser = argparse.ArgumentParser(
-        description="AI-powered file classification tool - Unix-style with JSON output",
+        description="AI-powered file classification tool - outputs suggested paths",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-output formats:
-  json (default)  Newline-delimited JSON (one object per line)
-  csv             Comma-separated values with header
-  tsv             Tab-separated values with header
+output:
+  Single file mode: outputs suggested path only
+  Batch mode:       outputs tab-separated "original<TAB>suggested_path"
 
 verbosity levels (logs go to stderr):
   (default)    Normal progress logging
@@ -42,19 +40,18 @@ verbosity levels (logs go to stderr):
   --debug      Full technical logging
 
 unix-style examples:
-  %(prog)s document.pdf                          # Single file, JSON output
-  %(prog)s document.pdf | jq -r '.suggested_name'  # Extract field with jq
+  %(prog)s document.pdf                    # Output: financial/invoices/acme/...pdf
+  mv doc.pdf "$(%(prog)s document.pdf)"    # Move file to suggested path
 
-  find . -name "*.pdf" | %(prog)s --batch        # Batch mode from stdin
-  find . -type f | %(prog)s --batch --format=csv # CSV output
+  find . -name "*.pdf" | %(prog)s --batch  # Batch: original<TAB>suggested
 
   # Generate move script
-  find . -name "*.pdf" | %(prog)s --batch | \\
-    jq -r '"mv \\"\\(.original)\\" \\"\\(.full_path)\\""' > moves.sh
+  find . -name "*.pdf" | %(prog)s --batch | while IFS=$'\\t' read orig new; do
+    mkdir -p "$(dirname "$new")" && mv "$orig" "$new"
+  done
 
-  # Filter by domain
-  find . -type f | %(prog)s --batch | \\
-    jq -r 'select(.metadata.domain == "financial")'
+  # Filter by domain (first path component)
+  find . -type f | %(prog)s --batch | grep -E '\\tfinancial/'
         """,
     )
 
@@ -72,13 +69,6 @@ unix-style examples:
         "--batch",
         action="store_true",
         help="Batch mode: read file paths from stdin (one per line)",
-    )
-    io_group.add_argument(
-        "--format",
-        type=str,
-        choices=["json", "csv", "tsv"],
-        default="json",
-        help="Output format (default: json)",
     )
 
     # Performance tuning

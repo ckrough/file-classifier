@@ -131,17 +131,17 @@ pytest -m "not slow and not benchmark"          # Exclude slow tests (matches CI
 
 ### Running the Application
 ```bash
-# Classify a single file (JSON output to stdout)
+# Classify a single file (outputs suggested path)
 python main.py path/to/file.pdf
+# Output: financial/invoices/acme_corp/statement-acme-services-20240115.pdf
 
-# Process multiple files via find + batch mode
+# Move file to suggested path
+mv file.pdf "$(python main.py path/to/file.pdf)"
+
+# Process multiple files via find + batch mode (tab-separated output)
 find . -name "*.pdf" | python main.py --batch
 find . -type f \( -name "*.pdf" -o -name "*.txt" \) | python main.py --batch
-
-# Output in CSV/TSV format
-python main.py file.pdf --format=csv
-find . -type f | python main.py --batch --format=csv
-find . -type f | python main.py --batch --format=tsv
+# Output: doc1.pdf<TAB>financial/invoices/acme/statement-acme-services-20240115.pdf
 
 # Verbosity control
 python main.py file.pdf --quiet      # Only errors
@@ -215,16 +215,11 @@ src/
 ├── files/            # File I/O operations
 │   ├── extractors.py     # extract_text_from_pdf(), extract_text_from_txt()
 │   ├── operations.py     # is_supported_filetype() - File type validation
-│   └── processor.py      # process_file(), process_directory() - Returns ClassificationResult
+│   └── processor.py      # process_file() - Returns PathResult (original, suggested_path)
 │
 ├── cli/              # Command-line interface
 │   ├── arguments.py      # parse_arguments() - CLI argument parsing
 │   └── workflow.py       # process_path(), process_stdin_batch() - Main orchestration
-│
-├── output/           # Structured output formatting
-│   ├── models.py         # ClassificationResult, ClassificationMetadata Pydantic models
-│   ├── formatter.py      # OutputFormatter - JSON/CSV/TSV formatting
-│   └── __init__.py       # Module exports
 │
 ├── config/           # Configuration
 │   ├── settings.py       # SUPPORTED_MIMETYPES constants
@@ -322,21 +317,14 @@ A 4-stage pipeline for intelligent document processing:
 2. `operations.py`: File type validation only
    - `is_supported_filetype()`: Validates file type support using MIME detection
 3. `processor.py`: File processing orchestration
-   - `process_file()`: Returns `Optional[ClassificationResult]` with classification data
-
-**Output Formatting** (`src/output/`)
-- `models.py`: Pydantic models for structured output
-  - `ClassificationResult`: Complete classification result with metadata
-  - `ClassificationMetadata`: Extracted metadata (domain, category, vendor, date, doctype, subject)
-- `formatter.py`: OutputFormatter class
-  - Supports JSON (newline-delimited), CSV, and TSV formats
-  - Methods: `format_single()`, `format_batch()`, `write_result()`, `write_batch()`
+   - `PathResult`: namedtuple with `original` and `suggested_path` fields
+   - `process_file()`: Returns `Optional[PathResult]` with suggested path
 
 **CLI** (`src/cli/`)
-- `arguments.py`: CLI argument parsing (--batch, --format, --quiet, --verbose, --debug, extraction options)
+- `arguments.py`: CLI argument parsing (--batch, --quiet, --verbose, --debug, extraction options)
 - `workflow.py`: Main application orchestration
-  - `process_path()`: Process single file
-  - `process_stdin_batch()`: Process file paths from stdin (batch mode)
+  - `process_path()`: Process single file, returns `list[PathResult]`
+  - `process_stdin_batch()`: Process file paths from stdin, returns `list[PathResult]`
 
 ### Application Flow
 
@@ -344,13 +332,10 @@ A 4-stage pipeline for intelligent document processing:
 main.py
   ↓
 cli/arguments.py: parse_arguments()
-  → CLI args (path, --batch, --format, --quiet, --verbose, --debug, extraction options)
+  → CLI args (path, --batch, --quiet, --verbose, --debug, extraction options)
   ↓
 ai/factory.py: create_ai_client()
   → Initialize LLM client (OpenAI/Ollama) based on AI_PROVIDER
-  ↓
-output/formatter.py: OutputFormatter(format_type)
-  → Initialize formatter (JSON/CSV/TSV)
   ↓
 cli/workflow.py: process_path() OR process_stdin_batch()
   → Process single file or read file paths from stdin
@@ -386,13 +371,14 @@ files/processor.py: process_file() → for each file:
   │         ├─ ai/client.py: analyze_content(schema=ResolvedMetadata)
   │         └─ Returns: ResolvedMetadata (final_path, alternatives, notes)
   │
-  └─ Returns ClassificationResult (original, suggested_path, suggested_name, full_path, metadata)
+  └─ Returns PathResult (original, suggested_path)
   ↓
-cli/workflow.py: Collect results into list[ClassificationResult]
+cli/workflow.py: Collect results into list[PathResult]
   → Return to main
   ↓
-main.py: formatter.write_batch(results, file=sys.stdout)
-  → Output structured JSON/CSV/TSV to stdout (logs to stderr)
+main.py: Print paths to stdout
+  → Single file mode: print(result.suggested_path)
+  → Batch mode: print(f"{result.original}\t{result.suggested_path}")
 ```
 
 ### Environment Variables
@@ -552,10 +538,11 @@ GitHub Actions workflows:
 ## Important Notes
 
 - Only `.txt` and `.pdf` files are supported (checked via `is_supported_filetype()`)
-- **Unix-Style Output**: Tool outputs structured data to stdout, logs to stderr
-  - JSON (newline-delimited), CSV, or TSV formats
-  - Composable with standard Unix tools (jq, xargs, etc.)
-  - Does not perform file operations - metadata only
+- **Unix-Style Output**: Tool outputs simple paths to stdout, logs to stderr
+  - Single file mode: outputs suggested path only
+  - Batch mode: outputs tab-separated `original<TAB>suggested_path`
+  - Composable with standard Unix tools (grep, awk, cut, etc.)
+  - Does not perform file operations - outputs suggested paths only
 - **Verbosity Levels**: Four levels available (all logs go to stderr):
   - `--quiet` - Suppress all logs except errors
   - Normal (default) - Standard progress logging
@@ -581,10 +568,10 @@ GitHub Actions workflows:
   - Vendor names standardized (e.g., "bank_of_america", "smith_john_md")
   - Dates in YYYYMMDD format
   - Subjects concise (1-3 words)
-- **Output Models**: Classification results are Pydantic models
-  - `ClassificationResult`: Complete result with metadata
-  - `ClassificationMetadata`: Domain, category, vendor, date, doctype, subject
-  - Returned as `list[ClassificationResult]` from processing functions
+- **Output Model**: Classification results use simple namedtuple
+  - `PathResult`: namedtuple with `original` and `suggested_path` fields
+  - All metadata is encoded in the path structure (domain/category/vendor/filename)
+  - Returned as `list[PathResult]` from processing functions
 - **Performance Benchmarks**: Benchmark infrastructure for performance testing
   - Tests marked with `@pytest.mark.benchmark` measure locally-developed code only
   - Baseline generation and performance gates available via `scripts/` directory

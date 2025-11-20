@@ -2,20 +2,19 @@
 
 ## Overview
 
-A Unix-style command-line tool that analyzes documents and outputs structured classification metadata in JSON, CSV, or TSV format. Designed for composability with standard Unix tools like `jq`, `xargs`, and shell scripts.
+A Unix-style command-line tool that analyzes documents and outputs suggested file paths. Designed for composability with standard Unix tools like `grep`, `awk`, and shell scripts.
 
 **What it does:**
 - Reads and understands document content using AI
 - Identifies document type, vendor, dates, and subject matter
-- Outputs structured JSON/CSV/TSV to stdout for piping
-- Generates organized paths: `Domain/Category/Vendor/`
-- Creates standardized filenames: `doctype-vendor-subject-YYYYMMDD.ext`
+- Outputs suggested paths to stdout for piping
+- Generates organized paths: `Domain/Category/Vendor/doctype-vendor-subject-YYYYMMDD.ext`
 
 **Supported file types:** `.txt` and `.pdf`
 
 **AI provider options:** OpenAI (cloud) or Ollama (local models)
 
-**Unix philosophy:** Do one thing well, output structured data, compose with other tools.
+**Unix philosophy:** Do one thing well, output simple paths, compose with other tools.
 
 ## Quick Start
 
@@ -60,15 +59,17 @@ ollama pull deepseek-r1:latest
 ### Basic Usage
 
 ```sh
-# Classify a single file (JSON output to stdout)
+# Classify a single file (outputs suggested path)
 python main.py document.pdf
+# Output: financial/invoices/acme_corp/statement-acme-services-20240115.pdf
 
-# Process multiple files via find + batch mode
+# Move file to suggested path
+mv document.pdf "$(python main.py document.pdf)"
+
+# Process multiple files via find + batch mode (tab-separated output)
 find ~/Documents -type f \( -name "*.pdf" -o -name "*.txt" \) | python main.py --batch
-
-# Output in CSV format
-python main.py document.pdf --format=csv
-find . -type f | python main.py --batch --format=csv
+# Output: doc1.pdf<TAB>financial/invoices/acme/statement-acme-services-20240115.pdf
+#         doc2.pdf<TAB>tax/federal/2024/1040-irs-return-20240415.pdf
 
 # Quiet mode (errors only to stderr)
 python main.py document.pdf --quiet
@@ -76,117 +77,103 @@ python main.py document.pdf --quiet
 
 ## Unix-Style Examples
 
-The tool outputs structured data to stdout and logs to stderr, making it composable with Unix tools:
+The tool outputs paths to stdout and logs to stderr, making it composable with Unix tools:
 
-### Extract Specific Fields with jq
+### Move Files to Suggested Paths
 
 ```sh
-# Get just the suggested filename
-python main.py invoice.pdf | jq -r '.suggested_name'
-# Output: invoice-acme-services-20240115.pdf
+# Single file - get suggested path and move
+new_path="$(python main.py invoice.pdf)"
+mkdir -p "$(dirname "$new_path")"
+mv invoice.pdf "$new_path"
 
-# Get the full suggested path
-python main.py invoice.pdf | jq -r '.full_path'
-# Output: business/invoices/acme_corp/invoice-acme-services-20240115.pdf
-
-# Extract all metadata
-python main.py document.pdf | jq '.metadata'
+# Or in one command
+mv invoice.pdf "$(python main.py invoice.pdf)"
 ```
 
-### Generate Move/Rename Scripts
+### Batch Processing with Move Script
 
 ```sh
-# Create a shell script to move files
+# Generate and execute move script from batch mode
+find . -name "*.pdf" | python main.py --batch | while IFS=$'\t' read orig new; do
+  echo "Moving: $orig → $new"
+  mkdir -p "$(dirname "$new")"
+  mv "$orig" "$new"
+done
+
+# Or generate script for review first
 find . -name "*.pdf" | python main.py --batch | \
-  jq -r '"mv \"\\(.original)\" \"\\(.full_path)\""' > moves.sh
-
-# Review the generated script
-cat moves.sh
-
-# Execute after review
-bash moves.sh
+  awk -F'\t' '{print "mv \"" $1 "\" \"" $2 "\""}' > moves.sh
+bash moves.sh  # Execute after review
 ```
 
 ### Filter by Domain or Category
 
 ```sh
-# Find all financial documents
-find . -type f | python main.py --batch | \
-  jq -r 'select(.metadata.domain == "financial")'
+# Find all financial documents (first path component)
+find . -type f | python main.py --batch | grep -E '\tfinancial/'
 
-# Find all bank statements
-find . -type f | python main.py --batch | \
-  jq -r 'select(.metadata.category == "banking" and .metadata.doctype == "statement")'
+# Find tax documents
+find . -type f | python main.py --batch | grep -E '\ttax/'
 
-# Get unique vendors
+# Get unique domains
+find . -type f | python main.py --batch | cut -f2 | cut -d/ -f1 | sort -u
+
+# Get unique vendors (3rd path component)
 find . -name "*.pdf" | python main.py --batch | \
-  jq -r '.metadata.vendor' | sort -u
-```
-
-### CSV/TSV for Spreadsheet Import
-
-```sh
-# Generate CSV for import to Excel/Google Sheets
-find ~/Documents -type f | python main.py --batch --format=csv > classifications.csv
-
-# TSV format for tab-delimited
-find ~/Documents -type f | python main.py --batch --format=tsv > classifications.tsv
-
-# Process large archive in CSV
-find /archive -type f | python main.py --batch --format=csv > archive-index.csv
+  cut -f2 | awk -F/ '{print $3}' | sort -u
 ```
 
 ### Parallel Processing
 
 ```sh
 # Process files in parallel using xargs
-find . -name "*.pdf" | \
-  xargs -P 4 -I {} python main.py {} | \
-  jq -s '.'  # Combine into single JSON array
+find . -name "*.pdf" | xargs -P 4 -I {} python main.py {}
 
 # GNU parallel for better load balancing
-find . -name "*.pdf" | \
-  parallel -j 4 python main.py {} | \
-  jq -s 'map(select(.metadata.domain == "financial"))'
+find . -name "*.pdf" | parallel -j 4 python main.py {}
+
+# Parallel with batch mode and filtering
+find . -name "*.pdf" | parallel -j 4 python main.py {} | grep "financial/"
 ```
 
 ### Build Custom Workflows
 
 ```sh
 # Create directory structure before moving
-find ~/Downloads -type f | python main.py --batch | \
-  jq -r '.suggested_path' | \
-  sort -u | \
+find ~/Downloads -type f | python main.py --batch | cut -f2 | \
+  xargs -I {} dirname {} | sort -u | \
   xargs -I {} mkdir -p ~/Organized/{}
 
 # Then move files
-find ~/Downloads -type f | python main.py --batch | \
-  jq -r '"mv \"\\(.original)\" \"~/Organized/\\(.full_path)\""' | \
-  bash
+find ~/Downloads -type f | python main.py --batch | while IFS=$'\t' read orig new; do
+  mkdir -p "$(dirname "~/Organized/$new")"
+  mv "$orig" "~/Organized/$new"
+done
 ```
 
-## Output Formats
+## Output Format
 
-### JSON (default)
+The tool outputs suggested file paths in two modes:
 
-Newline-delimited JSON (NDJSON) for streaming:
-
-```json
-{"original": "doc.pdf", "suggested_path": "financial/banking/chase", "suggested_name": "statement-chase-checking-20240115.pdf", "full_path": "financial/banking/chase/statement-chase-checking-20240115.pdf", "metadata": {"domain": "financial", "category": "banking", "vendor": "chase", "date": "20240115", "doctype": "statement", "subject": "checking"}}
+**Single File Mode:**
+Outputs just the suggested path (one line):
+```
+financial/banking/chase/statement-chase-checking-20240115.pdf
 ```
 
-### CSV
-
-Comma-separated with header row:
-
-```csv
-original,suggested_path,suggested_name,full_path,domain,category,vendor,date,doctype,subject
-doc.pdf,financial/banking/chase,statement-chase-checking-20240115.pdf,financial/banking/chase/statement-chase-checking-20240115.pdf,financial,banking,chase,20240115,statement,checking
+**Batch Mode:**
+Outputs tab-separated `original<TAB>suggested_path` (one pair per line):
+```
+doc1.pdf	financial/banking/chase/statement-chase-checking-20240115.pdf
+doc2.pdf	tax/federal/2024/1040-irs-return-20240415.pdf
 ```
 
-### TSV
-
-Tab-separated with header row (same fields as CSV).
+All metadata is encoded in the path structure itself:
+- **Domain**: First path component (`financial/`)
+- **Category**: Second component (`banking/`)
+- **Vendor**: Third component (`chase/`)
+- **Doctype, Subject, Date**: Encoded in filename (`statement-chase-checking-20240115.pdf`)
 
 ## Organization Structure
 
@@ -252,8 +239,6 @@ Positional Arguments:
 
 Input/Output:
   --batch               Read file paths from stdin (one per line)
-  --format {json,csv,tsv}
-                        Output format (default: json)
 
 Performance Tuning:
   --full-extraction     Extract full document content (highest accuracy, slower)

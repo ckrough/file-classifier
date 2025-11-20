@@ -9,13 +9,13 @@ if [ $# -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
     cat >&2 << 'EOF'
 Usage: classify.sh <file> [options]
 
-Classify and rename a single file using AI analysis.
+Classify a file and output suggested path using AI analysis.
 
 Arguments:
   <file>                Path to the file to classify
 
 Options:
-  --dry-run            Preview changes without executing
+  --quiet              Only show errors
   --verbose            Show detailed progress and timing
   --debug              Show full technical logging
 
@@ -28,13 +28,17 @@ Performance Tuning:
                        - char_limit: Extract until character limit
                        - adaptive: Smart sampling (default, recommended)
 
+Output:
+  Outputs suggested path to stdout:
+    financial/invoices/acme_corp/statement-acme-services-20240115.pdf
+
 Examples:
   classify.sh document.pdf
-  classify.sh document.pdf --dry-run
-  classify.sh document.pdf --verbose
-  classify.sh document.pdf --full-extraction --verbose
-  classify.sh large-doc.pdf --extraction-strategy=adaptive
-  classify.sh sample-documents/invoice.pdf --dry-run --verbose
+  # Output: financial/invoices/acme_corp/statement-acme-services-20240115.pdf
+
+  mv document.pdf "$(classify.sh document.pdf)"  # Move to suggested path
+  classify.sh document.pdf --verbose             # Show progress
+  classify.sh large-doc.pdf --full-extraction    # Force full extraction
 
 Performance Notes:
   The adaptive strategy (default) reduces API costs by 60-80% and
@@ -124,30 +128,28 @@ fi
 #    docker build -t file-classifier:latest .
 #
 # 2. TEST WITH ADAPTIVE STRATEGY (default - recommended):
-#    ./classify.sh sample-documents/large-statement.pdf --dry-run --verbose
+#    ./classify.sh sample-documents/large-statement.pdf --verbose
+#    # Output: financial/banking/chase/statement-chase-checking-20240115.pdf
 #
 # 3. COMPARE FULL VS ADAPTIVE EXTRACTION:
-#    # Full extraction (old behavior):
+#    # Full extraction (slower):
 #    ./classify.sh sample-documents/large-statement.pdf --full-extraction --verbose
 #
-#    # Adaptive extraction (new optimized):
+#    # Adaptive extraction (faster, recommended):
 #    ./classify.sh sample-documents/large-statement.pdf --extraction-strategy=adaptive --verbose
 #
 # 4. TEST DIFFERENT STRATEGIES:
 #    ./classify.sh sample-documents/invoice.pdf --extraction-strategy=first_n_pages --verbose
 #    ./classify.sh sample-documents/invoice.pdf --extraction-strategy=char_limit --verbose
 #
-# 5. VIEW EXTRACTION STATISTICS:
-#    ./classify.sh sample-documents/large-statement.pdf --verbose 2>&1 | grep -E "(strategy|Extracting|tokens)"
+# 5. USE THE OUTPUT TO MOVE FILES:
+#    mv sample-documents/invoice.pdf "$(./classify.sh sample-documents/invoice.pdf)"
 #
-# Expected output with adaptive strategy:
-#   - "Using extraction strategy: adaptive"
-#   - "Extracting 4 of 20 pages (20.0%, strategy: adaptive)"
-#   - "Extracted 2500 characters from 4 pages (0.15s, ~625 tokens, 20.0% of document)"
+# Expected output: suggested path to stdout (logs to stderr)
+#   financial/invoices/acme_corp/statement-acme-services-20240115.pdf
 #
-# Performance gains you should see:
+# Performance gains you should see with adaptive strategy:
 #   - API Cost: 60-80% reduction for large documents
 #   - Speed: 30-50% faster processing
-#   - Tokens: ~625 instead of ~2500 (75% reduction)
 #
 # ============================================================================

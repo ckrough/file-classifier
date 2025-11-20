@@ -27,7 +27,6 @@ def test_get_user_arguments_basic_path() -> None:
 
     assert args.path == test_path, f"Path should be '{test_path}'"
     assert args.batch is False, "batch should be False by default"
-    assert args.format == "json", "format should default to 'json'"
 
 
 @pytest.mark.unit
@@ -40,54 +39,6 @@ def test_get_user_arguments_with_batch() -> None:
 
     assert args.batch is True, "batch should be True when --batch flag is present"
     assert args.path is None, "path should be None in batch mode"
-
-
-@pytest.mark.unit
-@pytest.mark.usefixtures("clear_sys_argv")
-def test_get_user_arguments_format_json() -> None:
-    """Test that --format=json is correctly parsed."""
-    test_path = "some/path"
-    sys.argv = ["script.py", test_path, "--format", "json"]
-
-    args = get_user_arguments()
-
-    assert args.format == "json", "format should be 'json'"
-
-
-@pytest.mark.unit
-@pytest.mark.usefixtures("clear_sys_argv")
-def test_get_user_arguments_format_csv() -> None:
-    """Test that --format=csv is correctly parsed."""
-    test_path = "some/path"
-    sys.argv = ["script.py", test_path, "--format", "csv"]
-
-    args = get_user_arguments()
-
-    assert args.format == "csv", "format should be 'csv'"
-
-
-@pytest.mark.unit
-@pytest.mark.usefixtures("clear_sys_argv")
-def test_get_user_arguments_format_tsv() -> None:
-    """Test that --format=tsv is correctly parsed."""
-    test_path = "some/path"
-    sys.argv = ["script.py", test_path, "--format", "tsv"]
-
-    args = get_user_arguments()
-
-    assert args.format == "tsv", "format should be 'tsv'"
-
-
-@pytest.mark.unit
-@pytest.mark.usefixtures("clear_sys_argv")
-def test_get_user_arguments_batch_with_format() -> None:
-    """Test that --batch and --format can be combined."""
-    sys.argv = ["script.py", "--batch", "--format", "csv"]
-
-    args = get_user_arguments()
-
-    assert args.batch is True, "batch should be True"
-    assert args.format == "csv", "format should be 'csv'"
 
 
 @pytest.mark.unit
