@@ -36,7 +36,7 @@ def process_document_multi_agent(
     content: str,
     filename: str,
     ai_client: AIClient,
-) -> ResolvedMetadata:
+) -> tuple[RawMetadata, NormalizedMetadata, ResolvedMetadata]:
     """
     Process a document through the multi-agent pipeline.
 
@@ -52,7 +52,8 @@ def process_document_multi_agent(
         ai_client (AIClient): The AI client to use for all agents.
 
     Returns:
-        ResolvedMetadata: Final resolved metadata with complete path.
+        tuple[RawMetadata, NormalizedMetadata, ResolvedMetadata]:
+            Returns all metadata from the pipeline for downstream use.
 
     Raises:
         RuntimeError: If any agent in the pipeline fails.
@@ -143,7 +144,7 @@ def process_document_multi_agent(
             resolved.final_path,
         )
 
-        return resolved
+        return raw_metadata, normalized, resolved
 
     except Exception as e:
         pipeline_elapsed = time.perf_counter() - pipeline_start

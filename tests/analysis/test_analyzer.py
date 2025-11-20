@@ -3,7 +3,7 @@
 from unittest.mock import patch, Mock, ANY
 import pytest
 from src.analysis.analyzer import analyze_file_content
-from src.analysis.models import ResolvedMetadata
+from src.analysis.models import RawMetadata, NormalizedMetadata, ResolvedMetadata
 
 
 @pytest.mark.unit
@@ -14,12 +14,30 @@ def test_analyze_file_content_txt(mock_multi_agent, mock_extract_txt):
     # Setup mocks for the .txt file
     mock_extract_txt.return_value = "Sample text content."
 
-    # Mock the multi-agent pipeline response
-    mock_multi_agent.return_value = ResolvedMetadata(
+    # Mock the multi-agent pipeline response (now returns tuple)
+    mock_raw = RawMetadata(
+        domain="financial",
+        category="banking",
+        doctype="statement",
+        vendor_raw="Acme Bank",
+        date_raw="2023-10-01",
+        subject_raw="Checking account",
+        account_types=["checking"],
+    )
+    mock_normalized = NormalizedMetadata(
+        domain="financial",
+        category="banking",
+        doctype="statement",
+        vendor_name="acme",
+        date="20231001",
+        subject="checking",
+    )
+    mock_resolved = ResolvedMetadata(
         final_path="financial/banking/acme/statement-acme-checking-20231001.txt",
         alternative_paths=None,
         resolution_notes=None,
     )
+    mock_multi_agent.return_value = (mock_raw, mock_normalized, mock_resolved)
 
     mock_ai_client = Mock()
 
@@ -29,7 +47,9 @@ def test_analyze_file_content_txt(mock_multi_agent, mock_extract_txt):
     )
 
     assert result["suggested_name"] == "statement-acme-checking-20231001.txt"
-    assert result["category"] == "statement"
+    assert result["domain"] == "financial"
+    assert result["category"] == "banking"
+    assert result["doctype"] == "statement"
     assert result["vendor"] == "acme"
     assert result["description"] == "checking"
     assert result["date"] == "20231001"
@@ -52,12 +72,30 @@ def test_analyze_file_content_pdf(mock_multi_agent, mock_extract_pdf):
     # Setup mocks for the .pdf file
     mock_extract_pdf.return_value = "Sample PDF content."
 
-    # Mock the multi-agent pipeline response
-    mock_multi_agent.return_value = ResolvedMetadata(
+    # Mock the multi-agent pipeline response (now returns tuple)
+    mock_raw = RawMetadata(
+        domain="financial",
+        category="banking",
+        doctype="statement",
+        vendor_raw="Chase Bank",
+        date_raw="2023-01-15",
+        subject_raw="Savings account",
+        account_types=["savings"],
+    )
+    mock_normalized = NormalizedMetadata(
+        domain="financial",
+        category="banking",
+        doctype="statement",
+        vendor_name="chase",
+        date="20230115",
+        subject="savings",
+    )
+    mock_resolved = ResolvedMetadata(
         final_path="financial/banking/chase/statement-chase-savings-20230115.pdf",
         alternative_paths=None,
         resolution_notes=None,
     )
+    mock_multi_agent.return_value = (mock_raw, mock_normalized, mock_resolved)
 
     mock_ai_client = Mock()
 
@@ -65,7 +103,9 @@ def test_analyze_file_content_pdf(mock_multi_agent, mock_extract_pdf):
     result = analyze_file_content(file_path="docs/report.pdf", client=mock_ai_client)
 
     assert result["suggested_name"] == "statement-chase-savings-20230115.pdf"
-    assert result["category"] == "statement"
+    assert result["domain"] == "financial"
+    assert result["category"] == "banking"
+    assert result["doctype"] == "statement"
     assert result["vendor"] == "chase"
     assert result["description"] == "savings"
     assert result["date"] == "20230115"
@@ -100,20 +140,40 @@ def test_analyze_file_content_complex_filename(mock_multi_agent, mock_extract_pd
     mock_extract_pdf.return_value = "Invoice content"
 
     # Mock response with complex filename (multi-word description)
-    mock_multi_agent.return_value = ResolvedMetadata(
+    mock_raw = RawMetadata(
+        domain="financial",
+        category="banking",
+        doctype="invoice",
+        vendor_raw="Bank of America",
+        date_raw="2024-03-15",
+        subject_raw="Wire transfer fee",
+        account_types=None,
+    )
+    mock_normalized = NormalizedMetadata(
+        domain="financial",
+        category="banking",
+        doctype="invoice",
+        vendor_name="bofa",
+        date="20240315",
+        subject="wire_transfer_fee",
+    )
+    mock_resolved = ResolvedMetadata(
         final_path="financial/banking/bofa/invoice-bofa-wire-transfer-fee-20240315.pdf",
         alternative_paths=None,
         resolution_notes=None,
     )
+    mock_multi_agent.return_value = (mock_raw, mock_normalized, mock_resolved)
 
     mock_ai_client = Mock()
 
     result = analyze_file_content(file_path="test.pdf", client=mock_ai_client)
 
     assert result["suggested_name"] == "invoice-bofa-wire-transfer-fee-20240315.pdf"
-    assert result["category"] == "invoice"
+    assert result["domain"] == "financial"
+    assert result["category"] == "banking"
+    assert result["doctype"] == "invoice"
     assert result["vendor"] == "bofa"
-    assert result["description"] == "wire-transfer-fee"
+    assert result["description"] == "wire_transfer_fee"
     assert result["date"] == "20240315"
     assert (
         result["destination_relative_path"]
@@ -129,20 +189,40 @@ def test_analyze_file_content_no_date(mock_multi_agent, mock_extract_pdf):
     mock_extract_pdf.return_value = "Document content"
 
     # Mock response without date in filename
-    mock_multi_agent.return_value = ResolvedMetadata(
+    mock_raw = RawMetadata(
+        domain="legal",
+        category="contracts",
+        doctype="agreement",
+        vendor_raw="Vendor Name LLC",
+        date_raw="",
+        subject_raw="Service agreement",
+        account_types=None,
+    )
+    mock_normalized = NormalizedMetadata(
+        domain="legal",
+        category="contracts",
+        doctype="agreement",
+        vendor_name="vendor_name",
+        date="",
+        subject="service",
+    )
+    mock_resolved = ResolvedMetadata(
         final_path="legal/contracts/vendor-name/agreement-vendor-name-service.pdf",
         alternative_paths=None,
         resolution_notes=None,
     )
+    mock_multi_agent.return_value = (mock_raw, mock_normalized, mock_resolved)
 
     mock_ai_client = Mock()
 
     result = analyze_file_content(file_path="test.pdf", client=mock_ai_client)
 
     assert result["suggested_name"] == "agreement-vendor-name-service.pdf"
-    assert result["category"] == "agreement"
-    assert result["vendor"] == "vendor"
-    assert result["description"] == "name-service"
+    assert result["domain"] == "legal"
+    assert result["category"] == "contracts"
+    assert result["doctype"] == "agreement"
+    assert result["vendor"] == "vendor_name"
+    assert result["description"] == "service"
     assert result["date"] == ""
     assert (
         result["destination_relative_path"]

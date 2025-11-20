@@ -2,11 +2,12 @@
 Main module for the AI File Classifier application.
 
 This module contains the main entry point for the Unix-style classification tool.
-It processes files and outputs suggested paths to stdout,
+It processes files and outputs JSON metadata to stdout,
 following Unix philosophy for composability with standard tools.
 All logs are sent to stderr to keep stdout clean for piping.
 """
 
+import json
 import logging
 import signal
 import sys
@@ -80,18 +81,16 @@ def main() -> None:
             )
             sys.exit(2)  # Invalid arguments
 
-        # Output results to stdout
+        # Output results to stdout as JSON
         if not results:
             logger.warning("No results generated")
         else:
             logger.info("Generated %d path suggestion(s)", len(results))
-            # Single file mode: output just the suggested path
-            # Batch mode: output tab-separated "original\tsuggested_path"
+            # Both single-file and batch mode: output JSON (one object per line)
+            # This is JSON Lines format (newline-delimited JSON)
             for result in results:
-                if args.batch:
-                    print(f"{result.original}\t{result.suggested_path}")
-                else:
-                    print(result.suggested_path)
+                # Output JSON object with all metadata
+                print(json.dumps(result))
 
         elapsed = time.perf_counter() - start_time
         logger.info("Application completed successfully (%.2fs)", elapsed)
