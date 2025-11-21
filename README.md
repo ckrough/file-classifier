@@ -8,7 +8,7 @@ A command-line tool that analyzes text documents and outputs JSON metadata with 
 - Reads and understands document content using AI
 - Identifies document metadata; type, purpose, vendor, dates, and subject matter
 - Outputs JSON metadata to stdout for piping
-- Generates organized paths: `Domain/Category/Vendor/doctype-vendor-subject-YYYYMMDD.ext`
+- Generates organized paths: `Domain/Category/Doctype/doctype-vendor-subject-YYYYMMDD.ext`
 
 **Supported file types:** `.txt` and `.pdf`
 
@@ -61,11 +61,11 @@ ollama pull deepseek-r1:latest
 ```sh
 # Classify a single file (outputs JSON with metadata)
 python main.py document.pdf
-# Output: {"original": "document.pdf", "suggested_path": "financial/invoices/acme/statement-acme-services-20240115.pdf", "domain": "financial", "category": "invoices", "doctype": "statement", "vendor": "acme", "date": "20240115", "subject": "services"}
+# Output: {"original": "document.pdf", "suggested_path": "financial/invoices/statement/statement-acme-services-20240115.pdf", "domain": "financial", "category": "invoices", "doctype": "statement", "vendor": "acme", "date": "20240115", "subject": "services"}
 
 # Extract just the suggested path
 python main.py document.pdf | jq -r .suggested_path
-# Output: financial/invoices/acme/statement-acme-services-20240115.pdf
+# Output: financial/invoices/statement/statement-acme-services-20240115.pdf
 
 # Move file to suggested path
 mv document.pdf "$(python main.py document.pdf | jq -r .suggested_path)"
@@ -109,8 +109,8 @@ find . -name "*.pdf" | python main.py --batch | \
 # Find all financial documents
 find . -type f | python main.py --batch | jq 'select(.domain == "financial")'
 
-# Find tax documents
-find . -type f | python main.py --batch | jq 'select(.domain == "tax")'
+# Find tax documents (tax is a category under financial domain)
+find . -type f | python main.py --batch | jq 'select(.domain == "financial" and .category == "tax")'
 
 # Get unique domains
 find . -type f | python main.py --batch | jq -r .domain | sort -u
@@ -157,7 +157,7 @@ The tool outputs JSON metadata (JSON Lines format for batch):
 ```json
 {
   "original": "document.pdf",
-  "suggested_path": "financial/banking/chase/statement-chase-checking-20240115.pdf",
+  "suggested_path": "financial/banking/statement/statement-chase-checking-20240115.pdf",
   "domain": "financial",
   "category": "banking",
   "doctype": "statement",
@@ -170,56 +170,62 @@ The tool outputs JSON metadata (JSON Lines format for batch):
 **Single File Mode:**
 Outputs one JSON object:
 ```json
-{"original": "doc.pdf", "suggested_path": "financial/banking/chase/statement-chase-checking-20240115.pdf", "domain": "financial", "category": "banking", "doctype": "statement", "vendor": "chase", "date": "20240115", "subject": "checking"}
+{"original": "doc.pdf", "suggested_path": "financial/banking/statement/statement-chase-checking-20240115.pdf", "domain": "financial", "category": "banking", "doctype": "statement", "vendor": "chase", "date": "20240115", "subject": "checking"}
 ```
 
 **Batch Mode:**
 Outputs JSON Lines (one JSON object per line):
 ```json
-{"original": "doc1.pdf", "suggested_path": "financial/banking/chase/statement-chase-checking-20240115.pdf", "domain": "financial", "category": "banking", "doctype": "statement", "vendor": "chase", "date": "20240115", "subject": "checking"}
-{"original": "doc2.pdf", "suggested_path": "tax/federal/2024/1040-irs-return-20240415.pdf", "domain": "tax", "category": "federal", "doctype": "1040", "vendor": "irs", "date": "20240415", "subject": "return"}
+{"original": "doc1.pdf", "suggested_path": "financial/banking/statement/statement-chase-checking-20240115.pdf", "domain": "financial", "category": "banking", "doctype": "statement", "vendor": "chase", "date": "20240115", "subject": "checking"}
+{"original": "doc2.pdf", "suggested_path": "financial/tax/1040/1040-irs-return-20240415.pdf", "domain": "financial", "category": "tax", "doctype": "1040", "vendor": "irs", "date": "20240415", "subject": "return"}
 ```
 
 Metadata is provided both as structured JSON fields and encoded in the path:
 - **Domain**: JSON field + first path component (`financial/`)
 - **Category**: JSON field + second path component (`banking/`)
-- **Vendor**: Third component (`chase/`)
-- **Doctype, Subject, Date**: Encoded in filename (`statement-chase-checking-20240115.pdf`)
+- **Doctype**: JSON field + third path component (`statement/`)
+- **Vendor, Subject, Date**: Encoded in filename (`statement-chase-checking-20240115.pdf`)
 
 ## Organization Structure
 
 The tool suggests a hierarchical structure based on document content:
 
 ```
-Domain/Category/Vendor/doctype-vendor-subject-YYYYMMDD.ext
+Domain/Category/Doctype/doctype-vendor-subject-YYYYMMDD.ext
 ```
 
 ### Example Output Structure
 
 ```
-Financial/Banking/chase/
+financial/banking/statement/
 ├── statement-chase-checking-20250131.pdf
 ├── statement-chase-savings-20250131.pdf
+├── statement-bofa-checking-20250131.pdf
 
-Financial/Credit_Cards/amex/
+financial/credit_cards/statement/
 ├── statement-amex-platinum-20250115.pdf
+├── statement-visa-rewards-20250115.pdf
 
-Tax/Federal/2024/
-├── 1040-irs-tax-return-20240415.pdf
+financial/tax/1040/
+├── 1040-irs-tax_return-20240415.pdf
+
+financial/tax/w2/
 ├── w2-acme_corp-wages-20250131.pdf
 
-Medical/Records/city_hospital/
+medical/records/receipt/
 ├── receipt-city_hospital-surgery-20250110.pdf
+├── receipt-county_clinic-checkup-20250215.pdf
+
+medical/records/bill/
 ├── bill-city_hospital-emergency-20250320.pdf
 
-Insurance/Auto/state_farm/
+insurance/auto/policy/
 ├── policy-state_farm-auto_insurance-20250101.pdf
 ```
 
 ### Supported Domains
 
-- **Financial**: Banking, Credit Cards, Loans, Investments
-- **Tax**: Federal, State, Property
+- **Financial**: Banking, Credit Cards, Loans, Investments, Tax (Federal, State, Property)
 - **Medical**: Records, Bills, Insurance
 - **Property**: Real Estate, Rental, Ownership
 - **Legal**: Contracts, Court Documents, Estate Planning
@@ -228,17 +234,16 @@ Insurance/Auto/state_farm/
 ## How It Works
 
 1. **Extract Text**: Reads content from `.txt` and `.pdf` files
-2. **Analyze Content**: AI examines the document using a multi-agent pipeline
+2. **Analyze Content**: AI examines the document using a 2-agent pipeline
 3. **Generate Structure**: Creates directory path and filename based on content
-4. **Output Metadata**: Prints structured JSON/CSV/TSV to stdout
+4. **Output Metadata**: Prints structured JSON to stdout
 
-The tool performs semantic analysis to understand document meaning, not just keyword matching. It normalizes vendor names, formats dates consistently (YYYYMMDD), and handles edge cases like documents with multiple purposes.
+The tool performs semantic analysis to understand document meaning, not just keyword matching. It normalizes vendor names, formats dates consistently (YYYYMMDD), and determines specific vendors from document content.
 
-**Multi-Agent Pipeline:**
+**2-Agent Pipeline:**
 - **Classification Agent**: Semantic analysis and metadata extraction
-- **Standards Enforcement Agent**: Naming convention normalization
-- **Path Construction Agent**: Directory structure and filename assembly
-- **Conflict Resolution Agent**: Edge case handling
+- **Standards Enforcement Agent**: Naming convention normalization and vendor determination
+- **Deterministic Path Builder**: Directory structure and filename assembly (no AI)
 
 ## Command-Line Options
 

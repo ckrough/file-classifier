@@ -29,8 +29,6 @@ from src.analysis.models import (
     Analysis,
     RawMetadata,
     NormalizedMetadata,
-    PathMetadata,
-    ResolvedMetadata,
 )
 
 
@@ -161,12 +159,13 @@ class LangChainClient(AIClient):
         self._schema_cache: dict[type[BaseModel], Any] = {}
 
         # Pre-cache commonly used schemas for better performance
+        # Note: PathMetadata is now a simple dataclass (not Pydantic),
+        # path construction is deterministic
+        # ResolvedMetadata removed - conflict resolution agent eliminated
         schemas_to_cache = [
             Analysis,
             RawMetadata,
             NormalizedMetadata,
-            PathMetadata,
-            ResolvedMetadata,
         ]
         for schema in schemas_to_cache:
             self._schema_cache[schema] = self.llm.with_structured_output(schema)

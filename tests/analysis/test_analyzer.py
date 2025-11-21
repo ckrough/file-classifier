@@ -3,7 +3,8 @@
 from unittest.mock import patch, Mock, ANY
 import pytest
 from src.analysis.analyzer import analyze_file_content
-from src.analysis.models import RawMetadata, NormalizedMetadata, ResolvedMetadata
+from src.analysis.models import RawMetadata, NormalizedMetadata
+from src.path.builder import PathMetadata
 
 
 @pytest.mark.unit
@@ -32,12 +33,12 @@ def test_analyze_file_content_txt(mock_multi_agent, mock_extract_txt):
         date="20231001",
         subject="checking",
     )
-    mock_resolved = ResolvedMetadata(
-        final_path="financial/banking/acme/statement-acme-checking-20231001.txt",
-        alternative_paths=None,
-        resolution_notes=None,
+    mock_path = PathMetadata(
+        directory_path="financial/banking/statement/",
+        filename="statement-acme-checking-20231001.txt",
+        full_path="financial/banking/statement/statement-acme-checking-20231001.txt",
     )
-    mock_multi_agent.return_value = (mock_raw, mock_normalized, mock_resolved)
+    mock_multi_agent.return_value = (mock_raw, mock_normalized, mock_path)
 
     mock_ai_client = Mock()
 
@@ -55,7 +56,7 @@ def test_analyze_file_content_txt(mock_multi_agent, mock_extract_txt):
     assert result["date"] == "20231001"
     assert (
         result["destination_relative_path"]
-        == "financial/banking/acme/statement-acme-checking-20231001.txt"
+        == "financial/banking/statement/statement-acme-checking-20231001.txt"
     )
 
     mock_extract_txt.assert_called_once_with("docs/user_guide.txt", ANY)
@@ -90,12 +91,12 @@ def test_analyze_file_content_pdf(mock_multi_agent, mock_extract_pdf):
         date="20230115",
         subject="savings",
     )
-    mock_resolved = ResolvedMetadata(
-        final_path="financial/banking/chase/statement-chase-savings-20230115.pdf",
-        alternative_paths=None,
-        resolution_notes=None,
+    mock_path = PathMetadata(
+        directory_path="financial/banking/statement/",
+        filename="statement-chase-savings-20230115.pdf",
+        full_path="financial/banking/statement/statement-chase-savings-20230115.pdf",
     )
-    mock_multi_agent.return_value = (mock_raw, mock_normalized, mock_resolved)
+    mock_multi_agent.return_value = (mock_raw, mock_normalized, mock_path)
 
     mock_ai_client = Mock()
 
@@ -111,7 +112,7 @@ def test_analyze_file_content_pdf(mock_multi_agent, mock_extract_pdf):
     assert result["date"] == "20230115"
     assert (
         result["destination_relative_path"]
-        == "financial/banking/chase/statement-chase-savings-20230115.pdf"
+        == "financial/banking/statement/statement-chase-savings-20230115.pdf"
     )
 
     mock_extract_pdf.assert_called_once_with("docs/report.pdf", ANY)
@@ -157,18 +158,18 @@ def test_analyze_file_content_complex_filename(mock_multi_agent, mock_extract_pd
         date="20240315",
         subject="wire_transfer_fee",
     )
-    mock_resolved = ResolvedMetadata(
-        final_path="financial/banking/bofa/invoice-bofa-wire-transfer-fee-20240315.pdf",
-        alternative_paths=None,
-        resolution_notes=None,
+    mock_path = PathMetadata(
+        directory_path="financial/banking/invoice/",
+        filename="invoice-bofa-wire_transfer_fee-20240315.pdf",
+        full_path="financial/banking/invoice/invoice-bofa-wire_transfer_fee-20240315.pdf",
     )
-    mock_multi_agent.return_value = (mock_raw, mock_normalized, mock_resolved)
+    mock_multi_agent.return_value = (mock_raw, mock_normalized, mock_path)
 
     mock_ai_client = Mock()
 
     result = analyze_file_content(file_path="test.pdf", client=mock_ai_client)
 
-    assert result["suggested_name"] == "invoice-bofa-wire-transfer-fee-20240315.pdf"
+    assert result["suggested_name"] == "invoice-bofa-wire_transfer_fee-20240315.pdf"
     assert result["domain"] == "financial"
     assert result["category"] == "banking"
     assert result["doctype"] == "invoice"
@@ -177,7 +178,7 @@ def test_analyze_file_content_complex_filename(mock_multi_agent, mock_extract_pd
     assert result["date"] == "20240315"
     assert (
         result["destination_relative_path"]
-        == "financial/banking/bofa/invoice-bofa-wire-transfer-fee-20240315.pdf"
+        == "financial/banking/invoice/invoice-bofa-wire_transfer_fee-20240315.pdf"
     )
 
 
@@ -206,18 +207,18 @@ def test_analyze_file_content_no_date(mock_multi_agent, mock_extract_pdf):
         date="",
         subject="service",
     )
-    mock_resolved = ResolvedMetadata(
-        final_path="legal/contracts/vendor-name/agreement-vendor-name-service.pdf",
-        alternative_paths=None,
-        resolution_notes=None,
+    mock_path = PathMetadata(
+        directory_path="legal/contracts/agreement/",
+        filename="agreement-vendor_name-service.pdf",
+        full_path="legal/contracts/agreement/agreement-vendor_name-service.pdf",
     )
-    mock_multi_agent.return_value = (mock_raw, mock_normalized, mock_resolved)
+    mock_multi_agent.return_value = (mock_raw, mock_normalized, mock_path)
 
     mock_ai_client = Mock()
 
     result = analyze_file_content(file_path="test.pdf", client=mock_ai_client)
 
-    assert result["suggested_name"] == "agreement-vendor-name-service.pdf"
+    assert result["suggested_name"] == "agreement-vendor_name-service.pdf"
     assert result["domain"] == "legal"
     assert result["category"] == "contracts"
     assert result["doctype"] == "agreement"
@@ -226,5 +227,5 @@ def test_analyze_file_content_no_date(mock_multi_agent, mock_extract_pdf):
     assert result["date"] == ""
     assert (
         result["destination_relative_path"]
-        == "legal/contracts/vendor-name/agreement-vendor-name-service.pdf"
+        == "legal/contracts/agreement/agreement-vendor_name-service.pdf"
     )

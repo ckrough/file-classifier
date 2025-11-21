@@ -42,24 +42,6 @@ def test_load_standards_enforcement_prompt():
 
 
 @pytest.mark.unit
-def test_load_path_construction_prompt():
-    """Test loading path construction agent prompt."""
-    prompt_template = load_prompt_template("path-construction-agent")
-
-    assert isinstance(prompt_template, ChatPromptTemplate)
-    assert len(prompt_template.messages) == 2
-
-
-@pytest.mark.unit
-def test_load_conflict_resolution_prompt():
-    """Test loading conflict resolution agent prompt."""
-    prompt_template = load_prompt_template("conflict-resolution-agent")
-
-    assert isinstance(prompt_template, ChatPromptTemplate)
-    assert len(prompt_template.messages) == 2
-
-
-@pytest.mark.unit
 def test_load_prompt_template_missing_file():
     """Test that load_prompt_template raises FileNotFoundError if files are missing."""
     with mock.patch("src.ai.prompts.PROMPTS_DIR", Path("/nonexistent")):
@@ -137,12 +119,11 @@ def test_load_prompt_template_special_chars_rejected():
 @pytest.mark.unit
 def test_load_prompt_template_valid_names():
     """Test that valid prompt names are accepted."""
-    # These are actual valid prompts that exist
+    # These are actual valid prompts that exist (2-agent pipeline)
+    # Note: path-construction and conflict-resolution agents removed
     valid_names = [
         "classification-agent",
         "standards-enforcement-agent",
-        "path-construction-agent",
-        "conflict-resolution-agent",
     ]
     for name in valid_names:
         # Should not raise ValueError
