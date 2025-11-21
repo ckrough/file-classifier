@@ -4,9 +4,11 @@ Data models for file analysis.
 Defines Pydantic models for the multi-agent document processing pipeline:
 - RawMetadata: Classification Agent output
 - NormalizedMetadata: Standards Enforcement Agent output
-- PathMetadata: Path Construction Agent output
-- ResolvedMetadata: Conflict Resolution Agent output
+- PathMetadata: Moved to src.path.builder (deterministic, non-Pydantic dataclass)
 - Analysis: DEPRECATED - Legacy model kept for backward compatibility only
+
+Note: PathMetadata is now a simple dataclass in src.path.builder since path construction
+is deterministic and doesn't require Pydantic validation.
 """
 
 from typing import Optional
@@ -17,8 +19,6 @@ __all__ = [
     "Analysis",
     "RawMetadata",
     "NormalizedMetadata",
-    "PathMetadata",
-    "ResolvedMetadata",
 ]
 
 
@@ -30,8 +30,7 @@ class Analysis(BaseModel):
     existing tests. The multi-agent pipeline now uses:
     - RawMetadata (Classification Agent output)
     - NormalizedMetadata (Standards Enforcement Agent output)
-    - PathMetadata (Path Construction Agent output)
-    - ResolvedMetadata (Conflict Resolution Agent output)
+    - PathMetadata (Deterministic path builder - in src.path.builder)
 
     Do not use this model for new code.
     """
@@ -97,6 +96,10 @@ class NormalizedMetadata(BaseModel):
     - Standardized vendor names (e.g., 'bank_of_america', 'smith_john_md')
     - ISO 8601 dates (YYYYMMDD)
     - Concise subjects (1-3 words)
+
+    CRITICAL: vendor_name must NEVER be "unknown", "n/a", "none", or empty.
+    Standards Agent must determine a specific vendor or use generic descriptors
+    (e.g., "gas_station", "grocery_store", "personal").
     """
 
     domain: str = Field(..., description="Normalized domain name (unchanged from raw)")
@@ -107,7 +110,8 @@ class NormalizedMetadata(BaseModel):
     vendor_name: str = Field(
         ...,
         description="Standardized vendor name "
-        "(e.g., 'bank_of_america', 'smith_john_md')",
+        "(e.g., 'bank_of_america', 'smith_john_md'). "
+        "MUST NOT be 'unknown' - use specific vendor or generic descriptor.",
     )
     date: str = Field(
         ...,
@@ -116,48 +120,4 @@ class NormalizedMetadata(BaseModel):
     subject: str = Field(
         ...,
         description="Normalized subject (1-3 words, lowercase, underscores)",
-    )
-
-
-class PathMetadata(BaseModel):
-    """
-    Path and filename constructed by the Path Construction Agent.
-
-    Follows the document archival system directory taxonomy:
-    - directory_path: Domain/Category/Vendor/
-      (with special cases like Tax/Federal/2024/)
-    - filename: doctype-vendor-subject-YYYYMMDD.ext
-    - full_path: Complete path combining directory and filename
-    """
-
-    directory_path: str = Field(
-        ...,
-        description="Directory path following taxonomy: " "Domain/Category/Vendor/",
-    )
-    filename: str = Field(
-        ...,
-        description="Standardized filename: doctype-vendor-subject-YYYYMMDD",
-    )
-    full_path: str = Field(..., description="Complete path: directory_path + filename")
-
-
-class ResolvedMetadata(BaseModel):
-    """
-    Final resolved metadata from the Conflict Resolution Agent.
-
-    Handles edge cases, ambiguities, and multi-purpose document placement.
-    Provides the final decision on file location with optional alternatives.
-    """
-
-    final_path: str = Field(
-        ..., description="Final resolved full path for the document"
-    )
-    alternative_paths: Optional[list[str]] = Field(
-        None,
-        description="Alternative placement options if document serves "
-        "multiple purposes",
-    )
-    resolution_notes: Optional[str] = Field(
-        None,
-        description="Explanation of resolution logic for edge cases",
     )

@@ -2,7 +2,7 @@
 File content analysis and metadata extraction.
 
 This module coordinates the analysis workflow using the multi-agent pipeline
-for document processing with a 4-agent system for intelligent file classification.
+for document processing with a 2-agent system for intelligent file classification.
 """
 
 import logging
@@ -55,11 +55,10 @@ def analyze_file_content(
     """
     Analyze the content of a file using the multi-agent pipeline.
 
-    Uses a 4-agent pipeline for intelligent document processing:
+    Uses a 2-agent pipeline for intelligent document processing:
     1. Classification Agent: Semantic analysis and metadata extraction
     2. Standards Agent: Apply naming conventions and normalization
-    3. Path Construction Agent: Build directory structure and filename
-    4. Conflict Resolution Agent: Handle edge cases and ambiguities
+    3. Deterministic Path Builder: Construct filesystem path (no AI)
 
     Args:
         file_path: The path to the file to analyze
@@ -70,12 +69,15 @@ def analyze_file_content(
     Returns:
         AnalysisResult: Dictionary containing:
             - suggested_name: basename only (for backward compatibility)
-            - category: file category (doctype)
-            - vendor: vendor or source name
+            - domain: primary domain (financial, property, etc.)
+            - category: functional category within domain
+            - doctype: document type (statement, receipt, invoice, etc.)
+            - vendor: vendor or source name (standardized)
             - description: brief description or subject
             - date: date in YYYYMMDD format
             - destination_relative_path: full path relative to archive root
-              (e.g., "Financial/Banking/chase/statement-chase-...")
+              (e.g., "financial/banking/statement/statement-chase-...")
+              New taxonomy: domain/category/doctype/ (not domain/category/vendor/)
     """
     try:
         # Load extraction config from environment if not provided
@@ -99,23 +101,15 @@ def analyze_file_content(
 
         filename = os.path.basename(file_path)
 
-        logger.info("Using multi-agent pipeline for analysis")
-        raw_metadata, normalized, resolved = process_document_multi_agent(
+        logger.info("Using 2-agent pipeline for analysis")
+        raw_metadata, normalized, path_metadata = process_document_multi_agent(
             content, filename, client
         )
 
         # Extract filename from the final path
-        # Path format: Domain/Category/Vendor/doctype-vendor-subject-YYYYMMDD.ext
-        suggested_name = os.path.basename(resolved.final_path)
-        destination_relative_path = resolved.final_path
-
-        # Log alternative paths if present
-        if resolved.alternative_paths:
-            logger.info(
-                "Alternative paths available: %s", ", ".join(resolved.alternative_paths)
-            )
-        if resolved.resolution_notes:
-            logger.info("Resolution notes: %s", resolved.resolution_notes)
+        # Path format: domain/category/doctype/doctype-vendor-subject-YYYYMMDD.ext
+        suggested_name = os.path.basename(path_metadata.full_path)
+        destination_relative_path = path_metadata.full_path
 
         # Get metadata directly from pipeline instead of parsing path
         logger.debug(

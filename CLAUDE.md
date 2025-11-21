@@ -4,12 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AI-powered file classifier that analyzes text and PDF files using a **multi-agent document processing pipeline**. Uses **LangChain** to support multiple LLM providers (OpenAI, local models via Ollama) with structured output extraction across 4 specialized agents:
+AI-powered file classifier that analyzes text and PDF files. Supports multiple LLM providers (OpenAI, local models via Ollama) with structured output extraction:
 
 1. **Classification Agent** - Semantic analysis and metadata extraction
-2. **Standards Enforcement Agent** - Naming convention normalization
-3. **Path Construction Agent** - Directory structure and filename assembly
-4. **Conflict Resolution Agent** - Edge case handling and ambiguity resolution
+2. **Standards Enforcement Agent** - Naming convention normalization and vendor determination
+3. **Deterministic Path Builder** - Directory structure and filename assembly (no AI)
 
 Generates intelligent directory paths and filenames based on deep content analysis.
 
@@ -197,11 +196,12 @@ The codebase uses a **domain-driven architecture** optimized for AI tool context
 ```
 src/
 ├── agents/           # Multi-agent document processing pipeline
-│   ├── pipeline.py           # process_document_multi_agent() - Orchestrates 4-agent flow
+│   ├── pipeline.py           # process_document_multi_agent() - Orchestrates 2-agent flow
 │   ├── classification.py     # classify_document() - Semantic analysis
-│   ├── standards.py          # standardize_metadata() - Naming conventions
-│   ├── path_construction.py  # construct_path() - Directory & filename assembly
-│   └── conflict_resolution.py # resolve_conflicts() - Edge case handling
+│   └── standards.py          # standardize_metadata() - Naming conventions
+│
+├── path/             # Deterministic path construction
+│   └── builder.py        # build_path() - Directory & filename assembly (no AI)
 │
 ├── ai/               # AI/LLM provider abstraction
 │   ├── client.py         # AIClient abstract class & LangChainClient implementation
@@ -209,7 +209,7 @@ src/
 │   └── prompts.py        # LangChain prompt template loading & caching
 │
 ├── analysis/         # Data models and compatibility layer
-│   ├── models.py         # Multi-agent Pydantic models (RawMetadata, NormalizedMetadata, etc.)
+│   ├── models.py         # Multi-agent Pydantic models (RawMetadata, NormalizedMetadata)
 │   └── analyzer.py       # analyze_file_content() - Entry point to multi-agent pipeline
 │
 ├── files/            # File I/O operations
@@ -262,7 +262,7 @@ tests/
 ### Core Components
 
 **Multi-Agent Pipeline** (`src/agents/`)
-A 4-stage pipeline for intelligent document processing:
+A 2-agent pipeline for intelligent document processing:
 
 1. **Classification Agent** (`classification.py`)
    - Function: `classify_document(content, filename, ai_client)`
@@ -276,26 +276,22 @@ A 4-stage pipeline for intelligent document processing:
    - Applies naming conventions (lowercase, underscores)
    - Selects primary date from multiple options
    - Normalizes vendor names to standard format
+   - MUST determine specific vendor (never outputs "unknown")
 
-3. **Path Construction Agent** (`path_construction.py`)
-   - Function: `construct_path(normalized, ai_client, file_extension)`
-   - Returns: `PathMetadata` (directory_path, filename, full_path)
-   - Builds directory taxonomy: Domain/Category/Vendor/
-   - Assembles filename: doctype-vendor-subject-YYYYMMDD.ext
-   - Handles special cases (Tax/Federal/YYYY/, etc.)
-
-4. **Conflict Resolution Agent** (`conflict_resolution.py`)
-   - Function: `resolve_conflicts(path, raw, ai_client, conflict_flags)`
-   - Returns: `ResolvedMetadata` (final_path, alternative_paths, resolution_notes)
-   - Handles edge cases and ambiguities
-   - Provides alternative paths for multi-purpose documents
-   - Makes final placement decisions
+**Deterministic Path Builder** (`src/path/builder.py`)
+- Function: `build_path(domain, category, doctype, vendor_name, subject, date, file_extension)`
+- Returns: `PathMetadata` (directory_path, filename, full_path)
+- Simple dataclass (not Pydantic) - no AI needed
+- Builds directory taxonomy: Domain/Category/Doctype/
+- Assembles filename: doctype-vendor-subject-YYYYMMDD.ext
+- Validates vendor (raises ValueError if unknown)
+- Handles path length truncation
 
 **Pipeline Orchestrator** (`pipeline.py`)
 - Function: `process_document_multi_agent(content, filename, ai_client)`
-- Coordinates the 4-agent flow
-- Detects conflicts between agent outputs
-- Returns final `ResolvedMetadata` with path and alternatives
+- Coordinates the 2-agent flow + deterministic path building
+- Validates vendor before path construction
+- Returns tuple: `(RawMetadata, NormalizedMetadata, PathMetadata)`
 
 **AI Client Abstraction** (`src/ai/`)
 - `client.py`: Abstract base class `AIClient` + `LangChainClient` implementation
@@ -305,11 +301,10 @@ A 4-stage pipeline for intelligent document processing:
 - `factory.py`: `create_ai_client()` factory function
 - `prompts.py`: LangChain ChatPromptTemplate loading with singleton pattern
 
-**Data Models** (`src/analysis/models.py`)
-- `RawMetadata`: Classification Agent output
-- `NormalizedMetadata`: Standards Enforcement Agent output
-- `PathMetadata`: Path Construction Agent output
-- `ResolvedMetadata`: Conflict Resolution Agent output (final)
+**Data Models** (`src/analysis/models.py` and `src/path/builder.py`)
+- `RawMetadata`: Classification Agent output (Pydantic)
+- `NormalizedMetadata`: Standards Enforcement Agent output (Pydantic)
+- `PathMetadata`: Path metadata (simple dataclass in `src/path/builder.py`)
 - `Analysis`: DEPRECATED - Legacy model for backward compatibility
 
 **File Operations** (`src/files/`)
@@ -358,18 +353,13 @@ files/processor.py: process_file() → for each file:
   │     │   ├─ ai/client.py: analyze_content(schema=NormalizedMetadata)
   │     │   └─ Returns: NormalizedMetadata (normalized vendor, date YYYYMMDD, subject)
   │     │
-  │     ├─ agents/path_construction.py: construct_path()
-  │     │   ├─ ai/prompts.py: get_prompt_template('path-construction-agent')
-  │     │   ├─ ai/client.py: analyze_content(schema=PathMetadata)
-  │     │   └─ Returns: PathMetadata (directory_path, filename, full_path)
+  │     ├─ Vendor Validation
+  │     │   → Ensure vendor_name is not "unknown" (raise ValueError if invalid)
   │     │
-  │     ├─ Conflict Detection
-  │     │   → Check for: multiple dates, unknown vendors, multi-purpose docs
-  │     │
-  │     └─ agents/conflict_resolution.py: resolve_conflicts() (if conflicts detected)
-  │         ├─ ai/prompts.py: get_prompt_template('conflict-resolution-agent')
-  │         ├─ ai/client.py: analyze_content(schema=ResolvedMetadata)
-  │         └─ Returns: ResolvedMetadata (final_path, alternatives, notes)
+  │     └─ path/builder.py: build_path()
+  │         ├─ Deterministic path construction (no AI, no API call)
+  │         ├─ Builds: domain/category/doctype/doctype-vendor-subject-date.ext
+  │         └─ Returns: PathMetadata (directory_path, filename, full_path)
   │
   └─ Returns PathResult (original, suggested_path)
   ↓
@@ -437,25 +427,19 @@ CLASSIFICATION_STRATEGY=adaptive
 Prompts are stored in `prompts/` directory for each agent:
 
 **Classification Agent:**
-- `classification-agent-system.txt` - Semantic analysis instructions
-- `classification-agent-user.txt` - User prompt with {filename} and {content}
+- `classification-agent-system.xml` - Semantic analysis instructions
+- `classification-agent-user.xml` - User prompt with {filename} and {content}
 
 **Standards Enforcement Agent:**
-- `standards-enforcement-agent-system.txt` - Naming convention rules
-- `standards-enforcement-agent-user.txt` - User prompt with raw metadata
-
-**Path Construction Agent:**
-- `path-construction-agent-system.txt` - Directory taxonomy rules
-- `path-construction-agent-user.txt` - User prompt with normalized metadata
-
-**Conflict Resolution Agent:**
-- `conflict-resolution-agent-system.txt` - Edge case handling logic
-- `conflict-resolution-agent-user.txt` - User prompt with conflicts
+- `standards-enforcement-agent-system.xml` - Naming convention rules and vendor determination
+- `standards-enforcement-agent-user.xml` - User prompt with raw metadata
 
 Prompts are loaded via `src/ai/prompts.py` using LangChain's ChatPromptTemplate:
 - Proper message role handling (SystemMessage, HumanMessage)
 - Template variable validation
 - Singleton pattern with LRU cache for performance
+
+**Note:** Path construction is now deterministic (no AI agent needed). The `build_path()` function in `src/path/builder.py` handles directory and filename assembly using simple string formatting.
 
 ## Working with the Codebase
 
@@ -555,22 +539,23 @@ GitHub Actions workflows:
   - Processes individual files only (no built-in directory walking)
   - Directory processing via `find`: `find . -type f | python main.py --batch`
   - Delegates directory traversal to Unix tools for maximum flexibility
-- **Multi-Agent Pipeline**: Document processing uses a 4-stage agent pipeline
-  - Each agent has specialized expertise and structured output schema
-  - Conflict detection identifies edge cases requiring resolution
-  - Alternative paths provided for multi-purpose documents
+- **Multi-Agent Pipeline**: Document processing uses a 2-agent pipeline
+  - Classification Agent: Semantic analysis and metadata extraction
+  - Standards Enforcement Agent: Naming conventions and vendor determination
+  - Deterministic Path Builder: Directory and filename assembly (no AI)
 - **Directory Structure**: Suggests hierarchical taxonomy
-  - Format: `Domain/Category/Vendor/doctype-vendor-subject-YYYYMMDD.ext`
-  - Examples: `Financial/Banking/chase/statement-chase-checking-20240115.pdf`
-  - Special cases: `Tax/Federal/2024/1040-irs-tax-return-20240415.pdf`
+  - Format: `Domain/Category/Doctype/doctype-vendor-subject-YYYYMMDD.ext`
+  - Examples: `financial/banking/statement/statement-chase-checking-20240115.pdf`
+  - Tax documents: `financial/tax/1040/1040-irs-tax_return-20240415.pdf`
 - **Naming Conventions**: Standards Enforcement Agent applies consistent rules
   - Lowercase with underscores for multi-word values
   - Vendor names standardized (e.g., "bank_of_america", "smith_john_md")
+  - Vendor determination is mandatory (never outputs "unknown")
   - Dates in YYYYMMDD format
   - Subjects concise (1-3 words)
 - **Output Model**: Classification results use simple namedtuple
   - `PathResult`: namedtuple with `original` and `suggested_path` fields
-  - All metadata is encoded in the path structure (domain/category/vendor/filename)
+  - All metadata is encoded in the path structure (domain/category/doctype/filename)
   - Returned as `list[PathResult]` from processing functions
 - **Performance Benchmarks**: Benchmark infrastructure for performance testing
   - Tests marked with `@pytest.mark.benchmark` measure locally-developed code only

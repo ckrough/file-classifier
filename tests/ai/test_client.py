@@ -370,8 +370,6 @@ def test_langchain_client_pre_caches_common_schemas(mock_getenv):
     from src.analysis.models import (
         RawMetadata,
         NormalizedMetadata,
-        PathMetadata,
-        ResolvedMetadata,
     )
 
     def side_effect(key, default=None):
@@ -390,16 +388,16 @@ def test_langchain_client_pre_caches_common_schemas(mock_getenv):
         client = LangChainClient(provider="openai")
 
         # Verify that with_structured_output was called for each pre-cached schema
-        # Expected: Analysis + 4 multi-agent schemas = 5 calls
-        assert mock_llm_instance.with_structured_output.call_count == 5
+        # Expected: Analysis + 2 multi-agent schemas (RawMetadata, NormalizedMetadata) = 3 calls
+        # Note: PathMetadata is now a simple dataclass, not Pydantic
+        # ResolvedMetadata removed - conflict resolution agent eliminated
+        assert mock_llm_instance.with_structured_output.call_count == 3
 
         # Verify schema cache is populated
-        assert len(client._schema_cache) == 5
+        assert len(client._schema_cache) == 3
         assert Analysis in client._schema_cache
         assert RawMetadata in client._schema_cache
         assert NormalizedMetadata in client._schema_cache
-        assert PathMetadata in client._schema_cache
-        assert ResolvedMetadata in client._schema_cache
 
 
 @pytest.mark.unit
