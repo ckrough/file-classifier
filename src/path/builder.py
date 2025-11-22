@@ -98,12 +98,11 @@ def _pluralize_doctype(doctype: str) -> str:
     if formatted.endswith("y") and len(formatted) > 1 and formatted[-2] not in "aeiou":
         # policy -> Policies, proxy -> Proxies
         return formatted[:-1] + "ies"
-    elif formatted.endswith(("s", "x", "z", "ch", "sh")):
+    if formatted.endswith(("s", "x", "z", "ch", "sh")):
         # business -> businesses, box -> boxes
         return formatted + "es"
-    else:
-        # Most cases: receipt -> receipts, statement -> statements
-        return formatted + "s"
+    # Most cases: receipt -> receipts, statement -> statements
+    return formatted + "s"
 
 
 def _normalize_vendor_name(vendor: str) -> str:
@@ -239,7 +238,8 @@ def _validate_characters(text: str, component_name: str) -> None:
         )
         raise ValueError(
             f"Invalid characters in {component_name}: {invalid_chars}. "
-            f"Only a-z, 0-9, underscores (_), and hyphens (-) are allowed per GPO standards."
+            f"Only a-z, 0-9, underscores (_), and hyphens (-) are allowed "
+            f"per GPO standards."
         )
 
 
@@ -275,8 +275,8 @@ def _validate_hierarchy_depth(directory_path: str) -> None:
     depth = len(directory_path.rstrip("/").split("/"))
     if depth > MAX_HIERARCHY_DEPTH:
         raise ValueError(
-            f"Directory hierarchy depth ({depth}) exceeds maximum allowed ({MAX_HIERARCHY_DEPTH}). "
-            f"GPO standards require maximum 8 levels."
+            f"Directory hierarchy depth ({depth}) exceeds maximum allowed "
+            f"({MAX_HIERARCHY_DEPTH}). GPO standards require maximum 8 levels."
         )
 
 
@@ -298,7 +298,7 @@ class PathMetadata:
     full_path: str
 
 
-def build_path(
+def build_path(  # pylint: disable=too-many-arguments,too-many-positional-arguments
     domain: str,
     category: str,
     doctype: str,
@@ -340,8 +340,10 @@ def build_path(
             tax, legal, medical) - lowercase from Standards Agent
         category: Functional category within domain
             (banking, retail, etc.) - lowercase from Standards Agent
-        doctype: Document type (statement, receipt, invoice, etc.) - lowercase from Standards Agent
-        vendor_name: Normalized vendor name (must not be "unknown") - lowercase from Standards Agent
+        doctype: Document type (statement, receipt, invoice, etc.)
+            - lowercase from Standards Agent
+        vendor_name: Normalized vendor name (must not be "unknown")
+            - lowercase from Standards Agent
         subject: Brief description/subject (normalized) - lowercase from Standards Agent
         date: Date in YYYYMMDD format (empty string if no date)
         file_extension: File extension including dot
@@ -357,7 +359,8 @@ def build_path(
         ValueError: If hierarchy depth exceeds 8 levels
         ValueError: If folder names contain periods
     """
-    # Defensive normalization (ensure lowercase, no extra whitespace, remove special chars)
+    # Defensive normalization:
+    # Ensure lowercase, no extra whitespace, remove special chars
     domain = domain.lower().strip()
     category = category.lower().strip()
     doctype = doctype.lower().strip()
@@ -391,7 +394,8 @@ def build_path(
     category_formatted = _to_title_case(category)
     doctype_formatted = _pluralize_doctype(doctype)  # Plural for container folders
 
-    # Filename components: Title_Case_With_Underscores (vendor only, no doctype/subject redundancy)
+    # Filename components: Title_Case_With_Underscores
+    # Vendor only, no doctype/subject redundancy
     vendor_file = _to_title_case_with_underscores(vendor_name)
 
     # Build directory path: Domain/Category/Doctypes/ (plural)
