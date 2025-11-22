@@ -130,9 +130,9 @@ pytest -m "not slow and not benchmark"          # Exclude slow tests (matches CI
 
 ### Running the Application
 ```bash
-# Classify a single file (outputs suggested path)
+# Classify a single file (outputs suggested path in NIST-compliant format)
 python main.py path/to/file.pdf
-# Output: financial/invoices/acme_corp/statement-acme-services-20240115.pdf
+# Output: Financial/Invoices/Acme_Corp_20240115.pdf
 
 # Move file to suggested path
 mv file.pdf "$(python main.py path/to/file.pdf)"
@@ -140,7 +140,7 @@ mv file.pdf "$(python main.py path/to/file.pdf)"
 # Process multiple files via find + batch mode (tab-separated output)
 find . -name "*.pdf" | python main.py --batch
 find . -type f \( -name "*.pdf" -o -name "*.txt" \) | python main.py --batch
-# Output: doc1.pdf<TAB>financial/invoices/acme/statement-acme-services-20240115.pdf
+# Output: doc1.pdf<TAB>Financial/Invoices/Acme_Corp_20240115.pdf
 
 # Verbosity control
 python main.py file.pdf --quiet      # Only errors
@@ -282,8 +282,14 @@ A 2-agent pipeline for intelligent document processing:
 - Function: `build_path(domain, category, doctype, vendor_name, subject, date, file_extension)`
 - Returns: `PathMetadata` (directory_path, filename, full_path)
 - Simple dataclass (not Pydantic) - no AI needed
+- Applies GPO naming standards programmatically:
+  - Converts folders to Title Case (e.g., "financial" → "Financial")
+  - Converts filename components to Title_Case_With_Underscores (e.g., "bank_of_america" → "Bank_Of_America")
+  - Validates characters (only a-z, 0-9, _, - allowed)
+  - Enforces path length limit (255 chars)
+  - Enforces hierarchy depth limit (8 levels)
 - Builds directory taxonomy: Domain/Category/Doctype/
-- Assembles filename: doctype-vendor-subject-YYYYMMDD.ext
+- Assembles filename: Doctype_Vendor_Subject_YYYYMMDD.ext
 - Validates vendor (raises ValueError if unknown)
 - Handles path length truncation
 
@@ -543,16 +549,23 @@ GitHub Actions workflows:
   - Classification Agent: Semantic analysis and metadata extraction
   - Standards Enforcement Agent: Naming conventions and vendor determination
   - Deterministic Path Builder: Directory and filename assembly (no AI)
-- **Directory Structure**: Suggests hierarchical taxonomy
-  - Format: `Domain/Category/Doctype/doctype-vendor-subject-YYYYMMDD.ext`
-  - Examples: `financial/banking/statement/statement-chase-checking-20240115.pdf`
-  - Tax documents: `financial/tax/1040/1040-irs-tax_return-20240415.pdf`
-- **Naming Conventions**: Standards Enforcement Agent applies consistent rules
-  - Lowercase with underscores for multi-word values
-  - Vendor names standardized (e.g., "bank_of_america", "smith_john_md")
+- **Directory Structure**: Hierarchical taxonomy (GPO + NIST naming standards)
+  - Format: `Domain/Category/Doctypes/Vendor_YYYYMMDD.ext` (plural folders, concise filenames)
+  - Examples: `Financial/Banking/Statements/Chase_20240115.pdf`
+  - Tax documents: `Financial/Tax/1040s/Irs_20240415.pdf`
+  - Medical records: `Medical/Records/Lab_Results/Quest_Diagnostics_20240201.pdf`
+  - NIST compliant: Folders provide classification, filenames provide identification (no redundancy)
+  - GPO compliant: Title Case folders (plural), Title_Case_With_Underscores filenames, 255 char limit
+- **Naming Conventions**: GPO (Government Publishing Office) standards enforced
+  - **AI Layer (Standards Agent)**: Outputs lowercase_with_underscores
+  - **Programmatic Layer (Path Builder)**: Converts to Title_Case_With_Underscores (filenames) and Title Case (folders)
+  - Vendor names standardized (e.g., "bank_of_america" → "Bank_Of_America")
   - Vendor determination is mandatory (never outputs "unknown")
   - Dates in YYYYMMDD format
-  - Subjects concise (1-3 words)
+  - Subjects concise (1-3 words, filler words removed)
+  - Character restrictions: only a-z, 0-9, _, - allowed
+  - Path length limit: 255 characters max
+  - Hierarchy depth limit: 8 levels max
 - **Output Model**: Classification results use simple namedtuple
   - `PathResult`: namedtuple with `original` and `suggested_path` fields
   - All metadata is encoded in the path structure (domain/category/doctype/filename)

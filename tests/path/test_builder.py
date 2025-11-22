@@ -1,4 +1,4 @@
-"""Unit tests for deterministic path builder module."""
+"""Unit tests for deterministic path builder module with GPO naming standards."""
 
 import pytest
 from src.path.builder import build_path, PathMetadata
@@ -6,68 +6,57 @@ from src.path.builder import build_path, PathMetadata
 
 @pytest.mark.unit
 def test_build_path_standard():
-    """Test standard path building with all fields provided."""
+    """Test standard path building with NIST-compliant concise format."""
     result = build_path(
         domain="financial",
         category="retail",
         doctype="receipt",
         vendor_name="acme_markets",
-        subject="grocery_shopping",
+        subject="groceries",  # Subject ignored in new format
         date="20230923",
         file_extension=".pdf",
     )
 
     assert isinstance(result, PathMetadata)
-    assert result.directory_path == "financial/retail/receipt/"
-    assert (
-        result.filename == "receipt-acme_markets-grocery_shopping-20230923.pdf"
-    )
-    assert (
-        result.full_path
-        == "financial/retail/receipt/receipt-acme_markets-grocery_shopping-20230923.pdf"
-    )
+    assert result.directory_path == "Financial/Retail/Receipts/"  # Plural folder
+    assert result.filename == "Acme_Markets_20230923.pdf"  # Vendor + date only
+    assert result.full_path == "Financial/Retail/Receipts/Acme_Markets_20230923.pdf"
 
 
 @pytest.mark.unit
 def test_build_path_banking_statement():
-    """Test path building for banking statement."""
+    """Test path building for banking statement (NIST-compliant)."""
     result = build_path(
         domain="financial",
         category="banking",
         doctype="statement",
         vendor_name="chase",
-        subject="checking",
+        subject="checking",  # Subject ignored
         date="20240115",
         file_extension=".pdf",
     )
 
-    assert result.directory_path == "financial/banking/statement/"
-    assert result.filename == "statement-chase-checking-20240115.pdf"
-    assert (
-        result.full_path
-        == "financial/banking/statement/statement-chase-checking-20240115.pdf"
-    )
+    assert result.directory_path == "Financial/Banking/Statements/"  # Plural
+    assert result.filename == "Chase_20240115.pdf"  # Vendor + date only
+    assert result.full_path == "Financial/Banking/Statements/Chase_20240115.pdf"
 
 
 @pytest.mark.unit
 def test_build_path_no_date():
-    """Test path building without date (empty string)."""
+    """Test path building without date (NIST-compliant)."""
     result = build_path(
         domain="legal",
         category="contracts",
         doctype="agreement",
         vendor_name="acme_corp",
-        subject="service_agreement",
+        subject="service",  # Subject ignored
         date="",
         file_extension=".pdf",
     )
 
-    assert result.directory_path == "legal/contracts/agreement/"
-    assert result.filename == "agreement-acme_corp-service_agreement.pdf"
-    assert (
-        result.full_path
-        == "legal/contracts/agreement/agreement-acme_corp-service_agreement.pdf"
-    )
+    assert result.directory_path == "Legal/Contracts/Agreements/"  # Plural
+    assert result.filename == "Acme_Corp.pdf"  # Vendor only (no date)
+    assert result.full_path == "Legal/Contracts/Agreements/Acme_Corp.pdf"
 
 
 @pytest.mark.unit
@@ -102,13 +91,14 @@ def test_build_path_empty_vendor_raises_error():
 
 @pytest.mark.unit
 def test_build_path_na_vendor_raises_error():
-    """Test that 'n/a' vendor raises ValueError."""
+    """Test that 'n/a' vendor gets normalized to 'na' and raises ValueError."""
+    # After normalization, "n/a" becomes "na" which should still be rejected
     with pytest.raises(ValueError, match="unknown vendor"):
         build_path(
             domain="financial",
             category="banking",
             doctype="statement",
-            vendor_name="n/a",
+            vendor_name="n/a",  # Gets normalized to "na" (slash removed)
             subject="checking",
             date="20230923",
             file_extension=".pdf",
@@ -131,47 +121,44 @@ def test_build_path_generic_vendor_raises_error():
 
 
 @pytest.mark.unit
-def test_build_path_truncates_long_subject():
-    """Test that overly long paths truncate subject to fit filesystem limits."""
-    long_subject = "a" * 300  # Very long subject
+def test_build_path_concise_filenames():
+    """Test that concise NIST-compliant filenames prevent path length issues."""
+    # Even with very long vendor name, should stay under limit
+    long_vendor = "very_long_vendor_name_that_would_cause_issues"
 
     result = build_path(
         domain="financial",
         category="banking",
         doctype="statement",
-        vendor_name="chase",
-        subject=long_subject,
+        vendor_name=long_vendor,
+        subject="ignored",  # Subject no longer in filename
         date="20230923",
         file_extension=".pdf",
     )
 
-    # Path should be truncated to <= 250 chars
-    assert len(result.full_path) <= 250
-
-    # Critical metadata should be preserved
-    assert "financial/banking/statement/" in result.full_path
-    assert "chase" in result.filename
+    # Path should be well under 255 chars with concise format
+    assert len(result.full_path) <= 255
+    assert "Financial/Banking/Statements/" in result.full_path
     assert "20230923" in result.filename
-
-    # Subject should be truncated
-    assert len(result.filename) < len(f"statement-chase-{long_subject}-20230923.pdf")
+    # Subject should NOT appear in filename
+    assert "ignored" not in result.filename.lower()
 
 
 @pytest.mark.unit
 def test_build_path_normalizes_uppercase():
-    """Test that uppercase inputs are normalized to lowercase."""
+    """Test that uppercase inputs are normalized then converted to Title_Case format."""
     result = build_path(
         domain="FINANCIAL",
         category="BANKING",
         doctype="STATEMENT",
         vendor_name="CHASE",
-        subject="CHECKING",
+        subject="CHECKING",  # Ignored
         date="20230923",
         file_extension=".PDF",
     )
 
-    assert result.directory_path == "financial/banking/statement/"
-    assert result.filename == "statement-chase-checking-20230923.PDF"
+    assert result.directory_path == "Financial/Banking/Statements/"  # Plural
+    assert result.filename == "Chase_20230923.PDF"  # Vendor + date only
 
 
 @pytest.mark.unit
@@ -182,30 +169,31 @@ def test_build_path_strips_whitespace():
         category=" banking ",
         doctype=" statement ",
         vendor_name=" chase ",
-        subject=" checking ",
+        subject=" checking ",  # Ignored
         date=" 20230923 ",
         file_extension=".pdf",
     )
 
-    assert result.directory_path == "financial/banking/statement/"
-    assert result.filename == "statement-chase-checking-20230923.pdf"
+    assert result.directory_path == "Financial/Banking/Statements/"  # Plural
+    assert result.filename == "Chase_20230923.pdf"  # Vendor + date only
 
 
 @pytest.mark.unit
 def test_build_path_txt_file():
-    """Test path building for .txt file."""
+    """Test path building for .txt file (NIST-compliant)."""
     result = build_path(
         domain="legal",
         category="correspondence",
         doctype="letter",
         vendor_name="acme_corp",
-        subject="contract_negotiation",
+        subject="contract",  # Ignored
         date="20240301",
         file_extension=".txt",
     )
 
     assert result.full_path.endswith(".txt")
-    assert result.filename == "letter-acme_corp-contract_negotiation-20240301.txt"
+    assert result.filename == "Acme_Corp_20240301.txt"  # Vendor + date only
+    assert result.directory_path == "Legal/Correspondence/Letters/"  # Plural
 
 
 @pytest.mark.unit
@@ -231,54 +219,191 @@ def test_build_path_extremely_long_raises_error():
 
 @pytest.mark.unit
 def test_build_path_tax_document():
-    """Test path building for tax document under financial domain."""
+    """Test path building for tax document with irregular plural (NIST-compliant)."""
     result = build_path(
         domain="financial",
         category="tax",
         doctype="1040",
         vendor_name="irs",
-        subject="federal_return",
+        subject="return",  # Ignored
         date="20240415",
         file_extension=".pdf",
     )
 
-    assert result.directory_path == "financial/tax/1040/"
-    assert result.filename == "1040-irs-federal_return-20240415.pdf"
-    assert result.full_path == "financial/tax/1040/1040-irs-federal_return-20240415.pdf"
+    assert result.directory_path == "Financial/Tax/1040s/"  # Irregular plural
+    assert result.filename == "Irs_20240415.pdf"  # Vendor + date only
+    assert result.full_path == "Financial/Tax/1040s/Irs_20240415.pdf"
 
 
 @pytest.mark.unit
 def test_build_path_medical_document():
-    """Test path building for medical document."""
+    """Test path building for medical document (NIST-compliant)."""
     result = build_path(
         domain="medical",
         category="records",
         doctype="lab_results",
         vendor_name="quest_diagnostics",
-        subject="blood_work",
+        subject="blood_work",  # Ignored
         date="20240201",
         file_extension=".pdf",
     )
 
-    assert result.directory_path == "medical/records/lab_results/"
-    assert result.filename == "lab_results-quest_diagnostics-blood_work-20240201.pdf"
+    assert result.directory_path == "Medical/Records/Lab_Results/"  # Already plural
+    assert result.filename == "Quest_Diagnostics_20240201.pdf"  # Vendor + date only
 
 
 @pytest.mark.unit
-def test_build_path_underscore_subject():
-    """Test that underscores in subject are preserved."""
+def test_build_path_multi_word_vendor():
+    """Test that underscores in vendor names are preserved and Title_Case applied."""
     result = build_path(
         domain="financial",
         category="retail",
         doctype="receipt",
         vendor_name="home_depot",
-        subject="home_improvement_supplies",
+        subject="supplies",  # Ignored
         date="20230615",
         file_extension=".pdf",
     )
 
-    assert "home_improvement_supplies" in result.filename
-    assert (
-        result.filename
-        == "receipt-home_depot-home_improvement_supplies-20230615.pdf"
+    # Vendor with underscores should use Title_Case_With_Underscores
+    assert result.filename == "Home_Depot_20230615.pdf"
+    assert result.directory_path == "Financial/Retail/Receipts/"  # Plural
+
+
+# GPO-Specific Validation Tests
+
+
+@pytest.mark.unit
+def test_build_path_plural_folders():
+    """Test that doctype folders are pluralized per naming conventions."""
+    # Test regular pluralization
+    result1 = build_path(
+        domain="financial",
+        category="banking",
+        doctype="receipt",
+        vendor_name="vendor",
+        subject="test",
+        date="20240101",
+        file_extension=".pdf",
     )
+    assert result1.directory_path == "Financial/Banking/Receipts/"
+
+    # Test irregular plural
+    result2 = build_path(
+        domain="insurance",
+        category="health",
+        doctype="policy",
+        vendor_name="vendor",
+        subject="test",
+        date="20240101",
+        file_extension=".pdf",
+    )
+    assert result2.directory_path == "Insurance/Health/Policies/"
+
+    # Test already plural
+    result3 = build_path(
+        domain="medical",
+        category="records",
+        doctype="lab_results",
+        vendor_name="vendor",
+        subject="test",
+        date="20240101",
+        file_extension=".pdf",
+    )
+    assert result3.directory_path == "Medical/Records/Lab_Results/"
+
+
+@pytest.mark.unit
+def test_build_path_normalizes_invalid_characters():
+    """Test that invalid characters are removed during normalization."""
+    # @ symbol should be removed by normalization
+    result = build_path(
+        domain="financial",
+        category="banking",
+        doctype="statement",
+        vendor_name="chase@bank",  # @ is invalid, gets removed
+        subject="checking",
+        date="20230923",
+        file_extension=".pdf",
+    )
+    # Verify @ was removed
+    assert "chasebank" in result.filename.lower()
+    assert "@" not in result.filename
+
+
+@pytest.mark.unit
+def test_build_path_normalizes_special_characters():
+    """Test that special characters ($, &, etc.) are removed during normalization."""
+    # & symbol should be removed by normalization
+    result = build_path(
+        domain="financial",
+        category="banking",
+        doctype="statement",
+        vendor_name="bank&trust",  # & is invalid, gets removed
+        subject="checking",
+        date="20230923",
+        file_extension=".pdf",
+    )
+    # Verify & was removed
+    assert "banktrust" in result.filename.lower()
+    assert "&" not in result.filename
+
+
+@pytest.mark.unit
+def test_build_path_enforces_title_case_for_folders():
+    """Test that folder names use Title Case per GPO standards (NIST-compliant)."""
+    result = build_path(
+        domain="financial",
+        category="banking",
+        doctype="statement",
+        vendor_name="chase",
+        subject="checking",  # Ignored
+        date="20240115",
+        file_extension=".pdf",
+    )
+
+    # Verify Title Case in directory path with plural folder
+    assert result.directory_path == "Financial/Banking/Statements/"
+    assert "financial" not in result.directory_path  # lowercase should not appear
+
+
+@pytest.mark.unit
+def test_build_path_enforces_title_case_with_underscores_for_filename():
+    """Test that filename uses Title_Case_With_Underscores (NIST-compliant)."""
+    result = build_path(
+        domain="medical",
+        category="records",
+        doctype="lab_results",
+        vendor_name="quest_diagnostics",
+        subject="blood_work",  # Ignored
+        date="20240201",
+        file_extension=".pdf",
+    )
+
+    # Verify Title_Case_With_Underscores for vendor in filename
+    assert result.filename == "Quest_Diagnostics_20240201.pdf"
+    # Verify underscores preserved
+    assert "_" in result.filename
+    # Verify no hyphens as separators
+    assert result.filename.count("-") == 0  # Only underscores
+
+
+@pytest.mark.unit
+def test_build_path_uses_underscores_not_hyphens():
+    """Test that GPO format uses underscores as separators, not hyphens."""
+    result = build_path(
+        domain="financial",
+        category="banking",
+        doctype="statement",
+        vendor_name="bank_of_america",
+        subject="checking",  # Ignored
+        date="20240115",
+        file_extension=".pdf",
+    )
+
+    # Count separators (should only use underscores between components)
+    assert "_" in result.filename
+    # Hyphens should not appear as separators
+    components = result.filename.replace(".pdf", "").split("_")
+    assert len(components) == 4  # Bank, Of, America, 20240115
+    assert result.filename == "Bank_Of_America_20240115.pdf"

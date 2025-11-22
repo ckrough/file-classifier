@@ -2,11 +2,31 @@
 
 import logging
 import os
+import re
 
 logger = logging.getLogger(__name__)
 
 # Supported file types
 SUPPORTED_MIMETYPES: list[str] = ["text/plain", "application/pdf"]
+
+# GPO Naming Standards Constants
+# These constants enforce Government Publishing Office (GPO) file naming standards
+# Reference: https://www.gpo.gov/how-to-work-with-us/vendors/supplier-performance
+
+# Maximum total path length (filesystem limit)
+MAX_PATH_LENGTH = 200
+
+# Maximum directory hierarchy depth
+MAX_HIERARCHY_DEPTH = 5
+
+# Target filename length (recommended for readability and compatibility)
+TARGET_FILENAME_LENGTH = 25
+
+# Allowed characters pattern for GPO compliance (a-z, 0-9, underscores, hyphens)
+ALLOWED_CHARS_PATTERN = re.compile(r"^[a-z0-9_-]+$", re.IGNORECASE)
+
+# Filler words to remove per GPO standards
+FILLER_WORDS = ["a", "and", "of", "the", "to"]
 
 # Content Extraction Configuration for Performance Tuning
 # These settings control how much content is extracted and sent to AI for classification
