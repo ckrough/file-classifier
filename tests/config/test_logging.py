@@ -199,12 +199,14 @@ class TestValidateLogDirEdgeCases:
         assert result in ["/tmp/logs", "/tmp"]
 
     def test_whitespace_in_path(self, tmp_path):
-        """Test that paths with whitespace are handled."""
+        """Test that paths with whitespace are handled correctly."""
         space_dir = tmp_path / "logs with spaces"
         space_dir.mkdir()
         result = _validate_log_dir(str(space_dir))
-        # Should be rejected (not in whitelist)
-        assert result == "/tmp"
+        # Behavior depends on tmp_path location:
+        # - Linux CI: tmp_path under /tmp -> accepted (returns space_dir)
+        # - macOS: tmp_path under /private/var -> rejected (returns /tmp)
+        assert result in [str(space_dir), "/tmp"]
 
 
 @pytest.mark.unit
