@@ -60,7 +60,7 @@ def process_document_multi_agent(
         logger.debug("Document content length: %d characters", len(content))
 
         # Step 1: Classification Agent
-        logger.info("Step 1/2: Classification Agent analyzing document...")
+        logger.info("Step 1/2: Classification Agent analyzing document: %s", filename)
         step_start = time.perf_counter()
         raw_metadata: RawMetadata = classify_document(content, filename, ai_client)
         step_elapsed = time.perf_counter() - step_start
@@ -77,7 +77,7 @@ def process_document_multi_agent(
         )
 
         # Step 2: Standards Enforcement Agent
-        logger.info("Step 2/2: Standards Enforcement Agent normalizing metadata...")
+        logger.info("Step 2/2: Standards Enforcement Agent normalizing metadata: %s", filename)
         step_start = time.perf_counter()
         normalized: NormalizedMetadata = standardize_metadata(raw_metadata, ai_client)
         step_elapsed = time.perf_counter() - step_start
