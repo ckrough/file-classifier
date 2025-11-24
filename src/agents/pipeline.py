@@ -117,6 +117,7 @@ def process_document_multi_agent(
             subject=normalized.subject,
             date=normalized.date,
             file_extension=file_extension,
+            version=normalized.version,
         )
         step_elapsed = time.perf_counter() - step_start
 

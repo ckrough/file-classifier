@@ -91,11 +91,8 @@ class NormalizedMetadata(BaseModel):
     """
     Normalized metadata from the Standards Enforcement Agent.
 
-    All fields follow the document archival system naming conventions:
-    - Lowercase with underscores for multi-word values
-    - Standardized vendor names (e.g., 'bank_of_america', 'smith_john_md')
-    - ISO 8601 dates (YYYYMMDD)
-    - Concise subjects (1-3 words)
+    Canonical, style-neutral fields used by naming styles. Do not include
+    style-specific separators or casing decisions here.
 
     CRITICAL: vendor_name must NEVER be "unknown", "n/a", "none", or empty.
     Standards Agent must determine a specific vendor or use generic descriptors
@@ -109,15 +106,17 @@ class NormalizedMetadata(BaseModel):
     doctype: str = Field(..., description="Standardized document type vocabulary")
     vendor_name: str = Field(
         ...,
-        description="Standardized vendor name "
-        "(e.g., 'bank_of_america', 'smith_john_md'). "
-        "MUST NOT be 'unknown' - use specific vendor or generic descriptor.",
+        description="Standardized vendor name (canonical slug; lowercase with underscores).",
     )
     date: str = Field(
         ...,
-        description="Selected and formatted date in YYYYMMDD format (e.g., '20250131')",
+        description="Selected date in YYYY, YYYYMM, or YYYYMMDD per canonical policy",
     )
     subject: str = Field(
         ...,
-        description="Normalized subject (1-3 words, lowercase, underscores)",
+        description="Canonical subject (1-3 words, lowercase, underscores; WHAT not HOW)",
+    )
+    version: Optional[str] = Field(
+        None,
+        description="Optional version when explicit: vNN, final, or draft",
     )

@@ -37,6 +37,14 @@ def main() -> None:
     setup_logging(verbosity=args.verbosity)
     logger = logging.getLogger(__name__)
 
+    # Apply naming style override from CLI if provided
+    from src.config import settings as app_settings
+    if getattr(args, "naming_style", None):
+        app_settings.NAMING_STYLE = args.naming_style
+        logger.info("Using naming style from CLI: %s", args.naming_style)
+    else:
+        logger.info("Using naming style from settings: %s", app_settings.NAMING_STYLE)
+
     logger.info("AI File Classifier started (verbosity: %s)", args.verbosity)
     logger.debug("Arguments: %s", vars(args))
 

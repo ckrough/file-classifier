@@ -77,6 +77,23 @@ jq examples (jq required: brew install jq):
         help="Batch mode: read file paths from stdin (one per line)",
     )
 
+    # Naming style
+    naming_group = parser.add_argument_group(
+        "naming",
+        description=(
+            "Configure naming conventions. Overrides NAMING_STYLE env var for this run."
+        ),
+    )
+    naming_group.add_argument(
+        "--naming-style",
+        type=str,
+        choices=["compact_gpo", "descriptive_nara"],
+        help=(
+            "Select naming style: 'compact_gpo' (default) or 'descriptive_nara'. "
+            "If omitted, uses NAMING_STYLE env var or defaults to compact_gpo."
+        ),
+    )
+
     # Performance tuning
     performance_group = parser.add_argument_group(
         "performance tuning",

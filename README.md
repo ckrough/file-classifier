@@ -8,7 +8,7 @@ A command-line tool that analyzes text documents and outputs JSON metadata with 
 - Reads and understands document content using AI
 - Identifies document metadata; type, purpose, vendor, dates, and subject matter
 - Outputs JSON metadata to stdout for piping
-- Generates organized paths: `Domain/Category/Doctype/doctype-vendor-subject-YYYYMMDD.ext`
+- Generates organized paths with configurable naming styles (folders and filenames)
 
 **Supported file types:** `.txt` and `.pdf`
 
@@ -149,6 +149,24 @@ find ~/Downloads -type f | python main.py --batch | \
   bash
 ```
 
+## Naming Styles
+
+Two styles are available (select via env var `NAMING_STYLE` or CLI `--naming-style`):
+
+- descriptive_nara (default)
+  - Folder path: `Domain/Category/Doctypes/` (Title Case; doctype pluralized)
+  - Filename: `doctype_vendor[_subject][_YYYY|YYYYMM|YYYYMMDD][_vNN|_final|_draft].ext` (lowercase_with_underscores)
+  - Example: `Financial/Banking/Statements/statement_chase_checking_20250131.pdf`
+
+- compact_gpo
+  - Folder path: `Domain/Category/Doctypes/` (Title Case; doctype pluralized)
+  - Filename: `vendor[_YYYY|YYYYMM|YYYYMMDD].ext` (lowercase_with_underscores)
+  - Example: `Financial/Banking/Statements/chase_20250131.pdf`
+
+Configure:
+- Env var: `NAMING_STYLE=descriptive_nara` (default) or `NAMING_STYLE=compact_gpo`
+- CLI override: `--naming-style descriptive_nara` or `--naming-style compact_gpo`
+
 ## Output Format
 
 The tool outputs JSON metadata (JSON Lines format for batch):
@@ -265,6 +283,10 @@ Verbosity (logs to stderr):
   --quiet, -q           Only show errors
   --verbose, -v         Show detailed progress and timing
   --debug               Show full technical logging
+
+Naming:
+  --naming-style {compact_gpo,descriptive_nara}
+                        Override naming style for this run (default: compact_gpo)
 ```
 
 ## Performance Optimization
@@ -384,6 +406,9 @@ See [CLAUDE.md](CLAUDE.md) for detailed architecture documentation and developme
 - `CLASSIFICATION_MAX_PAGES` - Maximum pages to extract (default: 3)
 - `CLASSIFICATION_MAX_CHARS` - Maximum characters to extract (default: 10000)
 - `CLASSIFICATION_INCLUDE_LAST_PAGE` - Include last page in extraction (default: true)
+
+**Naming:**
+- `NAMING_STYLE` - Naming style: `compact_gpo` (default) or `descriptive_nara`
 
 ## Naming Conventions
 

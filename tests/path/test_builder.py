@@ -2,6 +2,10 @@
 
 import pytest
 from src.path.builder import build_path, PathMetadata
+from src.config import settings as app_settings
+
+# For this test module, we assert compact_gpo behavior explicitly
+app_settings.NAMING_STYLE = "compact_gpo"
 
 
 @pytest.mark.unit
@@ -19,8 +23,8 @@ def test_build_path_standard():
 
     assert isinstance(result, PathMetadata)
     assert result.directory_path == "Financial/Retail/Receipts/"  # Plural folder
-    assert result.filename == "Acme_Markets_20230923.pdf"  # Vendor + date only
-    assert result.full_path == "Financial/Retail/Receipts/Acme_Markets_20230923.pdf"
+    assert result.filename == "acme_markets_20230923.pdf"  # Vendor + date only (lowercase)
+    assert result.full_path == "Financial/Retail/Receipts/acme_markets_20230923.pdf"
 
 
 @pytest.mark.unit
@@ -37,8 +41,8 @@ def test_build_path_banking_statement():
     )
 
     assert result.directory_path == "Financial/Banking/Statements/"  # Plural
-    assert result.filename == "Chase_20240115.pdf"  # Vendor + date only
-    assert result.full_path == "Financial/Banking/Statements/Chase_20240115.pdf"
+    assert result.filename == "chase_20240115.pdf"  # Vendor + date only (lowercase)
+    assert result.full_path == "Financial/Banking/Statements/chase_20240115.pdf"
 
 
 @pytest.mark.unit
@@ -55,14 +59,14 @@ def test_build_path_no_date():
     )
 
     assert result.directory_path == "Legal/Contracts/Agreements/"  # Plural
-    assert result.filename == "Acme_Corp.pdf"  # Vendor only (no date)
-    assert result.full_path == "Legal/Contracts/Agreements/Acme_Corp.pdf"
+    assert result.filename == "acme_corp.pdf"  # Vendor only (no date, lowercase)
+    assert result.full_path == "Legal/Contracts/Agreements/acme_corp.pdf"
 
 
 @pytest.mark.unit
 def test_build_path_unknown_vendor_raises_error():
     """Test that unknown vendor raises ValueError."""
-    with pytest.raises(ValueError, match="unknown vendor"):
+with pytest.raises(ValueError, match="Invalid vendor"):
         build_path(
             domain="financial",
             category="banking",
@@ -77,7 +81,7 @@ def test_build_path_unknown_vendor_raises_error():
 @pytest.mark.unit
 def test_build_path_empty_vendor_raises_error():
     """Test that empty vendor raises ValueError."""
-    with pytest.raises(ValueError, match="unknown vendor"):
+with pytest.raises(ValueError, match="Invalid vendor"):
         build_path(
             domain="financial",
             category="banking",
@@ -93,7 +97,7 @@ def test_build_path_empty_vendor_raises_error():
 def test_build_path_na_vendor_raises_error():
     """Test that 'n/a' vendor gets normalized to 'na' and raises ValueError."""
     # After normalization, "n/a" becomes "na" which should still be rejected
-    with pytest.raises(ValueError, match="unknown vendor"):
+with pytest.raises(ValueError, match="Invalid vendor"):
         build_path(
             domain="financial",
             category="banking",
@@ -108,7 +112,7 @@ def test_build_path_na_vendor_raises_error():
 @pytest.mark.unit
 def test_build_path_generic_vendor_raises_error():
     """Test that 'generic' vendor raises ValueError."""
-    with pytest.raises(ValueError, match="unknown vendor"):
+with pytest.raises(ValueError, match="Invalid vendor"):
         build_path(
             domain="financial",
             category="banking",
@@ -136,8 +140,8 @@ def test_build_path_concise_filenames():
         file_extension=".pdf",
     )
 
-    # Path should be well under 255 chars with concise format
-    assert len(result.full_path) <= 255
+    # Path should be under configured budget (200)
+    assert len(result.full_path) <= 200
     assert "Financial/Banking/Statements/" in result.full_path
     assert "20230923" in result.filename
     # Subject should NOT appear in filename
@@ -158,7 +162,7 @@ def test_build_path_normalizes_uppercase():
     )
 
     assert result.directory_path == "Financial/Banking/Statements/"  # Plural
-    assert result.filename == "Chase_20230923.PDF"  # Vendor + date only
+    assert result.filename == "chase_20230923.PDF"  # Vendor + date only (lowercase base, ext preserved)
 
 
 @pytest.mark.unit
@@ -175,7 +179,7 @@ def test_build_path_strips_whitespace():
     )
 
     assert result.directory_path == "Financial/Banking/Statements/"  # Plural
-    assert result.filename == "Chase_20230923.pdf"  # Vendor + date only
+    assert result.filename == "chase_20230923.pdf"  # Vendor + date only (lowercase)
 
 
 @pytest.mark.unit
@@ -192,7 +196,7 @@ def test_build_path_txt_file():
     )
 
     assert result.full_path.endswith(".txt")
-    assert result.filename == "Acme_Corp_20240301.txt"  # Vendor + date only
+    assert result.filename == "acme_corp_20240301.txt"  # Vendor + date only (lowercase)
     assert result.directory_path == "Legal/Correspondence/Letters/"  # Plural
 
 
@@ -231,8 +235,8 @@ def test_build_path_tax_document():
     )
 
     assert result.directory_path == "Financial/Tax/1040s/"  # Irregular plural
-    assert result.filename == "Irs_20240415.pdf"  # Vendor + date only
-    assert result.full_path == "Financial/Tax/1040s/Irs_20240415.pdf"
+    assert result.filename == "irs_20240415.pdf"  # Vendor + date only (lowercase)
+    assert result.full_path == "Financial/Tax/1040s/irs_20240415.pdf"
 
 
 @pytest.mark.unit
@@ -249,7 +253,7 @@ def test_build_path_medical_document():
     )
 
     assert result.directory_path == "Medical/Records/Lab_Results/"  # Already plural
-    assert result.filename == "Quest_Diagnostics_20240201.pdf"  # Vendor + date only
+    assert result.filename == "quest_diagnostics_20240201.pdf"  # Vendor + date only (lowercase)
 
 
 @pytest.mark.unit
@@ -265,8 +269,8 @@ def test_build_path_multi_word_vendor():
         file_extension=".pdf",
     )
 
-    # Vendor with underscores should use Title_Case_With_Underscores
-    assert result.filename == "Home_Depot_20230615.pdf"
+    # Vendor with underscores remains lowercase with underscores in compact_gpo
+    assert result.filename == "home_depot_20230615.pdf"
     assert result.directory_path == "Financial/Retail/Receipts/"  # Plural
 
 
@@ -314,39 +318,35 @@ def test_build_path_plural_folders():
 
 
 @pytest.mark.unit
-def test_build_path_normalizes_invalid_characters():
-    """Test that invalid characters are removed during normalization."""
+def test_build_path_rejects_invalid_characters():
+    """Invalid characters in vendor should be rejected (no auto-normalization)."""
     # @ symbol should be removed by normalization
-    result = build_path(
-        domain="financial",
-        category="banking",
-        doctype="statement",
-        vendor_name="chase@bank",  # @ is invalid, gets removed
-        subject="checking",
-        date="20230923",
-        file_extension=".pdf",
-    )
-    # Verify @ was removed
-    assert "chasebank" in result.filename.lower()
-    assert "@" not in result.filename
+    with pytest.raises(ValueError):
+        build_path(
+            domain="financial",
+            category="banking",
+            doctype="statement",
+            vendor_name="chase@bank",  # invalid
+            subject="checking",
+            date="20230923",
+            file_extension=".pdf",
+        )
 
 
 @pytest.mark.unit
-def test_build_path_normalizes_special_characters():
-    """Test that special characters ($, &, etc.) are removed during normalization."""
+def test_build_path_rejects_special_characters():
+    """Special characters like & should be rejected (no auto-normalization)."""
     # & symbol should be removed by normalization
-    result = build_path(
-        domain="financial",
-        category="banking",
-        doctype="statement",
-        vendor_name="bank&trust",  # & is invalid, gets removed
-        subject="checking",
-        date="20230923",
-        file_extension=".pdf",
-    )
-    # Verify & was removed
-    assert "banktrust" in result.filename.lower()
-    assert "&" not in result.filename
+    with pytest.raises(ValueError):
+        build_path(
+            domain="financial",
+            category="banking",
+            doctype="statement",
+            vendor_name="bank&trust",  # invalid
+            subject="checking",
+            date="20230923",
+            file_extension=".pdf",
+        )
 
 
 @pytest.mark.unit
@@ -368,8 +368,8 @@ def test_build_path_enforces_title_case_for_folders():
 
 
 @pytest.mark.unit
-def test_build_path_enforces_title_case_with_underscores_for_filename():
-    """Test that filename uses Title_Case_With_Underscores (NIST-compliant)."""
+def test_filename_lowercase_with_underscores_compact_gpo():
+    """Filename should be lowercase_with_underscores in compact_gpo style."""
     result = build_path(
         domain="medical",
         category="records",
@@ -380,8 +380,8 @@ def test_build_path_enforces_title_case_with_underscores_for_filename():
         file_extension=".pdf",
     )
 
-    # Verify Title_Case_With_Underscores for vendor in filename
-    assert result.filename == "Quest_Diagnostics_20240201.pdf"
+    # Verify lowercase_with_underscores for vendor in filename
+    assert result.filename == "quest_diagnostics_20240201.pdf"
     # Verify underscores preserved
     assert "_" in result.filename
     # Verify no hyphens as separators
@@ -405,5 +405,5 @@ def test_build_path_uses_underscores_not_hyphens():
     assert "_" in result.filename
     # Hyphens should not appear as separators
     components = result.filename.replace(".pdf", "").split("_")
-    assert len(components) == 4  # Bank, Of, America, 20240115
-    assert result.filename == "Bank_Of_America_20240115.pdf"
+    assert len(components) == 4  # bank, of, america, 20240115
+    assert result.filename == "bank_of_america_20240115.pdf"

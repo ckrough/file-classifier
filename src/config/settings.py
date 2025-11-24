@@ -51,3 +51,20 @@ CLASSIFICATION_MAX_CHARS = int(os.getenv("CLASSIFICATION_MAX_CHARS", "10000"))
 CLASSIFICATION_INCLUDE_LAST_PAGE = (
     os.getenv("CLASSIFICATION_INCLUDE_LAST_PAGE", "true").lower() == "true"
 )
+
+# Naming style configuration
+# Allowed naming styles
+ALLOWED_NAMING_STYLES = {"compact_gpo", "descriptive_nara"}
+DEFAULT_NAMING_STYLE = "descriptive_nara"
+
+NAMING_STYLE = os.getenv("NAMING_STYLE", DEFAULT_NAMING_STYLE).strip().lower()
+if NAMING_STYLE not in ALLOWED_NAMING_STYLES:
+    logger.warning(
+        "Unknown NAMING_STYLE '%s'; falling back to '%s'",
+        NAMING_STYLE,
+        DEFAULT_NAMING_STYLE,
+    )
+    NAMING_STYLE = DEFAULT_NAMING_STYLE
+
+# Optional plugin entry point/module for custom styles
+NAMING_STYLE_PLUGIN = os.getenv("NAMING_STYLE_PLUGIN", "").strip()
