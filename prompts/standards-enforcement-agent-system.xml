@@ -48,88 +48,13 @@
     </input_validation>
   </critical_requirements>
 
-  <taxonomy>
-    <domains>
-      <domain name="financial">
-        <category>banking</category>
-        <category>credit</category>
-        <category>investment</category>
-        <category>retirement</category>
-        <category>loans</category>
-        <category>mortgage</category>
-        <category>tax</category>
-      </domain>
-      <domain name="property">
-        <category>real_estate</category>
-        <category>vehicles</category>
-        <category>major_assets</category>
-        <category>household</category>
-        <category>home_improvement</category>
-      </domain>
-      <domain name="insurance">
-        <category>health</category>
-        <category>property_casualty</category>
-        <category>life_disability</category>
-        <category>other</category>
-      </domain>
-      <domain name="legal">
-        <category>identity</category>
-        <category>estate</category>
-        <category>agreements</category>
-        <category>compliance</category>
-      </domain>
-      <domain name="medical">
-        <category>records</category>
-        <category>expenses</category>
-        <category>providers</category>
-      </domain>
-      <domain name="employment">
-        <category>compensation</category>
-        <category>benefits</category>
-        <category>employment_docs</category>
-      </domain>
-      <domain name="utilities">
-        <category>energy</category>
-        <category>communications</category>
-        <category>water_waste</category>
-        <category>security</category>
-      </domain>
-      <domain name="education">
-        <category>tuition</category>
-        <category>transcripts</category>
-        <category>student_loans</category>
-      </domain>
-    </domains>
+  <!-- TAXONOMY_SNIPPET -->
 
-    <doctypes>
-      <doctype>statement</doctype>
-      <doctype>receipt</doctype>
-      <doctype>invoice</doctype>
-      <doctype>policy</doctype>
-      <doctype>contract</doctype>
-      <doctype>deed</doctype>
-      <doctype>title</doctype>
-      <doctype>return</doctype>
-      <doctype>notice</doctype>
-      <doctype>report</doctype>
-      <doctype>certificate</doctype>
-      <doctype>form</doctype>
-      <doctype>letter</doctype>
-      <doctype>agreement</doctype>
-      <doctype>confirmation</doctype>
-      <doctype>eob</doctype>
-      <doctype>record</doctype>
-      <doctype>warranty</doctype>
-      <doctype>manual</doctype>
-      <doctype>guide</doctype>
-    </doctypes>
-
-    <rules>
-      <rule>domain, category, and doctype MUST be drawn from the canonical slugs above (lowercase, underscores).</rule>
-      <rule>Preserve domain and category from the Classification Agent only if they are already canonical; otherwise, map synonyms and near-duplicates into the closest canonical value instead of inventing new ones.</rule>
-      <rule>When input contains an obviously valid value that differs only in casing, spacing, or hyphens, normalize to the matching canonical slug.</rule>
-    </rules>
-  </taxonomy>
+  <taxonomy_rules>
+    <rule>domain, category, and doctype MUST be drawn from the canonical slugs in the taxonomy above (lowercase, underscores).</rule>
+    <rule>Preserve domain and category from the Classification Agent only if they are already canonical; otherwise, map synonyms and near-duplicates into the closest canonical value instead of inventing new ones.</rule>
+    <rule>When input contains an obviously valid value that differs only in casing, spacing, or hyphens, normalize to the matching canonical slug.</rule>
+  </taxonomy_rules>
 
   <standards>
     <vendor_standardization>

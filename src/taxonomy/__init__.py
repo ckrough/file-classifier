@@ -10,242 +10,93 @@ The intent is that:
 - Code is the final gatekeeper and will canonicalize via aliases or, in strict
   mode, reject unknown values.
 
-The initial seed is homeowner-focused, but the sets are intended to be
-maintainable and extensible over time.
+Taxonomies are loaded from YAML files in the taxonomies/ directory. The default
+taxonomy is 'household', but users can specify a different taxonomy via the
+TAXONOMY_NAME environment variable or --taxonomy CLI argument.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Dict, Optional, Set, Tuple
+import logging
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Dict, List, Optional, Set, Tuple
 
-from src.config import settings
-
-# ---------------------------------------------------------------------------
-# Canonical vocabulary (seeded with homeowner-focused taxonomy)
-# ---------------------------------------------------------------------------
-
-CANONICAL_DOMAINS: Set[str] = {
-    "financial",
-    "property",
-    "insurance",
-    "legal",
-    "medical",
-    "employment",
-    "utilities",
-    "education",
-}
-
-# Per-domain allowed categories
-CANONICAL_CATEGORIES: Dict[str, Set[str]] = {
-    "financial": {
-        "banking",
-        "credit",
-        "investment",
-        "retirement",
-        "loans",
-        "mortgage",
-        "tax",
-    },
-    "property": {
-        "real_estate",
-        "vehicles",
-        "major_assets",
-        "household",
-        "home_improvement",
-    },
-    "insurance": {
-        "health",
-        "property_casualty",
-        "life_disability",
-        "other",
-    },
-    "legal": {
-        "identity",
-        "estate",
-        "agreements",
-        "compliance",
-    },
-    "medical": {
-        "records",
-        "expenses",
-        "providers",
-    },
-    "employment": {
-        "compensation",
-        "benefits",
-        "employment_docs",
-    },
-    "utilities": {
-        "energy",
-        "communications",
-        "water_waste",
-        "security",
-    },
-    "education": {
-        "tuition",
-        "transcripts",
-        "student_loans",
-    },
-}
-
-CANONICAL_DOCTYPES: Set[str] = {
-    "statement",
-    "receipt",
-    "invoice",
-    "policy",
-    "contract",
-    "deed",
-    "title",
-    "return",
-    "notice",
-    "report",
-    "certificate",
-    "form",
-    "letter",
-    "agreement",
-    "confirmation",
-    "eob",
-    "record",
-    "warranty",
-    "manual",
-    "guide",
-}
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Aliases (synonyms and common variants)
+# Taxonomy directory location
 # ---------------------------------------------------------------------------
 
-# Domain aliases collapse near-duplicates to canonical domain slugs.
-DOMAIN_ALIASES: Dict[str, str] = {
-    "finances": "financial",
-    "finance": "financial",
-    "real_estate": "property",  # occasionally used as a domain
-    "tax": "financial",  # when emitted as a domain
-}
-
-# Category aliases are keyed by (domain, raw_category).
-CATEGORY_ALIASES: Dict[Tuple[str, str], str] = {
-    ("property", "home_repairs"): "home_improvement",
-    ("property", "repairs"): "home_improvement",
-    ("property", "remodeling"): "home_improvement",
-    ("property", "renovation"): "home_improvement",
-    ("property", "renovations"): "home_improvement",
-    ("property", "contractors"): "home_improvement",
-    ("property", "hoa_docs"): "compliance",
-    ("property", "homeowners_association"): "compliance",
-    ("utilities", "cable_tv"): "communications",
-    ("utilities", "internet"): "communications",
-    ("utilities", "phone"): "communications",
-    ("financial", "checking_accounts"): "banking",
-    ("financial", "savings_accounts"): "banking",
-    ("financial", "credit_cards"): "credit",
-    ("financial", "investment_accounts"): "investment",
-    ("financial", "retirement_accounts"): "retirement",
-}
-
-# Doctype aliases collapse various phrases into canonical doctypes.
-DOCTYPE_ALIASES: Dict[str, str] = {
-    "bill": "invoice",
-    "billing_statement": "statement",
-    "billing": "invoice",
-    "eob": "eob",  # already canonical but often uppercase
-    "explanation_of_benefits": "eob",
-    "policy_document": "policy",
-    "insurance_policy": "policy",
-    "user_guide": "guide",
-    "owner_guide": "guide",
-    "owners_manual": "manual",
-    "owner_manual": "manual",
-    "training_manual": "manual",
-    "home_warranty_card": "warranty",
-    "service_contract": "contract",
-    "service_agreement": "agreement",
-    "appointment_letter": "letter",
-    "tax_return": "return",
-}
+TAXONOMIES_DIR = Path(__file__).parent.parent.parent / "taxonomies"
 
 
 # ---------------------------------------------------------------------------
-# Optional configuration override (JSON/YAML)
+# Data classes for taxonomy configuration
 # ---------------------------------------------------------------------------
+
+
+@dataclass
+class CategoryInfo:
+    """Information about a category within a domain."""
+
+    name: str
+    description: str = ""
+
+
+@dataclass
+class DomainInfo:
+    """Information about a domain including its categories."""
+
+    name: str
+    description: str = ""
+    categories: List[CategoryInfo] = field(default_factory=list)
+
+
+@dataclass
+class DoctypeInfo:
+    """Information about a document type."""
+
+    name: str
+    description: str = ""
+
 
 @dataclass
 class TaxonomyConfig:
-    """Container for taxonomy data.
+    """Complete taxonomy configuration loaded from a YAML file.
 
-    This exists mainly to make it easier to load/override from external
-    configuration in the future. For now we simply wrap module-level
-    constants.
+    This includes:
+    - Canonical domains with their categories and descriptions
+    - Canonical doctypes with descriptions
+    - Alias mappings for domains, categories, and doctypes
     """
 
-    domains: Set[str]
-    categories: Dict[str, Set[str]]
-    doctypes: Set[str]
+    name: str
+    version: str = "1.0"
+    description: str = ""
 
+    # Structured domain information (for prompt generation)
+    domains: List[DomainInfo] = field(default_factory=list)
 
-def _load_config_from_file() -> Optional[TaxonomyConfig]:
-    """Optionally load taxonomy configuration from a JSON/YAML file.
+    # Structured doctype information (for prompt generation)
+    doctypes: List[DoctypeInfo] = field(default_factory=list)
 
-    If settings.TAXONOMY_CONFIG_PATH is not set or the file cannot be loaded,
-    this returns None and the built-in constants are used.
+    # Flat sets for fast lookup (computed from domains/doctypes)
+    domain_names: Set[str] = field(default_factory=set)
+    category_names: Dict[str, Set[str]] = field(default_factory=dict)
+    doctype_names: Set[str] = field(default_factory=set)
 
-    This is intentionally conservative: failures fall back to code defaults
-    rather than failing the application.
-    """
-
-    path = getattr(settings, "TAXONOMY_CONFIG_PATH", None)
-    if not path:
-        return None
-
-    import json
-    from pathlib import Path
-
-    config_path = Path(path)
-    if not config_path.is_file():
-        return None
-
-    try:
-        text = config_path.read_text(encoding="utf-8")
-        if config_path.suffix.lower() in {".yaml", ".yml"}:
-            try:
-                import yaml  # type: ignore[import]
-            except Exception:  # pragma: no cover - optional dependency
-                return None
-            data = yaml.safe_load(text)
-        else:
-            data = json.loads(text)
-    except Exception:  # pragma: no cover - defensive
-        return None
-
-    domains = set(str(d).strip().lower() for d in data.get("domains", []))
-    categories: Dict[str, Set[str]] = {}
-    for domain, cats in data.get("categories", {}).items():
-        d = str(domain).strip().lower()
-        categories[d] = {str(c).strip().lower() for c in cats}
-    doctypes = {str(t).strip().lower() for t in data.get("doctypes", [])}
-
-    return TaxonomyConfig(domains=domains, categories=categories, doctypes=doctypes)
-
-
-_CONFIG_OVERRIDE: Optional[TaxonomyConfig] = _load_config_from_file()
-
-
-def _active_domains() -> Set[str]:
-    return _CONFIG_OVERRIDE.domains if _CONFIG_OVERRIDE else CANONICAL_DOMAINS
-
-
-def _active_categories() -> Dict[str, Set[str]]:
-    return _CONFIG_OVERRIDE.categories if _CONFIG_OVERRIDE else CANONICAL_CATEGORIES
-
-
-def _active_doctypes() -> Set[str]:
-    return _CONFIG_OVERRIDE.doctypes if _CONFIG_OVERRIDE else CANONICAL_DOCTYPES
+    # Alias mappings
+    domain_aliases: Dict[str, str] = field(default_factory=dict)
+    category_aliases: Dict[Tuple[str, str], str] = field(default_factory=dict)
+    doctype_aliases: Dict[str, str] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
-# Normalization helpers
+# Global taxonomy state
 # ---------------------------------------------------------------------------
+
+_active_taxonomy: Optional[TaxonomyConfig] = None
 
 
 def _normalize_token(value: str) -> str:
@@ -255,7 +106,6 @@ def _normalize_token(value: str) -> str:
     - Lowercases
     - Replaces spaces and hyphens with underscores
     """
-
     value = (value or "").strip().lower()
     if not value:
         return ""
@@ -263,23 +113,221 @@ def _normalize_token(value: str) -> str:
     return value
 
 
+def load_taxonomy(name_or_path: str) -> TaxonomyConfig:
+    """Load a taxonomy configuration from a YAML file.
+
+    Args:
+        name_or_path: Either a taxonomy name (e.g., 'household') which will be
+                     looked up in the taxonomies/ directory, or an absolute
+                     path to a YAML file.
+
+    Returns:
+        TaxonomyConfig: The loaded taxonomy configuration.
+
+    Raises:
+        FileNotFoundError: If the taxonomy file does not exist.
+        ValueError: If the YAML file is invalid or missing required fields.
+    """
+    # Determine the file path
+    if Path(name_or_path).is_absolute():
+        config_path = Path(name_or_path)
+    else:
+        config_path = TAXONOMIES_DIR / f"{name_or_path}.yaml"
+        if not config_path.exists():
+            config_path = TAXONOMIES_DIR / f"{name_or_path}.yml"
+
+    if not config_path.exists():
+        raise FileNotFoundError(
+            f"Taxonomy file not found: {config_path}\n"
+            f"  → Available taxonomies: {list_available_taxonomies()}"
+        )
+
+    logger.info("Loading taxonomy from: %s", config_path)
+
+    # Load YAML
+    try:
+        import yaml
+    except ImportError as e:
+        raise ImportError(
+            "PyYAML is required for taxonomy loading. Install with: pip install pyyaml"
+        ) from e
+
+    text = config_path.read_text(encoding="utf-8")
+    data = yaml.safe_load(text)
+
+    if not isinstance(data, dict):
+        raise ValueError(f"Invalid taxonomy file: expected dict, got {type(data)}")
+
+    # Parse the taxonomy
+    return _parse_taxonomy_data(data, config_path.stem)
+
+
+def _parse_taxonomy_data(data: dict, default_name: str) -> TaxonomyConfig:
+    """Parse a taxonomy dictionary into a TaxonomyConfig."""
+    config = TaxonomyConfig(
+        name=data.get("name", default_name),
+        version=str(data.get("version", "1.0")),
+        description=data.get("description", ""),
+    )
+
+    # Parse domains
+    for domain_data in data.get("domains", []):
+        domain_name = _normalize_token(domain_data.get("name", ""))
+        if not domain_name:
+            continue
+
+        categories = []
+        config.category_names[domain_name] = set()
+
+        for cat_data in domain_data.get("categories", []):
+            cat_name = _normalize_token(cat_data.get("name", ""))
+            if not cat_name:
+                continue
+            categories.append(
+                CategoryInfo(
+                    name=cat_name,
+                    description=cat_data.get("description", ""),
+                )
+            )
+            config.category_names[domain_name].add(cat_name)
+
+        config.domains.append(
+            DomainInfo(
+                name=domain_name,
+                description=domain_data.get("description", ""),
+                categories=categories,
+            )
+        )
+        config.domain_names.add(domain_name)
+
+    # Parse doctypes
+    for doctype_data in data.get("doctypes", []):
+        doctype_name = _normalize_token(doctype_data.get("name", ""))
+        if not doctype_name:
+            continue
+        config.doctypes.append(
+            DoctypeInfo(
+                name=doctype_name,
+                description=doctype_data.get("description", ""),
+            )
+        )
+        config.doctype_names.add(doctype_name)
+
+    # Parse aliases
+    aliases_data = data.get("aliases", {})
+
+    # Domain aliases
+    for alias, canonical in aliases_data.get("domains", {}).items():
+        alias_normalized = _normalize_token(alias)
+        canonical_normalized = _normalize_token(canonical)
+        if alias_normalized and canonical_normalized:
+            config.domain_aliases[alias_normalized] = canonical_normalized
+
+    # Category aliases
+    for cat_alias in aliases_data.get("categories", []):
+        domain = _normalize_token(cat_alias.get("domain", ""))
+        alias = _normalize_token(cat_alias.get("alias", ""))
+        canonical = _normalize_token(cat_alias.get("canonical", ""))
+        if domain and alias and canonical:
+            config.category_aliases[(domain, alias)] = canonical
+
+    # Doctype aliases
+    for alias, canonical in aliases_data.get("doctypes", {}).items():
+        alias_normalized = _normalize_token(alias)
+        canonical_normalized = _normalize_token(canonical)
+        if alias_normalized and canonical_normalized:
+            config.doctype_aliases[alias_normalized] = canonical_normalized
+
+    logger.debug(
+        "Loaded taxonomy '%s': %d domains, %d doctypes, %d domain aliases, "
+        "%d category aliases, %d doctype aliases",
+        config.name,
+        len(config.domain_names),
+        len(config.doctype_names),
+        len(config.domain_aliases),
+        len(config.category_aliases),
+        len(config.doctype_aliases),
+    )
+
+    return config
+
+
+def list_available_taxonomies() -> List[str]:
+    """List available taxonomy names from the taxonomies directory."""
+    if not TAXONOMIES_DIR.exists():
+        return []
+    taxonomies = []
+    for path in TAXONOMIES_DIR.iterdir():
+        if path.suffix in {".yaml", ".yml"} and path.is_file():
+            taxonomies.append(path.stem)
+    return sorted(taxonomies)
+
+
+def set_taxonomy(name_or_path: str) -> TaxonomyConfig:
+    """Set the active taxonomy by name or path.
+
+    Args:
+        name_or_path: Either a taxonomy name (e.g., 'household') or an
+                     absolute path to a YAML file.
+
+    Returns:
+        TaxonomyConfig: The newly active taxonomy configuration.
+    """
+    global _active_taxonomy
+    _active_taxonomy = load_taxonomy(name_or_path)
+    logger.info("Active taxonomy set to: %s (v%s)", _active_taxonomy.name, _active_taxonomy.version)
+    return _active_taxonomy
+
+
+def get_active_taxonomy() -> TaxonomyConfig:
+    """Get the currently active taxonomy configuration.
+
+    If no taxonomy has been explicitly set, loads the default 'household'
+    taxonomy.
+
+    Returns:
+        TaxonomyConfig: The active taxonomy configuration.
+    """
+    global _active_taxonomy
+    if _active_taxonomy is None:
+        # Load default taxonomy
+        from src.config import settings
+
+        default_name = getattr(settings, "TAXONOMY_NAME", "household")
+        _active_taxonomy = load_taxonomy(default_name)
+    return _active_taxonomy
+
+
+def reset_taxonomy() -> None:
+    """Reset the active taxonomy to None, forcing reload on next access.
+
+    This is primarily useful for testing.
+    """
+    global _active_taxonomy
+    _active_taxonomy = None
+
+
+# ---------------------------------------------------------------------------
+# Normalization helpers
+# ---------------------------------------------------------------------------
+
+
 def canonical_domain(raw: str) -> Optional[str]:
     """Resolve a raw domain string to a canonical domain slug.
 
     Returns None if no suitable canonical value can be found.
     """
-
     token = _normalize_token(raw)
     if not token:
         return None
 
-    domains = _active_domains()
+    taxonomy = get_active_taxonomy()
 
-    if token in domains:
+    if token in taxonomy.domain_names:
         return token
 
-    alias = DOMAIN_ALIASES.get(token)
-    if alias and alias in domains:
+    alias = taxonomy.domain_aliases.get(token)
+    if alias and alias in taxonomy.domain_names:
         return alias
 
     return None
@@ -290,7 +338,6 @@ def canonical_category(domain: str, raw: str) -> Optional[str]:
 
     Returns None if no suitable canonical value can be found.
     """
-
     dom = canonical_domain(domain) or _normalize_token(domain)
     if not dom:
         return None
@@ -299,12 +346,13 @@ def canonical_category(domain: str, raw: str) -> Optional[str]:
     if not token:
         return None
 
-    categories = _active_categories().get(dom, set())
+    taxonomy = get_active_taxonomy()
+    categories = taxonomy.category_names.get(dom, set())
 
     if token in categories:
         return token
 
-    alias = CATEGORY_ALIASES.get((dom, token))
+    alias = taxonomy.category_aliases.get((dom, token))
     if alias and alias in categories:
         return alias
 
@@ -316,31 +364,151 @@ def canonical_doctype(raw: str) -> Optional[str]:
 
     Returns None if no suitable canonical value can be found.
     """
-
     token = _normalize_token(raw)
     if not token:
         return None
 
-    doctypes = _active_doctypes()
+    taxonomy = get_active_taxonomy()
 
-    if token in doctypes:
+    if token in taxonomy.doctype_names:
         return token
 
-    alias = DOCTYPE_ALIASES.get(token)
-    if alias and alias in doctypes:
+    alias = taxonomy.doctype_aliases.get(token)
+    if alias and alias in taxonomy.doctype_names:
         return alias
 
     return None
 
 
+# ---------------------------------------------------------------------------
+# XML snippet generation for prompt injection
+# ---------------------------------------------------------------------------
+
+
+def generate_taxonomy_xml(config: Optional[TaxonomyConfig] = None) -> str:
+    """Generate an XML snippet of the taxonomy for prompt injection.
+
+    This produces an XML fragment matching the <taxonomy> structure expected
+    by the classification and standards enforcement agent prompts.
+
+    Args:
+        config: The taxonomy configuration to use. If None, uses the active
+               taxonomy.
+
+    Returns:
+        str: An XML string suitable for injection into prompt templates.
+    """
+    if config is None:
+        config = get_active_taxonomy()
+
+    lines = ["<taxonomy>", "    <domains>"]
+
+    for domain in config.domains:
+        if domain.description:
+            lines.append(
+                f'      <domain name="{domain.name}" description="{_escape_xml(domain.description)}">'
+            )
+        else:
+            lines.append(f'      <domain name="{domain.name}">')
+
+        for category in domain.categories:
+            if category.description:
+                lines.append(
+                    f"        <category name=\"{category.name}\">{_escape_xml(category.description)}</category>"
+                )
+            else:
+                lines.append(f'        <category name="{category.name}"/>')
+
+        lines.append("      </domain>")
+
+    lines.append("    </domains>")
+    lines.append("")
+    lines.append("    <doctypes>")
+
+    for doctype in config.doctypes:
+        if doctype.description:
+            lines.append(
+                f"      <doctype name=\"{doctype.name}\">{_escape_xml(doctype.description)}</doctype>"
+            )
+        else:
+            lines.append(f'      <doctype name="{doctype.name}"/>')
+
+    lines.append("    </doctypes>")
+    lines.append("  </taxonomy>")
+
+    return "\n".join(lines)
+
+
+def _escape_xml(text: str) -> str:
+    """Escape special XML characters."""
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
+# ---------------------------------------------------------------------------
+# Backward-compatible exports
+# ---------------------------------------------------------------------------
+
+# These are provided for backward compatibility with code that directly
+# imports the constants. They delegate to the active taxonomy.
+
+
+def _get_canonical_domains() -> Set[str]:
+    """Get canonical domains from active taxonomy (for backward compatibility)."""
+    return get_active_taxonomy().domain_names
+
+
+def _get_canonical_categories() -> Dict[str, Set[str]]:
+    """Get canonical categories from active taxonomy (for backward compatibility)."""
+    return get_active_taxonomy().category_names
+
+
+def _get_canonical_doctypes() -> Set[str]:
+    """Get canonical doctypes from active taxonomy (for backward compatibility)."""
+    return get_active_taxonomy().doctype_names
+
+
+def _get_domain_aliases() -> Dict[str, str]:
+    """Get domain aliases from active taxonomy (for backward compatibility)."""
+    return get_active_taxonomy().domain_aliases
+
+
+def _get_category_aliases() -> Dict[Tuple[str, str], str]:
+    """Get category aliases from active taxonomy (for backward compatibility)."""
+    return get_active_taxonomy().category_aliases
+
+
+def _get_doctype_aliases() -> Dict[str, str]:
+    """Get doctype aliases from active taxonomy (for backward compatibility)."""
+    return get_active_taxonomy().doctype_aliases
+
+
 __all__ = [
-    "CANONICAL_DOMAINS",
-    "CANONICAL_CATEGORIES",
-    "CANONICAL_DOCTYPES",
-    "DOMAIN_ALIASES",
-    "CATEGORY_ALIASES",
-    "DOCTYPE_ALIASES",
+    # Core API
+    "TaxonomyConfig",
+    "DomainInfo",
+    "CategoryInfo",
+    "DoctypeInfo",
+    "load_taxonomy",
+    "set_taxonomy",
+    "get_active_taxonomy",
+    "reset_taxonomy",
+    "list_available_taxonomies",
+    # Normalization functions
     "canonical_domain",
     "canonical_category",
     "canonical_doctype",
+    # XML generation
+    "generate_taxonomy_xml",
+    # Backward compatibility (use get_active_taxonomy() for dynamic access)
+    "_get_canonical_domains",
+    "_get_canonical_categories",
+    "_get_canonical_doctypes",
+    "_get_domain_aliases",
+    "_get_category_aliases",
+    "_get_doctype_aliases",
 ]

@@ -79,6 +79,25 @@ jq examples (jq required: brew install jq):
         help="Batch mode: read file paths from stdin (one per line)",
     )
 
+    # Taxonomy selection
+    taxonomy_group = parser.add_argument_group(
+        "taxonomy",
+        description=(
+            "Select the taxonomy to use for classification. "
+            "Overrides TAXONOMY_NAME env var for this run."
+        ),
+    )
+    taxonomy_group.add_argument(
+        "--taxonomy",
+        type=str,
+        metavar="NAME",
+        help=(
+            "Select taxonomy by name (e.g., 'household') or path to a YAML file. "
+            "If omitted, uses TAXONOMY_NAME env var or defaults to 'household'. "
+            "Available taxonomies can be found in the taxonomies/ directory."
+        ),
+    )
+
     # Naming style
     naming_group = parser.add_argument_group(
         "naming",

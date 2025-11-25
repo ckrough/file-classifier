@@ -9,6 +9,9 @@ Supports the multi-agent document processing prompts:
 - standards-enforcement-agent
 - path-construction-agent
 - conflict-resolution-agent
+
+Prompts can include a <!-- TAXONOMY_SNIPPET --> placeholder that will be
+replaced with the active taxonomy's XML representation at load time.
 """
 
 import logging
@@ -26,6 +29,25 @@ PROMPTS_DIR = Path(__file__).parent.parent.parent / "prompts"
 # Valid prompt name pattern (lowercase alphanumeric with hyphens)
 VALID_PROMPT_NAME = re.compile(r"^[a-z][a-z0-9-]*$")
 
+# Placeholder for taxonomy injection
+TAXONOMY_PLACEHOLDER = "<!-- TAXONOMY_SNIPPET -->"
+
+
+def _inject_taxonomy(content: str) -> str:
+    """Replace taxonomy placeholder with the active taxonomy XML.
+
+    If the placeholder is not found, returns the content unchanged.
+    """
+    if TAXONOMY_PLACEHOLDER not in content:
+        return content
+
+    # Import here to avoid circular imports
+    from src.taxonomy import generate_taxonomy_xml
+
+    taxonomy_xml = generate_taxonomy_xml()
+    logger.debug("Injecting taxonomy XML into prompt (%d chars)", len(taxonomy_xml))
+    return content.replace(TAXONOMY_PLACEHOLDER, taxonomy_xml)
+
 
 def load_prompt_template(prompt_name: str) -> ChatPromptTemplate:
     """
@@ -36,6 +58,9 @@ def load_prompt_template(prompt_name: str) -> ChatPromptTemplate:
     - {prompt_name}-user.xml
 
     Falls back to .txt files for backward compatibility.
+
+    If the prompt contains <!-- TAXONOMY_SNIPPET -->, it will be replaced
+    with the active taxonomy's XML representation.
 
     Args:
         prompt_name (str): The base name of the prompt (alphanumeric with hyphens).
@@ -82,6 +107,10 @@ def load_prompt_template(prompt_name: str) -> ChatPromptTemplate:
         logger.debug("Loading user prompt from: %s", user_prompt_path)
         user_prompt = user_prompt_path.read_text(encoding="utf-8").strip()
 
+        # Inject taxonomy into prompts if placeholder is present
+        system_prompt = _inject_taxonomy(system_prompt)
+        user_prompt = _inject_taxonomy(user_prompt)
+
         # Create ChatPromptTemplate with proper message roles
         # XML content is passed directly - AI models work natively with XML structure
         return ChatPromptTemplate.from_messages(
@@ -99,13 +128,16 @@ def load_prompt_template(prompt_name: str) -> ChatPromptTemplate:
         raise
 
 
-@lru_cache(maxsize=10)
+# Cache key includes taxonomy name to invalidate when taxonomy changes
+_prompt_cache: dict = {}
+
+
 def get_prompt_template(prompt_name: str) -> ChatPromptTemplate:
     """
     Get a prompt template by name (cached with lazy loading).
 
-    This function uses lru_cache to ensure each prompt is loaded only once
-    and reused across multiple calls, providing singleton-like behavior.
+    This function caches prompts per taxonomy to ensure prompts are reloaded
+    when the active taxonomy changes.
 
     Supported prompts:
     - 'classification-agent'
@@ -119,12 +151,37 @@ def get_prompt_template(prompt_name: str) -> ChatPromptTemplate:
     Returns:
         ChatPromptTemplate: The requested prompt template.
     """
-    prompt = load_prompt_template(prompt_name)
-    logger.info("Prompt template '%s' loaded successfully", prompt_name)
-    return prompt
+    # Import here to avoid circular imports
+    from src.taxonomy import get_active_taxonomy
+
+    taxonomy = get_active_taxonomy()
+    cache_key = (prompt_name, taxonomy.name, taxonomy.version)
+
+    if cache_key not in _prompt_cache:
+        prompt = load_prompt_template(prompt_name)
+        logger.info(
+            "Prompt template '%s' loaded successfully (taxonomy: %s v%s)",
+            prompt_name,
+            taxonomy.name,
+            taxonomy.version,
+        )
+        _prompt_cache[cache_key] = prompt
+
+    return _prompt_cache[cache_key]
+
+
+def clear_prompt_cache() -> None:
+    """Clear the prompt cache.
+
+    Call this after changing the active taxonomy to force prompts to be
+    reloaded with the new taxonomy.
+    """
+    _prompt_cache.clear()
+    logger.debug("Prompt cache cleared")
 
 
 __all__ = [
     "get_prompt_template",
     "load_prompt_template",
+    "clear_prompt_cache",
 ]

@@ -28,6 +28,11 @@ __all__ = ["process_document_multi_agent"]
 logger = logging.getLogger(__name__)
 
 
+def _safe_lower(value: str | None) -> str:
+    """Safely lowercase a string, returning empty string if None."""
+    return (value or "").lower().strip()
+
+
 def process_document_multi_agent(
     content: str,
     filename: str,
@@ -106,7 +111,12 @@ def process_document_multi_agent(
             )
 
         # Taxonomy normalization for domain/category/doctype
-        strict_mode = getattr(settings, "TAXONOMY_STRICT_MODE", True)
+        # - Domain: STRICT - must exist in taxonomy (no new domains allowed)
+        # - Category: FLEXIBLE - prefer existing, but allow new categories
+        # - Doctype: FLEXIBLE - prefer existing, but allow new doctypes
+        #
+        # The classification agent attempts to match existing taxonomy values first.
+        # Only when no close match exists should it create new categories/doctypes.
 
         raw_domain = normalized.domain
         raw_category = normalized.category
@@ -114,7 +124,7 @@ def process_document_multi_agent(
 
         canonical_dom = canonical_domain(raw_domain)
         if not canonical_dom:
-            # Domain is the top-level partition; even in fallback we do not allow
+            # Domain is the top-level partition; we do not allow
             # unknown domains to create new branches.
             raise ValueError(
                 "Taxonomy validation failed: unknown domain "
@@ -124,34 +134,21 @@ def process_document_multi_agent(
         canonical_cat = canonical_category(canonical_dom, raw_category)
         canonical_doc = canonical_doctype(raw_doctype)
 
-        errors: list[str] = []
-
+        # Categories: allow new ones if not found in taxonomy
         if canonical_cat is None:
-            if strict_mode:
-                errors.append(
-                    f"unknown category '{raw_category}' for domain '{canonical_dom}'"
-                )
-            else:
-                logger.warning(
-                    "Taxonomy fallback: mapping unknown category '%s' in domain '%s' to 'other'",
-                    raw_category,
-                    canonical_dom,
-                )
-                canonical_cat = "other"
+            canonical_cat = _safe_lower(raw_category)
+            logger.info(
+                "  → New category '%s' created under domain '%s'",
+                canonical_cat,
+                canonical_dom,
+            )
 
+        # Doctypes: allow new ones if not found in taxonomy
         if canonical_doc is None:
-            if strict_mode:
-                errors.append(f"unknown doctype '{raw_doctype}'")
-            else:
-                logger.warning(
-                    "Taxonomy fallback: mapping unknown doctype '%s' to 'other'",
-                    raw_doctype,
-                )
-                canonical_doc = "other"
-
-        if errors:
-            raise ValueError(
-                "Taxonomy validation failed: " + "; ".join(errors) + f" for '{filename}'"
+            canonical_doc = _safe_lower(raw_doctype)
+            logger.info(
+                "  → New doctype '%s' created",
+                canonical_doc,
             )
 
         if (

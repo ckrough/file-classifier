@@ -1,4 +1,10 @@
-"""Pipeline-level tests for taxonomy normalization and enforcement."""
+"""Pipeline-level tests for taxonomy normalization and enforcement.
+
+Taxonomy enforcement rules:
+- Domain: STRICT - must exist in taxonomy (no new domains allowed)
+- Category: FLEXIBLE - prefer existing, but new categories are allowed
+- Doctype: FLEXIBLE - prefer existing, but new doctypes are allowed
+"""
 
 from unittest.mock import Mock, patch
 
@@ -22,9 +28,6 @@ def test_pipeline_applies_taxonomy_canonicalization(
 ):
     """Non-canonical domain/category/doctype should be canonicalized before path build."""
 
-    # Use monkeypatch so global settings are restored after the test, avoiding
-    # cross-test interference with naming/path builder tests.
-    monkeypatch.setattr(app_settings, "TAXONOMY_STRICT_MODE", True, raising=False)
     monkeypatch.setattr(app_settings, "NAMING_STYLE", "descriptive_nara", raising=False)
 
     mock_classify.return_value = RawMetadata(
@@ -66,17 +69,15 @@ def test_pipeline_applies_taxonomy_canonicalization(
 @pytest.mark.unit
 @patch("src.agents.pipeline.standardize_metadata")
 @patch("src.agents.pipeline.classify_document")
-def test_pipeline_strict_mode_rejects_unknown_taxonomy(
-    mock_classify, mock_standardize, monkeypatch
+def test_pipeline_rejects_unknown_domain(
+    mock_classify, mock_standardize
 ):
-    """In strict mode, unknown categories/doctypes should cause pipeline failure."""
-
-    monkeypatch.setattr(app_settings, "TAXONOMY_STRICT_MODE", True, raising=False)
+    """Unknown domains should always cause pipeline failure (domains are strict)."""
 
     mock_classify.return_value = RawMetadata(
-        domain="financial",
-        category="unknown_category",
-        doctype="memo",
+        domain="unknown_domain",
+        category="some_category",
+        doctype="statement",
         vendor_raw="Vendor",
         date_raw="2024-01-01",
         subject_raw="Subject",
@@ -84,9 +85,9 @@ def test_pipeline_strict_mode_rejects_unknown_taxonomy(
     )
 
     mock_standardize.return_value = NormalizedMetadata(
-        domain="financial",
-        category="unknown_category",
-        doctype="memo",
+        domain="unknown_domain",
+        category="some_category",
+        doctype="statement",
         vendor_name="vendor",
         date="20240101",
         subject="subject",
@@ -101,22 +102,62 @@ def test_pipeline_strict_mode_rejects_unknown_taxonomy(
 
     msg = str(exc_info.value)
     assert "Taxonomy validation failed" in msg
+    assert "unknown domain" in msg
 
 
 @pytest.mark.unit
 @patch("src.agents.pipeline.standardize_metadata")
 @patch("src.agents.pipeline.classify_document")
-def test_pipeline_fallback_maps_unknown_to_other(
+def test_pipeline_allows_new_doctypes(
     mock_classify, mock_standardize, monkeypatch
 ):
-    """In fallback mode, unknown category/doctype map to 'other' while domain must be known."""
+    """New doctypes should be allowed (doctypes are flexible)."""
 
-    monkeypatch.setattr(app_settings, "TAXONOMY_STRICT_MODE", False, raising=False)
+    monkeypatch.setattr(app_settings, "NAMING_STYLE", "descriptive_nara", raising=False)
+
+    mock_classify.return_value = RawMetadata(
+        domain="financial",
+        category="banking",
+        doctype="memo",  # New doctype not in taxonomy
+        vendor_raw="Acme Bank",
+        date_raw="2024-01-01",
+        subject_raw="Account update",
+        account_types=None,
+    )
+
+    mock_standardize.return_value = NormalizedMetadata(
+        domain="financial",
+        category="banking",
+        doctype="memo",  # New doctype
+        vendor_name="acme_bank",
+        date="20240101",
+        subject="account_update",
+    )
+
+    client = DummyAIClient()
+    _, _, path = process_document_multi_agent(
+        content="Sample content", filename="doc.pdf", ai_client=client
+    )
+
+    # New doctype should be accepted and used in the path
+    assert "Financial/Banking/Memos/" in path.full_path
+    assert "memo_" in path.filename
+
+
+@pytest.mark.unit
+@patch("src.agents.pipeline.standardize_metadata")
+@patch("src.agents.pipeline.classify_document")
+def test_pipeline_allows_new_categories(
+    mock_classify, mock_standardize, monkeypatch
+):
+    """New categories should be allowed (categories are flexible)."""
+
+    monkeypatch.setattr(app_settings, "NAMING_STYLE", "descriptive_nara", raising=False)
 
     mock_classify.return_value = RawMetadata(
         domain="property",
-        category="home_repairs_misc",
-        doctype="memo",
+        category="home_repairs_misc",  # New category not in taxonomy
+        doctype="receipt",
         vendor_raw="Home Services LLC",
         date_raw="2024-02-02",
         subject_raw="Repairs",
@@ -125,8 +166,8 @@ def test_pipeline_fallback_maps_unknown_to_other(
 
     mock_standardize.return_value = NormalizedMetadata(
         domain="property",
-        category="home_repairs_misc",
-        doctype="memo",
+        category="home_repairs_misc",  # New category
+        doctype="receipt",
         vendor_name="home_services_llc",
         date="20240202",
         subject="repairs",
@@ -137,8 +178,7 @@ def test_pipeline_fallback_maps_unknown_to_other(
         content="Sample content", filename="repairs.pdf", ai_client=client
     )
 
-    # Category/doctype should fall back to 'other', which will appear as
-    # "Other/Others" in the directory path when Title-Cased and pluralized.
-    assert "Property/Other/" in path.directory_path or "Property/Other/" in path.full_path
-    assert "Others/" in path.directory_path
+    # New category should be accepted and used in the path
+    # Path builder title-cases components
+    assert "Property/Home_Repairs_Misc/" in path.full_path
     assert path.filename.endswith("_20240202.pdf")

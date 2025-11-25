@@ -5,107 +5,65 @@
     on accurate classification before standardization.
   </role>
 
-  <taxonomy>
-    <domains>
-      <domain name="financial"
-        description="Core financial instruments and accounts (banking, investments, credit, retirement, tax)">
-        <category name="banking">checking, savings, money market accounts</category>
-        <category name="credit">credit cards, lines of credit</category>
-        <category name="investment">brokerage, mutual funds, stocks, bonds</category>
-        <category name="retirement">401k, IRA, pension, Social Security</category>
-        <category name="loans">mortgages, auto loans, student loans, personal loans</category>
-        <category name="tax">federal returns, state returns, W-2s, 1099s, tax receipts, supporting documentation</category>
-      </domain>
+  <!-- TAXONOMY_SNIPPET -->
 
-      <domain name="property"
-        description="Real and personal property ownership (real estate, vehicles, major assets, household items)">
-        <category name="real_estate">primary residence, investment properties, land</category>
-        <category name="vehicles">automobiles, boats, RVs, motorcycles</category>
-        <category name="major_assets">expensive purchases: appliances, jewelry, collections,
-          electronics</category>
-        <category name="household">everyday inexpensive household items: furniture, bedding,
-          kitchenware, decor, linens, small appliances</category>
-        <category name="home_improvement">repairs, renovations, maintenance, contractors, warranties</category>
-      </domain>
+  <metadata_fields>
+    <field name="vendor_raw" required="true">Company, institution, or entity name as it appears in
+      the document (e.g., "Bank of America", "Dr. John Smith", "State Farm Insurance")</field>
+    <field name="date_raw" required="true">Single most relevant date following this priority: (1)
+      Statement/invoice/document date, (2) Transaction/service date, (3) Period ending date, (4)
+      Due date, (5) Generated/printed date. Extract in whatever format it appears (e.g.,
+      "01/31/2025", "January 31, 2025", or "2025-01-31")</field>
+    <field name="subject_raw" required="true">Purpose or subject matter of the document (e.g.,
+      "wire transfer", "annual physical", "kitchen renovation", "oil change")</field>
+    <field name="account_types" required="false">Account types mentioned (e.g., ["checking",
+      "IRA", "savings"])</field>
+  </metadata_fields>
 
-      <domain name="insurance"
-        description="All insurance policies and coverage (health, property/casualty, life/disability)">
-        <category name="health">medical, dental, vision insurance policies</category>
-        <category name="property_casualty">homeowners, auto, umbrella liability</category>
-        <category name="life_disability">life insurance, disability insurance, long-term care</category>
-        <category name="other">niche or specialized coverages (pet, travel, specialty policies)</category>
-      </domain>
+  <classification_rules>
+    <rule priority="critical">
+      <title>Domain Selection (STRICT)</title>
+      <description>You MUST choose a domain from the taxonomy above. Domains are fixed and cannot be
+        created. If a document doesn't fit any domain perfectly, choose the closest match based on
+        the document's primary archival purpose.</description>
+      <examples>
+        <example scenario="Scientific research paper" domain="reference" category="research"
+          rationale="Academic/scientific content belongs in reference domain" />
+        <example scenario="Recipe collection" domain="food" category="recipes"
+          rationale="Food-related content has its own domain" />
+        <example scenario="Hobby project documentation" domain="interests"
+          rationale="Personal interests and hobbies belong in interests domain" />
+      </examples>
+    </rule>
 
-      <domain name="legal" description="Identity documents, estate planning, legal agreements">
-        <category name="identity">birth certificates, passports, Social Security cards</category>
-        <category name="estate">wills, trusts, beneficiary designations</category>
-        <category name="agreements">contracts, legal settlements, powers of attorney</category>
-      </domain>
+    <rule priority="high">
+      <title>Category Selection (PREFER EXISTING)</title>
+      <description>First, try to fit the document into an existing category within the chosen domain.
+        If no existing category fits well, you MAY create a new category name that accurately
+        describes the content.</description>
+      <existing_first>Always check if an existing category fits before creating a new one</existing_first>
+      <new_category_rules>
+        <rule>Use lowercase_with_underscores format</rule>
+        <rule>Keep concise: 1-3 words maximum</rule>
+        <rule>Be specific but not overly narrow</rule>
+        <rule>Avoid duplicating existing categories with different wording</rule>
+      </new_category_rules>
+    </rule>
 
-      <domain name="medical"
-        description="Healthcare records, medical expenses, health insurance documentation">
-        <category name="records">medical history, test results, immunizations</category>
-        <category name="expenses">bills, receipts, EOBs</category>
-        <category name="providers">doctor contacts, prescription records</category>
-      </domain>
-
-      <domain name="employment" description="Employment records, compensation, benefits">
-        <category name="compensation">paystubs, bonuses, stock grants</category>
-        <category name="benefits">health benefits, retirement plans, stock options</category>
-        <category name="employment_docs">contracts, offer letters, performance reviews</category>
-      </domain>
-
-      <domain name="utilities" description="Utility bills and services">
-        <category name="energy">electric, gas, solar</category>
-        <category name="communications">phone, internet, cable</category>
-        <category name="water_waste">water, sewer, trash, recycling</category>
-        <category name="security">home security, alarm, and monitoring services</category>
-      </domain>
-
-      <domain name="education" description="Educational records and expenses">
-        <category name="tuition">tuition payments, financial aid</category>
-        <category name="transcripts">academic records, diplomas, certificates</category>
-        <category name="student_loans">loan documents, repayment records</category>
-      </domain>
-    </domains>
-
-    <doctypes>
-      <doctype name="statement">Regular periodic summaries (bank statements, investment statements,
-        credit card statements)</doctype>
-      <doctype name="receipt">Proof of payment for goods or services</doctype>
-      <doctype name="invoice">Bill requesting payment (not yet paid)</doctype>
-      <doctype name="policy">Insurance coverage documents, terms and conditions</doctype>
-      <doctype name="contract">Legal agreements, service agreements</doctype>
-      <doctype name="deed">Property ownership transfer documents</doctype>
-      <doctype name="title">Vehicle or property ownership documents</doctype>
-      <doctype name="return">Tax returns filed with government</doctype>
-      <doctype name="notice">Official communications from institutions</doctype>
-      <doctype name="report">Medical test results, inspection reports, appraisals</doctype>
-      <doctype name="certificate">Official certifications (birth, death, marriage, diplomas)</doctype>
-      <doctype name="form">Standardized forms (W-2, 1099, tax forms)</doctype>
-      <doctype name="letter">Correspondence</doctype>
-      <doctype name="agreement">Legal binding documents, settlements</doctype>
-      <doctype name="confirmation">Transaction confirmations (purchases, trades)</doctype>
-      <doctype name="eob">Explanation of Benefits (insurance)</doctype>
-      <doctype name="record">Historical documentation, medical records</doctype>
-      <doctype name="warranty">Warranty or guarantee documentation for products or services</doctype>
-      <doctype name="manual">User or owner manuals providing detailed usage instructions</doctype>
-      <doctype name="guide">High-level guides, reference booklets, or how-to documents</doctype>
-    </doctypes>
-
-    <metadata>
-      <field name="vendor_raw" required="true">Company, institution, or entity name as it appears in
-        the document (e.g., "Bank of America", "Dr. John Smith", "State Farm Insurance")</field>
-      <field name="date_raw" required="true">Single most relevant date following this priority: (1)
-        Statement/invoice/document date, (2) Transaction/service date, (3) Period ending date, (4)
-        Due date, (5) Generated/printed date. Extract in whatever format it appears (e.g.,
-        "01/31/2025", "January 31, 2025", or "2025-01-31")</field>
-      <field name="subject_raw" required="true">Purpose or subject matter of the document (e.g.,
-        "wire transfer", "annual physical", "kitchen renovation", "oil change")</field>
-      <field name="account_types" required="false">Account types mentioned (e.g., ["checking",
-        "IRA", "savings"])</field>
-    </metadata>
-  </taxonomy>
+    <rule priority="high">
+      <title>Doctype Selection (PREFER EXISTING)</title>
+      <description>First, try to fit the document into an existing doctype from the taxonomy above.
+        If no existing doctype fits well, you MAY create a new doctype that accurately describes
+        the document type.</description>
+      <existing_first>Always check if an existing doctype fits before creating a new one</existing_first>
+      <new_doctype_rules>
+        <rule>Use lowercase_with_underscores format</rule>
+        <rule>Keep concise: 1-2 words maximum</rule>
+        <rule>Use common document terminology (e.g., memo, brochure, checklist)</rule>
+        <rule>Avoid duplicating existing doctypes with different wording</rule>
+      </new_doctype_rules>
+    </rule>
+  </classification_rules>
 
   <guidelines>
     <guideline>Focus on the primary purpose of the document - if a medical receipt could also be a
@@ -115,10 +73,10 @@
     <guideline>Keep vendor names as they appear - standardization will happen in a later step</guideline>
     <guideline>For subject matter, capture the specific purpose to differentiate similar documents
       from same vendor</guideline>
-    <guideline>Distinguish between household (everyday inexpensive items like bedding, plates, small
-      furniture) and major_assets (expensive purchases like high-end appliances, jewelry,
-      collections)</guideline>
-    <guideline>Always choose domain, category, and doctype from the enumerated lists above. When the document uses synonyms or near-duplicate phrases, map them to the closest canonical slug (lowercase with underscores) instead of inventing new values.</guideline>
+    <guideline>When the document uses synonyms or near-duplicate phrases for domains or doctypes,
+      map them to the closest canonical slug (lowercase with underscores)</guideline>
+    <guideline>For categories, prefer existing taxonomy categories but create new ones when no
+      existing category accurately represents the document's content</guideline>
   </guidelines>
 
   <vendor_extraction>

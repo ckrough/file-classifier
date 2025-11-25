@@ -37,8 +37,21 @@ def main() -> None:
     setup_logging(verbosity=args.verbosity)
     logger = logging.getLogger(__name__)
 
-    # Apply naming style override from CLI if provided
+    # Apply taxonomy override from CLI if provided
     from src.config import settings as app_settings
+    from src.taxonomy import set_taxonomy, get_active_taxonomy
+    from src.ai.prompts import clear_prompt_cache
+
+    if getattr(args, "taxonomy", None):
+        set_taxonomy(args.taxonomy)
+        clear_prompt_cache()  # Ensure prompts reload with new taxonomy
+        logger.info("Using taxonomy from CLI: %s", args.taxonomy)
+    else:
+        # Load default taxonomy from settings
+        taxonomy = get_active_taxonomy()
+        logger.info("Using taxonomy from settings: %s (v%s)", taxonomy.name, taxonomy.version)
+
+    # Apply naming style override from CLI if provided
     if getattr(args, "naming_style", None):
         app_settings.NAMING_STYLE = args.naming_style
         logger.info("Using naming style from CLI: %s", args.naming_style)

@@ -30,20 +30,16 @@ FILLER_WORDS = ["a", "and", "of", "the", "to"]
 
 # Taxonomy configuration
 #
-# TAXONOMY_STRICT_MODE controls how unknown domains/categories/doctypes are
-# handled when normalizing metadata into the canonical taxonomy:
-# - True  (default): unknown values raise an error and block path creation.
-# - False: domain must still be known; unknown categories/doctypes fall back
-#          to controlled "other" buckets with warnings.
-TAXONOMY_STRICT_MODE: bool = (
-    os.getenv("TAXONOMY_STRICT_MODE", "true").strip().lower() == "true"
-)
-
-# Optional external taxonomy configuration file (JSON or YAML). When set,
-# the taxonomy module will attempt to load canonical vocabularies from this
-# file, falling back to built-in defaults if loading fails.
-_raw_taxonomy_path = os.getenv("TAXONOMY_CONFIG_PATH", "").strip()
-TAXONOMY_CONFIG_PATH: str | None = _raw_taxonomy_path or None
+# TAXONOMY_NAME specifies which taxonomy to load from the taxonomies/ directory.
+# Default is 'household' which provides a comprehensive taxonomy for organizing
+# personal and household documents. Users can create custom taxonomies (e.g.,
+# 'law_office', 'software_company') and specify them here or via --taxonomy CLI.
+#
+# Taxonomy enforcement:
+# - Domain: STRICT - must exist in taxonomy (no new domains allowed)
+# - Category: FLEXIBLE - prefer existing, but new categories are allowed
+# - Doctype: FLEXIBLE - prefer existing, but new doctypes are allowed
+TAXONOMY_NAME: str = os.getenv("TAXONOMY_NAME", "household").strip()
 
 # Content Extraction Configuration for Performance Tuning
 # These settings control how much content is extracted and sent to AI for classification

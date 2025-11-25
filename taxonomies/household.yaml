@@ -1,0 +1,448 @@
+# Household Taxonomy
+# A taxonomy for organizing personal and household documents.
+# This is the default taxonomy for the file-classifier application.
+
+name: household
+version: "1.0"
+description: >
+  A comprehensive taxonomy for organizing personal and household documents,
+  including financial records, property documents, insurance policies,
+  legal documents, medical records, and more.
+
+domains:
+  - name: financial
+    description: "Core financial instruments and accounts (banking, investments, credit, retirement, tax)"
+    categories:
+      - name: banking
+        description: "checking, savings, money market accounts, statements, check images"
+      - name: credit
+        description: "credit cards, reports, disputes, scores"
+      - name: investments
+        description: "brokerage, securities, dividends"
+      - name: retirement
+        description: "401k, IRA, pension, social security"
+      - name: loans
+        description: "personal, auto, HELOC, promissory notes"
+      - name: mortgage
+        description: "loan documents, escrow, refinancing, payoff"
+      - name: taxes
+        description: "returns, W-2s, 1099s, IRS correspondence"
+
+  - name: property
+    description: "Real and personal property ownership (real estate, vehicles, valuables)"
+    categories:
+      - name: real_estate
+        description: "deeds, titles, surveys, closing documents"
+      - name: vehicles
+        description: "titles, registration, maintenance logs"
+      - name: valuables
+        description: "appraisals, inventories, serial numbers"
+      - name: hoa
+        description: "governing documents, assessments, correspondence"
+      - name: home_improvement
+        description: "repairs, renovations, maintenance, contractors, warranties"
+
+  - name: insurance
+    description: "All insurance policies and coverage"
+    categories:
+      - name: health
+        description: "policies, cards, pre-authorizations"
+      - name: auto
+        description: "policies, declarations, claims"
+      - name: homeowners
+        description: "policies, endorsements, claims"
+      - name: renters
+        description: "policies, inventory documentation"
+      - name: life
+        description: "policies, beneficiary designations"
+      - name: disability
+        description: "short-term, long-term policies"
+      - name: umbrella
+        description: "liability coverage, policies"
+
+  - name: legal
+    description: "Identity documents, estate planning, legal agreements"
+    categories:
+      - name: identity
+        description: "passports, birth certificates, SSN cards, licenses"
+      - name: estate_planning
+        description: "wills, trusts, powers of attorney, directives"
+      - name: contracts
+        description: "agreements, leases, settlements, signed terms"
+      - name: disputes
+        description: "litigation, complaints, correspondence"
+      - name: compliance
+        description: "filings, registrations, required disclosures"
+
+  - name: medical
+    description: "Healthcare records, medical expenses, health insurance documentation"
+    categories:
+      - name: records
+        description: "history, test results, imaging, immunizations"
+      - name: providers
+        description: "physician contacts, facility information"
+      - name: prescriptions
+        description: "medications, pharmacy records, refills"
+      - name: billing
+        description: "invoices, EOBs, payment records, HSA receipts"
+      - name: research
+        description: "articles, reports, clippings, notes"
+
+  - name: employment
+    description: "Employment records, compensation, benefits"
+    categories:
+      - name: current_position
+        description: "offer letters, contracts, handbooks"
+      - name: compensation
+        description: "pay stubs, bonuses, equity grants"
+      - name: benefits
+        description: "enrollment, plan documents, open enrollment"
+      - name: performance
+        description: "reviews, promotions, awards, feedback"
+      - name: job_search
+        description: "applications, resumes, cover letters, offers"
+      - name: self_employment
+        description: "consulting agreements, clients, invoices"
+
+  - name: education
+    description: "Educational records and expenses"
+    categories:
+      - name: academic_records
+        description: "transcripts, diplomas, certifications"
+      - name: tuition
+        description: "bills, financial aid, 529 plans"
+      - name: student_loans
+        description: "promissory notes, servicer correspondence"
+      - name: professional_development
+        description: "training, continuing education, licenses"
+
+  - name: utilities
+    description: "Utility bills and services"
+    categories:
+      - name: energy
+        description: "electric, gas, solar, fuel delivery"
+      - name: communications
+        description: "internet, phone, cable"
+      - name: water_waste
+        description: "water, sewer, trash, septic"
+      - name: security
+        description: "alarm, monitoring, cameras"
+      - name: subscriptions
+        description: "streaming, software, memberships, publications"
+
+  - name: family
+    description: "Family records, milestones, and correspondence"
+    categories:
+      - name: vital_records
+        description: "birth, marriage, death, divorce, adoption"
+      - name: genealogy
+        description: "family history, DNA results, ancestry"
+      - name: correspondence
+        description: "significant letters, cards, communications"
+      - name: milestones
+        description: "achievements, awards, recognitions, keepsakes"
+
+  - name: pets
+    description: "Pet ownership, care, and veterinary records"
+    categories:
+      - name: veterinary
+        description: "medical records, vaccinations, procedures"
+      - name: registration
+        description: "licenses, microchip, pedigree"
+      - name: insurance
+        description: "policies, claims"
+
+  - name: products
+    description: "Product documentation, warranties, and receipts"
+    categories:
+      - name: manuals
+        description: "instruction guides, setup documentation"
+      - name: warranties
+        description: "terms, registration, claims, receipts"
+      - name: receipts
+        description: "major purchases, proof of ownership"
+
+  - name: projects
+    description: "Project planning and documentation"
+    categories:
+      - name: home_improvement
+        description: "plans, permits, bids, contractor invoices"
+      - name: travel
+        description: "itineraries, reservations, maps, trip records"
+      - name: events
+        description: "weddings, parties, gatherings, planning docs"
+      - name: housing_search
+        description: "listings, applications, inspections, comparisons"
+
+  - name: reference
+    description: "General reference materials and knowledge documents"
+    categories:
+      - name: guides
+        description: "how-to, tutorials, procedures"
+      - name: research
+        description: "articles, reports, clippings, notes"
+      - name: professional
+        description: "domain-specific knowledge, standards, best practices"
+
+  - name: interests
+    description: "Personal hobbies and interests"
+    categories:
+      - name: technical
+        description: "AI, computers, software engineering, radio, privacy"
+      - name: outdoor
+        description: "hiking, overlanding, boating, archery, astronomy"
+      - name: creative
+        description: "woodworking, writing, cartography"
+      - name: science
+        description: "biology, neuroscience"
+      - name: recreation
+        description: "gaming, cars, quad"
+      - name: civic
+        description: "volunteering, politics"
+
+  - name: food
+    description: "Food, recipes, and meal planning"
+    categories:
+      - name: recipes
+        description: "individual dishes, collections, adaptations"
+      - name: meal_plans
+        description: "weekly plans, dietary programs, shopping lists"
+
+  - name: source_code
+    description: "Source code, programming artifacts, and development documents"
+    categories:
+      - name: projects
+        description: "repositories, applications, scripts"
+      - name: snippets
+        description: "reusable code, templates, examples"
+      - name: documentation
+        description: "READMEs, architecture notes, API docs"
+
+doctypes:
+  - name: statement
+    description: "Regular periodic summaries (bank statements, investment statements, credit card statements)"
+  - name: receipt
+    description: "Proof of payment for goods or services"
+  - name: invoice
+    description: "Bill requesting payment (not yet paid)"
+  - name: policy
+    description: "Insurance coverage documents, terms and conditions"
+  - name: contract
+    description: "Legal agreements, service agreements"
+  - name: deed
+    description: "Property ownership transfer documents"
+  - name: title
+    description: "Vehicle or property ownership documents"
+  - name: return
+    description: "Tax returns filed with government"
+  - name: notice
+    description: "Official communications from institutions"
+  - name: report
+    description: "Medical test results, inspection reports, appraisals, research articles"
+  - name: certificate
+    description: "Official certifications (birth, death, marriage, diplomas)"
+  - name: form
+    description: "Standardized forms (W-2, 1099, tax forms)"
+  - name: letter
+    description: "Correspondence"
+  - name: agreement
+    description: "Legal binding documents, settlements"
+  - name: confirmation
+    description: "Transaction confirmations (purchases, trades)"
+  - name: eob
+    description: "Explanation of Benefits (insurance)"
+  - name: record
+    description: "Historical documentation, medical records"
+  - name: warranty
+    description: "Warranty or guarantee documentation for products or services"
+  - name: manual
+    description: "User or owner manuals providing detailed usage instructions"
+  - name: guide
+    description: "High-level guides, reference booklets, or how-to documents"
+
+aliases:
+  domains:
+    # Financial variations
+    finances: financial
+    finance: financial
+    tax: financial
+    # Property variations
+    real_estate: property
+    housing: property
+    household: property
+    # Medical variations
+    healthcare: medical
+    health: medical
+    # Employment/career variations
+    career: employment
+    # Source code variations
+    code: source_code
+    # Interests/lifestyle variations
+    lifestyle: interests
+    # Projects/productivity variations
+    productivity: projects
+    # Scientific/academic -> reference
+    "scientific/academic": reference
+    scientific_academic: reference
+    scientific: reference
+    academic: reference
+
+  categories:
+    # Property / home improvement variants
+    - domain: property
+      alias: home_repairs
+      canonical: home_improvement
+    - domain: property
+      alias: repairs
+      canonical: home_improvement
+    - domain: property
+      alias: remodeling
+      canonical: home_improvement
+    - domain: property
+      alias: renovation
+      canonical: home_improvement
+    - domain: property
+      alias: renovations
+      canonical: home_improvement
+    - domain: property
+      alias: contractors
+      canonical: home_improvement
+    # Property HOA variants
+    - domain: property
+      alias: hoa_docs
+      canonical: hoa
+    - domain: property
+      alias: homeowners_association
+      canonical: hoa
+    # Property -> valuables
+    - domain: property
+      alias: major_assets
+      canonical: valuables
+    - domain: property
+      alias: household
+      canonical: valuables
+    # Projects / home improvement variants
+    - domain: projects
+      alias: home_repairs
+      canonical: home_improvement
+    - domain: projects
+      alias: repairs
+      canonical: home_improvement
+    - domain: projects
+      alias: remodeling
+      canonical: home_improvement
+    - domain: projects
+      alias: renovation
+      canonical: home_improvement
+    - domain: projects
+      alias: renovations
+      canonical: home_improvement
+    - domain: projects
+      alias: contractors
+      canonical: home_improvement
+    # Utilities / communications variants
+    - domain: utilities
+      alias: cable_tv
+      canonical: communications
+    - domain: utilities
+      alias: internet
+      canonical: communications
+    - domain: utilities
+      alias: phone
+      canonical: communications
+    # Financial account groupings
+    - domain: financial
+      alias: checking_accounts
+      canonical: banking
+    - domain: financial
+      alias: savings_accounts
+      canonical: banking
+    - domain: financial
+      alias: credit_cards
+      canonical: credit
+    - domain: financial
+      alias: investment_accounts
+      canonical: investments
+    - domain: financial
+      alias: retirement_accounts
+      canonical: retirement
+    - domain: financial
+      alias: tax
+      canonical: taxes
+    - domain: financial
+      alias: investment
+      canonical: investments
+    # Financial shopping -> products/receipts
+    - domain: financial
+      alias: grocery_shopping
+      canonical: banking
+    - domain: financial
+      alias: groceries
+      canonical: banking
+    - domain: financial
+      alias: retail
+      canonical: banking
+    - domain: financial
+      alias: shopping
+      canonical: banking
+    # Education legacy categories
+    - domain: education
+      alias: transcripts
+      canonical: academic_records
+    # Medical health information -> records
+    - domain: medical
+      alias: health_information
+      canonical: records
+    - domain: medical
+      alias: expenses
+      canonical: billing
+    # Insurance variations
+    - domain: insurance
+      alias: property_casualty
+      canonical: homeowners
+    - domain: insurance
+      alias: life_disability
+      canonical: life
+    # Legal variations
+    - domain: insurance
+      alias: estate
+      canonical: estate_planning
+    - domain: legal
+      alias: estate
+      canonical: estate_planning
+    - domain: legal
+      alias: agreements
+      canonical: contracts
+    # Employment variations
+    - domain: employment
+      alias: employment_docs
+      canonical: current_position
+    # Reference variations
+    - domain: reference
+      alias: misc
+      canonical: guides
+    - domain: reference
+      alias: "article/research"
+      canonical: research
+
+  doctypes:
+    bill: invoice
+    billing_statement: statement
+    billing: invoice
+    explanation_of_benefits: eob
+    policy_document: policy
+    insurance_policy: policy
+    user_guide: guide
+    owner_guide: guide
+    owners_manual: manual
+    owner_manual: manual
+    training_manual: manual
+    home_warranty_card: warranty
+    service_contract: contract
+    service_agreement: agreement
+    appointment_letter: letter
+    tax_return: return
+    article: report
+    paper: report
+    research_paper: report
+    publication: report
