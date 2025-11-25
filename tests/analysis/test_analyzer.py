@@ -2,18 +2,27 @@
 
 from unittest.mock import patch, Mock, ANY
 import pytest
+
 from src.analysis.analyzer import analyze_file_content
 from src.analysis.models import RawMetadata, NormalizedMetadata
+from src.files.langchain_loader import LoaderMetadata
 from src.path.builder import PathMetadata
 
 
 @pytest.mark.unit
-@patch("src.analysis.analyzer.extract_text_from_txt")
+@patch("src.analysis.analyzer.load_txt_text_with_langchain")
 @patch("src.analysis.analyzer.process_document_multi_agent")
-def test_analyze_file_content_txt(mock_multi_agent, mock_extract_txt):
+def test_analyze_file_content_txt(mock_multi_agent, mock_load_txt):
     """Test analyze_file_content with a .txt file using multi-agent pipeline."""
     # Setup mocks for the .txt file
-    mock_extract_txt.return_value = "Sample text content."
+    mock_loader_meta = LoaderMetadata(
+        file_type="txt",
+        loader="TextLoader",
+        page_count=None,
+        pages_sampled=[],
+        char_count=len("Sample text content."),
+    )
+    mock_load_txt.return_value = ("Sample text content.", mock_loader_meta)
 
     # Mock the multi-agent pipeline response (now returns tuple)
     mock_raw = RawMetadata(
@@ -59,19 +68,31 @@ def test_analyze_file_content_txt(mock_multi_agent, mock_extract_txt):
         == "financial/banking/statement/statement-acme-checking-20231001.txt"
     )
 
-    mock_extract_txt.assert_called_once_with("docs/user_guide.txt", ANY)
+    # Loader metadata should be attached
+    loader_meta = result["loader_metadata"]
+    assert loader_meta.file_type == "txt"
+    assert loader_meta.loader == "TextLoader"
+
+    mock_load_txt.assert_called_once_with("docs/user_guide.txt", ANY)
     mock_multi_agent.assert_called_once_with(
         "Sample text content.", "user_guide.txt", mock_ai_client
     )
 
 
 @pytest.mark.unit
-@patch("src.analysis.analyzer.extract_text_from_pdf")
+@patch("src.analysis.analyzer.load_pdf_text_with_langchain")
 @patch("src.analysis.analyzer.process_document_multi_agent")
-def test_analyze_file_content_pdf(mock_multi_agent, mock_extract_pdf):
+def test_analyze_file_content_pdf(mock_multi_agent, mock_load_pdf):
     """Test analyze_file_content with a .pdf file using multi-agent pipeline."""
     # Setup mocks for the .pdf file
-    mock_extract_pdf.return_value = "Sample PDF content."
+    mock_loader_meta = LoaderMetadata(
+        file_type="pdf",
+        loader="PyPDFLoader",
+        page_count=3,
+        pages_sampled=[0, 1, 2],
+        char_count=len("Sample PDF content."),
+    )
+    mock_load_pdf.return_value = ("Sample PDF content.", mock_loader_meta)
 
     # Mock the multi-agent pipeline response (now returns tuple)
     mock_raw = RawMetadata(
@@ -115,30 +136,41 @@ def test_analyze_file_content_pdf(mock_multi_agent, mock_extract_pdf):
         == "financial/banking/statement/statement-chase-savings-20230115.pdf"
     )
 
-    mock_extract_pdf.assert_called_once_with("docs/report.pdf", ANY)
+    loader_meta = result["loader_metadata"]
+    assert loader_meta.file_type == "pdf"
+    assert loader_meta.loader == "PyPDFLoader"
+
+    mock_load_pdf.assert_called_once_with("docs/report.pdf", ANY)
     mock_multi_agent.assert_called_once_with(
         "Sample PDF content.", "report.pdf", mock_ai_client
     )
 
 
 @pytest.mark.unit
-@patch("src.analysis.analyzer.extract_text_from_txt")
-def test_analyze_file_content_extraction_failure(mock_extract_txt):
+@patch("src.analysis.analyzer.load_txt_text_with_langchain")
+def test_analyze_file_content_extraction_failure(mock_load_txt):
     """Test that analyze_file_content raises RuntimeError on extraction failure."""
-    mock_extract_txt.return_value = None
+    mock_load_txt.return_value = (None, None)
     mock_ai_client = Mock()
     with pytest.raises(RuntimeError) as exc_info:
         analyze_file_content(file_path="docs/invalid.txt", client=mock_ai_client)
     assert "Failed to extract content" in str(exc_info.value)
-    mock_extract_txt.assert_called_once_with("docs/invalid.txt", ANY)
+    mock_load_txt.assert_called_once_with("docs/invalid.txt", ANY)
 
 
 @pytest.mark.unit
-@patch("src.analysis.analyzer.extract_text_from_pdf")
+@patch("src.analysis.analyzer.load_pdf_text_with_langchain")
 @patch("src.analysis.analyzer.process_document_multi_agent")
-def test_analyze_file_content_complex_filename(mock_multi_agent, mock_extract_pdf):
+def test_analyze_file_content_complex_filename(mock_multi_agent, mock_load_pdf):
     """Test parsing of complex multi-part filenames."""
-    mock_extract_pdf.return_value = "Invoice content"
+    mock_loader_meta = LoaderMetadata(
+        file_type="pdf",
+        loader="PyPDFLoader",
+        page_count=1,
+        pages_sampled=[0],
+        char_count=len("Invoice content"),
+    )
+    mock_load_pdf.return_value = ("Invoice content", mock_loader_meta)
 
     # Mock response with complex filename (multi-word description)
     mock_raw = RawMetadata(
@@ -181,13 +213,24 @@ def test_analyze_file_content_complex_filename(mock_multi_agent, mock_extract_pd
         == "financial/banking/invoice/invoice-bofa-wire_transfer_fee-20240315.pdf"
     )
 
+    loader_meta = result["loader_metadata"]
+    assert loader_meta.file_type == "pdf"
+    assert loader_meta.loader == "PyPDFLoader"
+
 
 @pytest.mark.unit
-@patch("src.analysis.analyzer.extract_text_from_pdf")
+@patch("src.analysis.analyzer.load_pdf_text_with_langchain")
 @patch("src.analysis.analyzer.process_document_multi_agent")
-def test_analyze_file_content_no_date(mock_multi_agent, mock_extract_pdf):
+def test_analyze_file_content_no_date(mock_multi_agent, mock_load_pdf):
     """Test parsing of filename without date."""
-    mock_extract_pdf.return_value = "Document content"
+    mock_loader_meta = LoaderMetadata(
+        file_type="pdf",
+        loader="PyPDFLoader",
+        page_count=1,
+        pages_sampled=[0],
+        char_count=len("Document content"),
+    )
+    mock_load_pdf.return_value = ("Document content", mock_loader_meta)
 
     # Mock response without date in filename
     mock_raw = RawMetadata(
@@ -229,3 +272,7 @@ def test_analyze_file_content_no_date(mock_multi_agent, mock_extract_pdf):
         result["destination_relative_path"]
         == "legal/contracts/agreement/agreement-vendor_name-service.pdf"
     )
+
+    loader_meta = result["loader_metadata"]
+    assert loader_meta.file_type == "pdf"
+    assert loader_meta.loader == "PyPDFLoader"

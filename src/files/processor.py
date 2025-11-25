@@ -39,8 +39,8 @@ class ProcessingOptions:
 
 
 class PathResult(TypedDict):
-    """
-    Result structure containing file classification metadata and suggested path.
+    """Result structure containing file classification metadata, loader details,
+    and the suggested path.
 
     Attributes:
         original: Original file path
@@ -51,6 +51,11 @@ class PathResult(TypedDict):
         vendor: Standardized vendor name
         date: Date in YYYYMMDD format
         subject: Brief subject/description
+        file_type: Logical file type used by the loader (e.g., "pdf", "txt").
+        loader: Name of the loader implementation (e.g., "PyPDFLoader").
+        page_count: Total number of pages (for paged formats), if known.
+        pages_sampled: Indices of pages that were actually used for extraction.
+        char_count: Number of characters in the extracted content string.
     """
 
     original: str
@@ -61,6 +66,11 @@ class PathResult(TypedDict):
     vendor: str
     date: str
     subject: str
+    file_type: str
+    loader: str
+    page_count: Optional[int]
+    pages_sampled: list[int]
+    char_count: int
 
 
 __all__ = ["process_file", "PathResult", "ProcessingOptions"]
@@ -149,7 +159,9 @@ def process_file(
             full_path = result["destination_relative_path"]
             logger.info("  → Suggested: %s", full_path)
 
-            # Return path result with full metadata
+            loader_meta = result["loader_metadata"]
+
+            # Return path result with full metadata (including loader details)
             return PathResult(
                 original=file_path,
                 suggested_path=full_path,
@@ -159,6 +171,11 @@ def process_file(
                 vendor=result["vendor"],
                 date=result["date"],
                 subject=result["description"],
+                file_type=loader_meta.file_type,
+                loader=loader_meta.loader,
+                page_count=loader_meta.page_count,
+                pages_sampled=loader_meta.pages_sampled,
+                char_count=loader_meta.char_count,
             )
 
         logger.error(
