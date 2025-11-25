@@ -54,8 +54,11 @@ def main() -> None:
 
     try:
         # Initialize the AI client using factory function
-        # The factory will read AI_PROVIDER from .env to determine which provider to use
-        client: AIClient = create_ai_client()
+        # CLI arguments (if provided) override environment-based AI configuration
+        client: AIClient = create_ai_client(
+            provider=getattr(args, "ai_provider", None),
+            model=getattr(args, "ai_model", None),
+        )
 
         # Create extraction config from CLI args (if provided) or env vars
         extraction_config = None

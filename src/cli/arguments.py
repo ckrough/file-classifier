@@ -8,6 +8,8 @@ provided by the user.
 import argparse
 import logging
 
+from src.ai.client import AIProvider
+
 __all__ = ["parse_arguments"]
 
 logger = logging.getLogger(__name__)
@@ -91,6 +93,33 @@ jq examples (jq required: brew install jq):
         help=(
             "Select naming style: 'compact_gpo' (default) or 'descriptive_nara'. "
             "If omitted, uses NAMING_STYLE env var or defaults to compact_gpo."
+        ),
+    )
+
+    # AI configuration
+    ai_group = parser.add_argument_group(
+        "AI configuration",
+        description=(
+            "Configure AI provider and model. Overrides AI_PROVIDER/AI_MODEL/OLLAMA_MODEL "
+            "environment variables for this run."
+        ),
+    )
+    ai_group.add_argument(
+        "--ai-provider",
+        type=str,
+        choices=[p.value for p in AIProvider],
+        help=(
+            "Select AI provider (overrides AI_PROVIDER env var). "
+            "Supported providers: "
+            + ", ".join(sorted(p.value for p in AIProvider))
+        ),
+    )
+    ai_group.add_argument(
+        "--ai-model",
+        type=str,
+        help=(
+            "Override AI model for the selected provider "
+            "(overrides AI_MODEL or OLLAMA_MODEL env vars)."
         ),
     )
 

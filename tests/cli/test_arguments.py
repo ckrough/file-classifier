@@ -165,3 +165,25 @@ def test_get_user_arguments_full_extraction() -> None:
     assert (
         args.extraction_strategy == "full"
     ), "extraction_strategy should be 'full' when --full-extraction is set"
+
+
+@pytest.mark.unit
+@pytest.mark.usefixtures("clear_sys_argv")
+def test_get_user_arguments_ai_provider_and_model() -> None:
+    """Test that --ai-provider and --ai-model flags are correctly parsed."""
+    test_path = "some/path"
+    sys.argv = [
+        "script.py",
+        test_path,
+        "--ai-provider",
+        "ollama",
+        "--ai-model",
+        "deepseek-r1:latest",
+    ]
+
+    args = get_user_arguments()
+
+    assert args.ai_provider == "ollama", "ai_provider should be 'ollama'"
+    assert (
+        args.ai_model == "deepseek-r1:latest"
+    ), "ai_model should be 'deepseek-r1:latest'"

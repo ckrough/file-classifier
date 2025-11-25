@@ -118,3 +118,50 @@ def test_create_ai_client_ollama_defaults(mock_getenv):
         call_kwargs = mock_ollama.call_args.kwargs
         assert call_kwargs["base_url"] == "http://localhost:11434"  # Default
         assert call_kwargs["model"] == "deepseek-r1:latest"  # Default
+
+
+@pytest.mark.unit
+@patch("src.ai.client.os.getenv")
+def test_create_ai_client_explicit_provider_overrides_env(mock_getenv):
+    """Test that explicit provider parameter overrides AI_PROVIDER env var."""
+
+    def side_effect(key, default=None):
+        if key == "AI_PROVIDER":
+            return "openai"  # Should be ignored when provider is passed explicitly
+        if key == "OLLAMA_BASE_URL":
+            return default
+        if key == "OLLAMA_MODEL":
+            return default
+        return default
+
+    mock_getenv.side_effect = side_effect
+
+    with patch("src.ai.client.ChatOllama") as mock_ollama:
+        client = create_ai_client(provider="ollama")
+        assert isinstance(client, LangChainClient)
+        assert client.provider == "ollama"
+        mock_ollama.assert_called_once()
+
+
+@pytest.mark.unit
+@patch("src.ai.client.os.getenv")
+def test_create_ai_client_explicit_model_overrides_env(mock_getenv):
+    """Test that explicit model parameter overrides AI_MODEL env var."""
+
+    def side_effect(key, default=None):
+        if key == "AI_PROVIDER":
+            return "openai"
+        if key == "OPENAI_API_KEY":
+            return "sk-test_api_key_1234567890"
+        if key == "AI_MODEL":
+            return "gpt-3.5-turbo"  # Should be ignored when model is passed explicitly
+        return default
+
+    mock_getenv.side_effect = side_effect
+
+    with patch("src.ai.client.ChatOpenAI") as mock_openai:
+        client = create_ai_client(provider="openai", model="gpt-4o")
+        assert isinstance(client, LangChainClient)
+        mock_openai.assert_called_once()
+        call_kwargs = mock_openai.call_args.kwargs
+        assert call_kwargs["model"] == "gpt-4o"  # Explicit model should win over env
