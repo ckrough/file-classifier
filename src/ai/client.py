@@ -155,6 +155,13 @@ class LangChainClient(AIClient):
         self.provider = provider.lower()
         self.llm = self._initialize_llm(model, api_key, base_url, **kwargs)
 
+        # Attempt to capture the resolved model name from the underlying LLM
+        # Different LangChain chat models expose this slightly differently
+        self.model_name = (
+            getattr(self.llm, "model_name", None)
+            or getattr(self.llm, "model", None)
+        )
+
         # Cache for structured output chains by schema class
         self._schema_cache: dict[type[BaseModel], Any] = {}
 
@@ -174,8 +181,15 @@ class LangChainClient(AIClient):
         # Legacy property for backward compatibility
         self.structured_llm = self._schema_cache[Analysis]
 
-        # Log successful initialization at INFO level
-        logger.info("AI client initialized with provider: %s", self.provider)
+        # Log successful initialization at INFO level, including model when available
+        if self.model_name:
+            logger.info(
+                "AI client initialized with provider: %s, model: %s",
+                self.provider,
+                self.model_name,
+            )
+        else:
+            logger.info("AI client initialized with provider: %s", self.provider)
 
     def _initialize_llm(
         self,
