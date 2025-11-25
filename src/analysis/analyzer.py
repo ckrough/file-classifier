@@ -3,6 +3,7 @@ File content analysis and metadata extraction.
 
 This module coordinates the analysis workflow using the multi-agent pipeline
 for document processing with a 2-agent system for intelligent file classification.
+File content is loaded via LangChain-based document loaders before analysis.
 """
 
 import logging
@@ -10,10 +11,11 @@ import os
 from typing import Optional, TypedDict
 
 from src.ai.client import AIClient
-from src.files.extractors import (
-    extract_text_from_pdf,
-    extract_text_from_txt,
-    ExtractionConfig,
+from src.files.extractors import ExtractionConfig
+from src.files.langchain_loader import (
+    load_pdf_text_with_langchain,
+    load_txt_text_with_langchain,
+    LoaderMetadata,
 )
 from src.agents.pipeline import process_document_multi_agent
 
@@ -23,8 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 class AnalysisResult(TypedDict):
-    """
-    Result of file content analysis.
+    """Result of file content analysis.
 
     Attributes:
         suggested_name: Suggested basename for the file
@@ -35,6 +36,8 @@ class AnalysisResult(TypedDict):
         description: Brief description or subject
         date: Date in YYYYMMDD format
         destination_relative_path: Full path relative to archive root
+        loader_metadata: Information about how the document was loaded
+            (file type, pages sampled, char count, etc.).
     """
 
     suggested_name: str
@@ -45,6 +48,7 @@ class AnalysisResult(TypedDict):
     description: str
     date: str
     destination_relative_path: str
+    loader_metadata: LoaderMetadata
 
 
 def analyze_file_content(
@@ -90,13 +94,18 @@ def analyze_file_content(
                 extraction_config.max_chars,
             )
 
-        # Extract content based on file type
+        # Extract content based on file type using LangChain loaders
+        loader_meta: Optional[LoaderMetadata]
         if file_path.lower().endswith(".pdf"):
-            content: Optional[str] = extract_text_from_pdf(file_path, extraction_config)
+            content, loader_meta = load_pdf_text_with_langchain(
+                file_path, extraction_config
+            )
         else:
-            content: Optional[str] = extract_text_from_txt(file_path, extraction_config)
+            content, loader_meta = load_txt_text_with_langchain(
+                file_path, extraction_config
+            )
 
-        if content is None:
+        if content is None or loader_meta is None:
             raise ValueError(f"Failed to extract content from file: {file_path}")
 
         filename = os.path.basename(file_path)
@@ -133,6 +142,7 @@ def analyze_file_content(
             description=normalized.subject,
             date=normalized.date,
             destination_relative_path=destination_relative_path,
+            loader_metadata=loader_meta,
         )
 
     except ValueError as e:
