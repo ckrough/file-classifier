@@ -21,9 +21,10 @@ from src.analysis.models import (
     RawMetadata,
     NormalizedMetadata,
 )
+from src.config import settings
+from src.taxonomy import canonical_domain, canonical_category, canonical_doctype
 
 __all__ = ["process_document_multi_agent"]
-
 logger = logging.getLogger(__name__)
 
 
@@ -83,7 +84,7 @@ def process_document_multi_agent(
         step_elapsed = time.perf_counter() - step_start
 
         logger.info(
-            "  → Standardization complete (%.2fs): vendor=%s, date=%s, subject=%s",
+            "   Standardization complete (%.2fs): vendor=%s, date=%s, subject=%s",
             step_elapsed,
             normalized.vendor_name,
             normalized.date,
@@ -104,15 +105,79 @@ def process_document_multi_agent(
                 f"Document may be unreadable, corrupted, or missing vendor information."
             )
 
+        # Taxonomy normalization for domain/category/doctype
+        strict_mode = getattr(settings, "TAXONOMY_STRICT_MODE", True)
+
+        raw_domain = normalized.domain
+        raw_category = normalized.category
+        raw_doctype = normalized.doctype
+
+        canonical_dom = canonical_domain(raw_domain)
+        if not canonical_dom:
+            # Domain is the top-level partition; even in fallback we do not allow
+            # unknown domains to create new branches.
+            raise ValueError(
+                "Taxonomy validation failed: unknown domain "
+                f"'{raw_domain}' for document '{filename}'"
+            )
+
+        canonical_cat = canonical_category(canonical_dom, raw_category)
+        canonical_doc = canonical_doctype(raw_doctype)
+
+        errors: list[str] = []
+
+        if canonical_cat is None:
+            if strict_mode:
+                errors.append(
+                    f"unknown category '{raw_category}' for domain '{canonical_dom}'"
+                )
+            else:
+                logger.warning(
+                    "Taxonomy fallback: mapping unknown category '%s' in domain '%s' to 'other'",
+                    raw_category,
+                    canonical_dom,
+                )
+                canonical_cat = "other"
+
+        if canonical_doc is None:
+            if strict_mode:
+                errors.append(f"unknown doctype '{raw_doctype}'")
+            else:
+                logger.warning(
+                    "Taxonomy fallback: mapping unknown doctype '%s' to 'other'",
+                    raw_doctype,
+                )
+                canonical_doc = "other"
+
+        if errors:
+            raise ValueError(
+                "Taxonomy validation failed: " + "; ".join(errors) + f" for '{filename}'"
+            )
+
+        if (
+            canonical_dom != raw_domain.lower()
+            or canonical_cat != raw_category.lower()
+            or canonical_doc != raw_doctype.lower()
+        ):
+            logger.info(
+                "   Taxonomy canonicalization: %s/%s/%s  %s/%s/%s",
+                raw_domain,
+                raw_category,
+                raw_doctype,
+                canonical_dom,
+                canonical_cat,
+                canonical_doc,
+            )
+
         # Deterministic path building (no AI, no API call)
         logger.info("Building filesystem path (deterministic, no AI)...")
         step_start = time.perf_counter()
         file_extension = os.path.splitext(filename)[1]
 
         path_metadata: PathMetadata = build_path(
-            domain=normalized.domain,
-            category=normalized.category,
-            doctype=normalized.doctype,
+            domain=canonical_dom,
+            category=canonical_cat,
+            doctype=canonical_doc,
             vendor_name=normalized.vendor_name,
             subject=normalized.subject,
             date=normalized.date,

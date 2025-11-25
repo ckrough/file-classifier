@@ -48,6 +48,89 @@
     </input_validation>
   </critical_requirements>
 
+  <taxonomy>
+    <domains>
+      <domain name="financial">
+        <category>banking</category>
+        <category>credit</category>
+        <category>investment</category>
+        <category>retirement</category>
+        <category>loans</category>
+        <category>mortgage</category>
+        <category>tax</category>
+      </domain>
+      <domain name="property">
+        <category>real_estate</category>
+        <category>vehicles</category>
+        <category>major_assets</category>
+        <category>household</category>
+        <category>home_improvement</category>
+      </domain>
+      <domain name="insurance">
+        <category>health</category>
+        <category>property_casualty</category>
+        <category>life_disability</category>
+        <category>other</category>
+      </domain>
+      <domain name="legal">
+        <category>identity</category>
+        <category>estate</category>
+        <category>agreements</category>
+        <category>compliance</category>
+      </domain>
+      <domain name="medical">
+        <category>records</category>
+        <category>expenses</category>
+        <category>providers</category>
+      </domain>
+      <domain name="employment">
+        <category>compensation</category>
+        <category>benefits</category>
+        <category>employment_docs</category>
+      </domain>
+      <domain name="utilities">
+        <category>energy</category>
+        <category>communications</category>
+        <category>water_waste</category>
+        <category>security</category>
+      </domain>
+      <domain name="education">
+        <category>tuition</category>
+        <category>transcripts</category>
+        <category>student_loans</category>
+      </domain>
+    </domains>
+
+    <doctypes>
+      <doctype>statement</doctype>
+      <doctype>receipt</doctype>
+      <doctype>invoice</doctype>
+      <doctype>policy</doctype>
+      <doctype>contract</doctype>
+      <doctype>deed</doctype>
+      <doctype>title</doctype>
+      <doctype>return</doctype>
+      <doctype>notice</doctype>
+      <doctype>report</doctype>
+      <doctype>certificate</doctype>
+      <doctype>form</doctype>
+      <doctype>letter</doctype>
+      <doctype>agreement</doctype>
+      <doctype>confirmation</doctype>
+      <doctype>eob</doctype>
+      <doctype>record</doctype>
+      <doctype>warranty</doctype>
+      <doctype>manual</doctype>
+      <doctype>guide</doctype>
+    </doctypes>
+
+    <rules>
+      <rule>domain, category, and doctype MUST be drawn from the canonical slugs above (lowercase, underscores).</rule>
+      <rule>Preserve domain and category from the Classification Agent only if they are already canonical; otherwise, map synonyms and near-duplicates into the closest canonical value instead of inventing new ones.</rule>
+      <rule>When input contains an obviously valid value that differs only in casing, spacing, or hyphens, normalize to the matching canonical slug.</rule>
+    </rules>
+  </taxonomy>
+
   <standards>
     <vendor_standardization>
       <semantic_rules>
@@ -242,6 +325,7 @@
         <mapping input="Policy Document" output="policy"/>
         <mapping input="Agreement Document" output="contract" alternate="agreement"/>
       </mappings>
+      <note>Always emit doctype as one of the canonical values from the taxonomy list above.</note>
     </doctype_standardization>
   </standards>
 
@@ -325,7 +409,7 @@
     <example>
       <input>
         <domain>legal</domain>
-        <category>contracts</category>
+        <category>agreements</category>
         <vendor_raw>Johnson, Smith &amp; Associates</vendor_raw>
         <date_raw>June 15, 2024</date_raw>
         <subject_raw>Employment Agreement Draft 2</subject_raw>
@@ -333,7 +417,7 @@
       </input>
       <output>
         <domain>legal</domain>
-        <category>contracts</category>
+        <category>agreements</category>
         <doctype>contract</doctype>
         <vendor_name>johnson_smith_assoc</vendor_name>
         <date>20240615</date>
@@ -344,16 +428,16 @@
     <example>
       <input>
         <domain>legal</domain>
-        <category>contracts</category>
+        <category>estate</category>
         <vendor_raw>Personal document</vendor_raw>
         <date_raw>June 1, 2024</date_raw>
         <subject_raw>Will and Testament Draft 2</subject_raw>
-        <doctype>will</doctype>
+        <doctype>agreement</doctype>
       </input>
       <output>
         <domain>legal</domain>
-        <category>contracts</category>
-        <doctype>will</doctype>
+        <category>estate</category>
+        <doctype>agreement</doctype>
         <vendor_name>personal</vendor_name>
         <date>20240601</date>
         <subject>will_v02</subject>

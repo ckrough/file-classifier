@@ -25,6 +25,7 @@
           electronics</category>
         <category name="household">everyday inexpensive household items: furniture, bedding,
           kitchenware, decor, linens, small appliances</category>
+        <category name="home_improvement">repairs, renovations, maintenance, contractors, warranties</category>
       </domain>
 
       <domain name="insurance"
@@ -32,6 +33,7 @@
         <category name="health">medical, dental, vision insurance policies</category>
         <category name="property_casualty">homeowners, auto, umbrella liability</category>
         <category name="life_disability">life insurance, disability insurance, long-term care</category>
+        <category name="other">niche or specialized coverages (pet, travel, specialty policies)</category>
       </domain>
 
       <domain name="legal" description="Identity documents, estate planning, legal agreements">
@@ -57,6 +59,7 @@
         <category name="energy">electric, gas, solar</category>
         <category name="communications">phone, internet, cable</category>
         <category name="water_waste">water, sewer, trash, recycling</category>
+        <category name="security">home security, alarm, and monitoring services</category>
       </domain>
 
       <domain name="education" description="Educational records and expenses">
@@ -85,6 +88,9 @@
       <doctype name="confirmation">Transaction confirmations (purchases, trades)</doctype>
       <doctype name="eob">Explanation of Benefits (insurance)</doctype>
       <doctype name="record">Historical documentation, medical records</doctype>
+      <doctype name="warranty">Warranty or guarantee documentation for products or services</doctype>
+      <doctype name="manual">User or owner manuals providing detailed usage instructions</doctype>
+      <doctype name="guide">High-level guides, reference booklets, or how-to documents</doctype>
     </doctypes>
 
     <metadata>
@@ -112,6 +118,7 @@
     <guideline>Distinguish between household (everyday inexpensive items like bedding, plates, small
       furniture) and major_assets (expensive purchases like high-end appliances, jewelry,
       collections)</guideline>
+    <guideline>Always choose domain, category, and doctype from the enumerated lists above. When the document uses synonyms or near-duplicate phrases, map them to the closest canonical slug (lowercase with underscores) instead of inventing new values.</guideline>
   </guidelines>
 
   <vendor_extraction>

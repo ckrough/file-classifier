@@ -94,16 +94,32 @@ class NormalizedMetadata(BaseModel):
     Canonical, style-neutral fields used by naming styles. Do not include
     style-specific separators or casing decisions here.
 
+    Domain, category, and doctype are expected to be drawn from a bounded,
+    canonical taxonomy (or explicit "other" buckets), not arbitrary strings.
+
     CRITICAL: vendor_name must NEVER be "unknown", "n/a", "none", or empty.
     Standards Agent must determine a specific vendor or use generic descriptors
     (e.g., "gas_station", "grocery_store", "personal").
     """
 
-    domain: str = Field(..., description="Normalized domain name (unchanged from raw)")
-    category: str = Field(
-        ..., description="Normalized category name (unchanged from raw)"
+    domain: str = Field(
+        ...,
+        description=(
+            "Canonical domain name from taxonomy (lowercase slug, e.g., 'financial')."
+        ),
     )
-    doctype: str = Field(..., description="Standardized document type vocabulary")
+    category: str = Field(
+        ...,
+        description=(
+            "Canonical category within domain (lowercase slug, e.g., 'banking')."
+        ),
+    )
+    doctype: str = Field(
+        ...,
+        description=(
+            "Canonical document type slug from taxonomy (e.g., 'statement', 'receipt')."
+        ),
+    )
     vendor_name: str = Field(
         ...,
         description="Standardized vendor name (canonical slug; lowercase with underscores).",
