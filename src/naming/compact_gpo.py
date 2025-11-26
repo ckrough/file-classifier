@@ -1,3 +1,5 @@
+# pylint: disable=R0801
+
 from __future__ import annotations
 
 import re

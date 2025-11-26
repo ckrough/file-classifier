@@ -1,3 +1,5 @@
+# pylint: disable=R0801
+
 """LangChain-backed document loaders for text and PDF files.
 
 This module uses LangChain's document loaders to turn file paths into

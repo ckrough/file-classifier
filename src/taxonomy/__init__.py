@@ -61,6 +61,7 @@ class DoctypeInfo:
     description: str = ""
 
 
+# pylint: disable=R0902
 @dataclass
 class TaxonomyConfig:
     """Complete taxonomy configuration loaded from a YAML file.
@@ -146,7 +147,7 @@ def load_taxonomy(name_or_path: str) -> TaxonomyConfig:
 
     # Load YAML
     try:
-        import yaml
+        import yaml  # pylint: disable=import-outside-toplevel
     except ImportError as e:
         raise ImportError(
             "PyYAML is required for taxonomy loading. Install with: pip install pyyaml"
@@ -283,7 +284,7 @@ def set_taxonomy(name_or_path: str) -> TaxonomyConfig:
     Returns:
         TaxonomyConfig: The newly active taxonomy configuration.
     """
-    global _active_taxonomy
+    global _active_taxonomy  # pylint: disable=global-statement
     _active_taxonomy = load_taxonomy(name_or_path)
     logger.info(
         "Active taxonomy set to: %s (v%s)",
@@ -302,10 +303,10 @@ def get_active_taxonomy() -> TaxonomyConfig:
     Returns:
         TaxonomyConfig: The active taxonomy configuration.
     """
-    global _active_taxonomy
+    global _active_taxonomy  # pylint: disable=global-statement
     if _active_taxonomy is None:
         # Load default taxonomy
-        from src.config import settings
+        from src.config import settings  # pylint: disable=import-outside-toplevel
 
         default_name = getattr(settings, "TAXONOMY_NAME", "household")
         _active_taxonomy = load_taxonomy(default_name)
@@ -317,7 +318,7 @@ def reset_taxonomy() -> None:
 
     This is primarily useful for testing.
     """
-    global _active_taxonomy
+    global _active_taxonomy  # pylint: disable=global-statement
     _active_taxonomy = None
 
 

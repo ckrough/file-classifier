@@ -41,7 +41,7 @@ def _inject_taxonomy(content: str) -> str:
         return content
 
     # Import here to avoid circular imports
-    from src.taxonomy import generate_taxonomy_xml
+    from src.taxonomy import generate_taxonomy_xml  # pylint: disable=import-outside-toplevel
 
     taxonomy_xml = generate_taxonomy_xml()
     logger.debug("Injecting taxonomy XML into prompt (%d chars)", len(taxonomy_xml))
@@ -151,7 +151,7 @@ def get_prompt_template(prompt_name: str) -> ChatPromptTemplate:
         ChatPromptTemplate: The requested prompt template.
     """
     # Import here to avoid circular imports
-    from src.taxonomy import get_active_taxonomy
+    from src.taxonomy import get_active_taxonomy  # pylint: disable=import-outside-toplevel
 
     taxonomy = get_active_taxonomy()
     cache_key = (prompt_name, taxonomy.name, taxonomy.version)

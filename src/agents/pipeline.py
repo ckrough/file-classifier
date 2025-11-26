@@ -32,6 +32,8 @@ def _safe_lower(value: str | None) -> str:
     return (value or "").lower().strip()
 
 
+# pylint: disable=R0914,R0915
+
 def process_document_multi_agent(
     content: str,
     filename: str,

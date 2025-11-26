@@ -1,3 +1,5 @@
+# pylint: disable=R0801
+
 """
 File operations for file type validation.
 
