@@ -1,102 +1,122 @@
 # AGENTS.md
 
-Concise guidance for AI coding agents on project standards, styles, and workflows.
+AI-powered document classifier using a multi-agent LLM pipeline.
+Analyzes text and PDF files, outputs JSON metadata with suggested file paths.
 
-For architecture details and a full command reference, see `WARP.md`.
+## Setup
 
-## Dev environment tips
+```zsh
+setup_venv() {
+  setopt localoptions errexit nounset pipefail
 
-- Use `PYTHONPATH=$(pwd)` when running Pylint so imports resolve correctly.
-- This is a Python project; do not change the Python version or tooling without being asked.
-- Taxonomy configuration is externalized under `taxonomies/*.yaml` (e.g., `taxonomies/household.yaml`).
-  - The active taxonomy is selected via:
-    - CLI flag: `--taxonomy <name>`
-    - or env var: `TAXONOMY_NAME=<name>`
-- Prompts inject taxonomy via the `{taxonomy_xml}` partial variable; **no manual prompt cache clearing** is needed after `set_taxonomy()`.
+  # Create venv if needed
+  if [[ ! -x .venv/bin/python ]]; then
+    python3 -m venv .venv
+  fi
 
-## Testing instructions
+  # Activate venv
+  source .venv/bin/activate
 
-- CI workflows live in `.github/workflows/python-app.yml` and `.github/workflows/pylint.yml`.
-- Fast tests (matches CI focus):
-  - `pytest -m "not slow and not benchmark"`
-- Single test while iterating:
-  - `pytest tests/ai/test_client.py::test_langchain_client_init_openai`
-- Coverage (recommended before merging):
-  - `pytest --cov=src --cov-report=term-missing`
-- Benchmarks (optional; not run in CI):
-  - `pytest -m benchmark`
-- Always add or update tests for the behavior you change, and ensure **all relevant tests pass** before you consider a change complete.
+  # Upgrade pip and install dev deps
+  python -m pip install --upgrade pip
+  python -m pip install -e ".[dev]"
+}
 
-## Code quality & security
-
-Run these in order before committing or opening a PR:
-
-```bash
-black src/ tests/
-flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-flake8 . --count --exit-zero --max-complexity=10 --statistics
-PYTHONPATH=$(pwd) pylint src/
-bandit -r src/ -c pyproject.toml
-pytest --cov=src --cov-report=term-missing
+setup_venv
 ```
 
-Tool configuration lives in `pyproject.toml` (Black, Pylint, Bandit, Pytest) and `.flake8`.
+## Commands
 
-## Code style
+```zsh
+# Run classifier
+python main.py document.pdf
+python main.py document.pdf --quiet
+python main.py document.pdf --verbose
+find ~/Documents -type f \( -name "*.pdf" -o -name "*.txt" \) | python main.py --quiet --batch
 
-- **Formatter**: Black, 88-char line limit.
-- **Naming**: `lowercase_with_underscores` for agent-produced identifiers; path-builder utilities convert to `Title_Case` as needed.
-- **Dates**: Always `YYYYMMDD` in filenames and paths.
-- **Pydantic models**: Use for AI-facing schemas (`RawMetadata`, `NormalizedMetadata`).
-- **Dataclasses**: Use for internal structs (`PathMetadata`, `PathResult`).
-- **Docstrings**: Required on all public functions, classes, and modules.
-- Keep functions focused and reasonably small (aim for <50 lines); extract reusable logic instead of duplicating it.
-- Use f-strings for formatting, comprehensions for simple transformations, and context managers (`with`) for resources.
+# Override defaults
+python main.py document.pdf --taxonomy household --naming-style descriptive_nara
+python main.py document.pdf --ai-provider ollama --ai-model llama3.1:latest
 
-## Taxonomy & prompts
+# Test
+pytest
+pytest -m "not slow and not benchmark"
+pytest tests/ai/test_client.py::test_name
+pytest --cov=src --cov-report=term-missing
 
-- Canonical domains, categories, doctypes, and aliases are defined in `taxonomies/*.yaml`.
-- Active taxonomy selection:
-  - CLI: `--taxonomy <name>`
-  - Env: `TAXONOMY_NAME=<name>`
-- Strictness and validation:
-  - `TAXONOMY_STRICT_MODE` (env or `--strict-taxonomy`):
-    - **True** → raise on unknown values.
-    - **False** → allow unknown values but log warnings.
-  - `--validate-taxonomy` flag: validates the active taxonomy, prints a schema report, and exits with non-zero status on failure.
-- Prompts use `{taxonomy_xml}` injected via LangChain `partial_variables`:
-  - Do **not** reintroduce manual placeholder replacement or ad-hoc prompt caches.
-  - When adding new taxonomy-aware prompts, include a `{taxonomy_xml}` placeholder in the system prompt and use the existing prompt loader utilities.
+# Lint (run in order before every commit)
+black src/ tests/
+flake8 . --max-complexity=10 --max-line-length=88
+PYTHONPATH=$(pwd) pylint src/ --output-format=json --score=n --reports=n
+bandit -r src/ -f json --severity-level medium --confidence-level medium --quiet -c pyproject.toml
+```
 
-## Adding features
+## Architecture
 
-**New file type (e.g., DOCX):**
-1. Add the MIME type to `config/settings.py:SUPPORTED_MIMETYPES`.
-2. Implement an extractor in `files/extractors.py` (e.g., `extract_text_from_docx()`).
-3. Update `analysis/analyzer.py` to call the new extractor.
-4. Add tests in `tests/files/test_extractors.py`.
+### Pipeline
 
-**New agent:**
-1. Create a module in `agents/` (e.g., `agents/my_agent.py`).
-2. Add or update Pydantic models in `analysis/models.py`.
-3. Create prompts in `prompts/` (`my-agent-system.xml`, `my-agent-user.xml`).
-4. Wire the agent into `agents/pipeline.py`.
-5. Add tests for both agent logic and pipeline integration.
+1. **Classification Agent** (`src/agents/classification.py`): Extracts semantic metadata from content. Output: `RawMetadata` (domain, category, doctype, vendor_raw, date_raw, subject_raw)
+2. **Standards Agent** (`src/agents/standards.py`): Normalizes naming, validates vendor. Output: `NormalizedMetadata` (canonical slugs, formatted date, vendor_name)
+3. **Path Builder** (`src/path/builder.py`): Deterministic assembly of filesystem path. Output: `PathMetadata` (directory_path, filename, full_path)
 
-**New LLM provider:**
-1. Add a case in `ai/client.py:_initialize_llm()`.
-2. Document it in the `ai/factory.py` docstring.
-3. Add tests in `tests/ai/test_client.py`.
+### Key Modules
 
-**New CLI flag:**
-1. Add the argument in `cli/arguments.py`.
-2. Handle it in `cli/workflow.py` or `main.py`.
-3. Add tests in `tests/cli/test_arguments.py` (and integration tests if needed).
+| Module | Purpose |
+|--------|---------|
+| `src/ai/client.py` | LangChain client (OpenAI, Ollama). Structured output via `with_structured_output`. |
+| `src/analysis/models.py` | Pydantic schemas for AI output validation |
+| `src/files/extractors.py` | Text extraction with strategy-aware sampling |
+| `src/taxonomy/` | Domain/category/doctype vocabulary, alias resolution |
+| `src/naming/` | Pluggable naming styles (descriptive_nara, compact_gpo) |
+| `src/config/settings.py` | Global constraints (path length, hierarchy depth, supported mimetypes) |
 
-## PR instructions
+### Taxonomy Behavior
 
-- Title format: `[component] Short description` (e.g., `[taxonomy] Add strict mode`).
-- Before requesting review:
-  - Run `black`, `flake8`, `pylint`, `bandit`, and the relevant `pytest` commands above.
-  - Ensure linters and tests are green.
-- Do **not** commit or merge without running the full checklist above, unless explicitly instructed otherwise for a throwaway or spike branch.
+- **Domain**: strict, must exist in `taxonomies/*.yaml`
+- **Category/doctype**: flexible, canonicalizes when possible, creates new slug otherwise
+- Prompts inject taxonomy via `{taxonomy_xml}` partial variable
+
+### Data Models
+
+- Pydantic models (`src/analysis/models.py`): AI-facing schemas requiring validation
+- Dataclasses (`src/path/builder.py:PathMetadata`): Internal structs for deterministic operations
+
+## Code Style
+
+- Black formatter, 88-char line limit
+- Identifiers: `lowercase_with_underscores`
+- Dates in filenames: `YYYYMMDD`
+- Require `PYTHONPATH=$(pwd)` for pylint
+
+## Extension Points
+
+### New file type
+
+1. Add MIME type to `src/config/settings.py:SUPPORTED_MIMETYPES`
+2. Implement extractor in `src/files/extractors.py`
+3. Route extension in `src/analysis/analyzer.py`
+4. Add tests in `tests/files/`
+
+### New agent
+
+1. Create module in `src/agents/`
+2. Add Pydantic models in `src/analysis/models.py`
+3. Create prompts in `prompts/` (XML format)
+4. Wire into `src/agents/pipeline.py:process_document_multi_agent()`
+5. Add tests in `tests/agents/`
+
+### New LLM provider
+
+1. Add case in `src/ai/client.py:_initialize_llm()`
+2. Update `src/ai/factory.py`, document env vars
+3. Add tests in `tests/ai/test_client.py`
+
+### New CLI flag
+
+1. Add argument in `src/cli/arguments.py`
+2. Handle in `main.py` or `src/cli/workflow.py`
+3. Add tests in `tests/cli/test_arguments.py`
+
+## Tests
+
+Test layout mirrors `src/`. Markers: `unit`, `integration`, `functional`, `slow`, `benchmark`. Benchmarks not run in CI.
