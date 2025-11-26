@@ -1,4 +1,5 @@
 """NamingStyle interface and shared type hints."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

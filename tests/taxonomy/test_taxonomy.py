@@ -140,12 +140,12 @@ def test_generate_taxonomy_xml():
 def test_taxonomy_categories_loaded():
     """Categories should be loaded correctly per domain."""
     taxonomy = get_active_taxonomy()
-    
+
     # Financial domain should have banking, credit, etc.
     assert "banking" in taxonomy.category_names.get("financial", set())
     assert "credit" in taxonomy.category_names.get("financial", set())
     assert "taxes" in taxonomy.category_names.get("financial", set())
-    
+
     # Medical domain should have records, billing, etc.
     assert "records" in taxonomy.category_names.get("medical", set())
     assert "billing" in taxonomy.category_names.get("medical", set())

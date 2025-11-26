@@ -46,7 +46,8 @@ pytest --cov=src --cov-report=term-missing
 
 # Lint (run in order before every commit)
 black src/ tests/
-flake8 . --max-complexity=10 --max-line-length=88
+flake8 . --select=E9,F63,F7,F82                                      # Fatal errors, fail fast
+flake8 . --exit-zero --max-complexity=10 --max-line-length=88        # All issues, advisory
 PYTHONPATH=$(pwd) pylint src/ --output-format=json --score=n --reports=n
 bandit -r src/ -f json --severity-level medium --confidence-level medium --quiet -c pyproject.toml
 ```

@@ -1,9 +1,11 @@
 """Utilities for naming styles (TitleCase, pluralization, validation)."""
+
 from __future__ import annotations
 
 import re
 
 # TitleCase for folder segments: replace underscores with spaces, title-case, then restore underscores
+
 
 def to_title_case(text: str) -> str:
     if not text:

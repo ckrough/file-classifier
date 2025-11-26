@@ -23,7 +23,9 @@ def test_build_path_standard():
 
     assert isinstance(result, PathMetadata)
     assert result.directory_path == "Financial/Retail/Receipts/"  # Plural folder
-    assert result.filename == "acme_markets_20230923.pdf"  # Vendor + date only (lowercase)
+    assert (
+        result.filename == "acme_markets_20230923.pdf"
+    )  # Vendor + date only (lowercase)
     assert result.full_path == "Financial/Retail/Receipts/acme_markets_20230923.pdf"
 
 
@@ -66,62 +68,70 @@ def test_build_path_no_date():
 @pytest.mark.unit
 def test_build_path_unknown_vendor_raises_error():
     """Test that unknown vendor raises ValueError."""
+
+
 with pytest.raises(ValueError, match="Invalid vendor"):
-        build_path(
-            domain="financial",
-            category="banking",
-            doctype="statement",
-            vendor_name="unknown",
-            subject="checking",
-            date="20230923",
-            file_extension=".pdf",
-        )
+    build_path(
+        domain="financial",
+        category="banking",
+        doctype="statement",
+        vendor_name="unknown",
+        subject="checking",
+        date="20230923",
+        file_extension=".pdf",
+    )
 
 
 @pytest.mark.unit
 def test_build_path_empty_vendor_raises_error():
     """Test that empty vendor raises ValueError."""
+
+
 with pytest.raises(ValueError, match="Invalid vendor"):
-        build_path(
-            domain="financial",
-            category="banking",
-            doctype="statement",
-            vendor_name="",
-            subject="checking",
-            date="20230923",
-            file_extension=".pdf",
-        )
+    build_path(
+        domain="financial",
+        category="banking",
+        doctype="statement",
+        vendor_name="",
+        subject="checking",
+        date="20230923",
+        file_extension=".pdf",
+    )
 
 
 @pytest.mark.unit
 def test_build_path_na_vendor_raises_error():
     """Test that 'n/a' vendor gets normalized to 'na' and raises ValueError."""
     # After normalization, "n/a" becomes "na" which should still be rejected
+
+
 with pytest.raises(ValueError, match="Invalid vendor"):
-        build_path(
-            domain="financial",
-            category="banking",
-            doctype="statement",
-            vendor_name="n/a",  # Gets normalized to "na" (slash removed)
-            subject="checking",
-            date="20230923",
-            file_extension=".pdf",
-        )
+    build_path(
+        domain="financial",
+        category="banking",
+        doctype="statement",
+        vendor_name="n/a",  # Gets normalized to "na" (slash removed)
+        subject="checking",
+        date="20230923",
+        file_extension=".pdf",
+    )
 
 
 @pytest.mark.unit
 def test_build_path_generic_vendor_raises_error():
     """Test that 'generic' vendor raises ValueError."""
+
+
 with pytest.raises(ValueError, match="Invalid vendor"):
-        build_path(
-            domain="financial",
-            category="banking",
-            doctype="statement",
-            vendor_name="generic",
-            subject="checking",
-            date="20230923",
-            file_extension=".pdf",
-        )
+    build_path(
+        domain="financial",
+        category="banking",
+        doctype="statement",
+        vendor_name="generic",
+        subject="checking",
+        date="20230923",
+        file_extension=".pdf",
+    )
 
 
 @pytest.mark.unit
@@ -162,7 +172,9 @@ def test_build_path_normalizes_uppercase():
     )
 
     assert result.directory_path == "Financial/Banking/Statements/"  # Plural
-    assert result.filename == "chase_20230923.PDF"  # Vendor + date only (lowercase base, ext preserved)
+    assert (
+        result.filename == "chase_20230923.PDF"
+    )  # Vendor + date only (lowercase base, ext preserved)
 
 
 @pytest.mark.unit
@@ -253,7 +265,9 @@ def test_build_path_medical_document():
     )
 
     assert result.directory_path == "Medical/Records/Lab_Results/"  # Already plural
-    assert result.filename == "quest_diagnostics_20240201.pdf"  # Vendor + date only (lowercase)
+    assert (
+        result.filename == "quest_diagnostics_20240201.pdf"
+    )  # Vendor + date only (lowercase)
 
 
 @pytest.mark.unit

@@ -275,7 +275,11 @@ def set_taxonomy(name_or_path: str) -> TaxonomyConfig:
     """
     global _active_taxonomy
     _active_taxonomy = load_taxonomy(name_or_path)
-    logger.info("Active taxonomy set to: %s (v%s)", _active_taxonomy.name, _active_taxonomy.version)
+    logger.info(
+        "Active taxonomy set to: %s (v%s)",
+        _active_taxonomy.name,
+        _active_taxonomy.version,
+    )
     return _active_taxonomy
 
 
@@ -414,7 +418,7 @@ def generate_taxonomy_xml(config: Optional[TaxonomyConfig] = None) -> str:
         for category in domain.categories:
             if category.description:
                 lines.append(
-                    f"        <category name=\"{category.name}\">{_escape_xml(category.description)}</category>"
+                    f'        <category name="{category.name}">{_escape_xml(category.description)}</category>'
                 )
             else:
                 lines.append(f'        <category name="{category.name}"/>')
@@ -428,7 +432,7 @@ def generate_taxonomy_xml(config: Optional[TaxonomyConfig] = None) -> str:
     for doctype in config.doctypes:
         if doctype.description:
             lines.append(
-                f"      <doctype name=\"{doctype.name}\">{_escape_xml(doctype.description)}</doctype>"
+                f'      <doctype name="{doctype.name}">{_escape_xml(doctype.description)}</doctype>'
             )
         else:
             lines.append(f'      <doctype name="{doctype.name}"/>')

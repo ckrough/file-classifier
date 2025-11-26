@@ -3,7 +3,12 @@ from __future__ import annotations
 import re
 from src.analysis.models import NormalizedMetadata
 from src.naming.styles import NamingStyle
-from src.naming.utils import to_title_case, pluralize_doctype, LOWER_UNDERSCORE_ALLOWED, ensure_allowed
+from src.naming.utils import (
+    to_title_case,
+    pluralize_doctype,
+    LOWER_UNDERSCORE_ALLOWED,
+    ensure_allowed,
+)
 
 
 class DescriptiveNARAStyle(NamingStyle):
@@ -28,7 +33,9 @@ class DescriptiveNARAStyle(NamingStyle):
             ("vendor_name", normalized.vendor_name),
         ):
             if not value:
-                raise ValueError(f"Missing required field '{field_name}' for descriptive_nara")
+                raise ValueError(
+                    f"Missing required field '{field_name}' for descriptive_nara"
+                )
             ensure_allowed(value, self._allowed)
             parts.append(value)
         # subject optional
@@ -38,7 +45,9 @@ class DescriptiveNARAStyle(NamingStyle):
         # date optional but if provided must match regex
         if normalized.date:
             if not re.match(r"^\d{4}(\d{2}(\d{2})?)?$", normalized.date):
-                raise ValueError(f"Invalid date format for descriptive_nara: '{normalized.date}'")
+                raise ValueError(
+                    f"Invalid date format for descriptive_nara: '{normalized.date}'"
+                )
             parts.append(normalized.date)
         # version optional
         if normalized.version:

@@ -69,7 +69,9 @@ def load_pdf_text_with_langchain(
     try:
         file_size = os.path.getsize(file_path)
         file_size_mb = file_size / (1024 * 1024)
-        logger.debug("[LC] Loading PDF via PyPDFLoader: %s (%.2fMB)", file_path, file_size_mb)
+        logger.debug(
+            "[LC] Loading PDF via PyPDFLoader: %s (%.2fMB)", file_path, file_size_mb
+        )
 
         loader = PyPDFLoader(file_path, mode="page")
         documents = loader.load()
@@ -78,7 +80,9 @@ def load_pdf_text_with_langchain(
             return None, None
 
         page_count = len(documents)
-        pages_to_extract = _get_pages_to_extract(page_count, file_path, extraction_config)
+        pages_to_extract = _get_pages_to_extract(
+            page_count, file_path, extraction_config
+        )
         logger.info(
             "[LC] Extracting %d of %d pages (strategy=%s) for %s",
             len(pages_to_extract),
@@ -147,7 +151,9 @@ def load_txt_text_with_langchain(
     try:
         file_size = os.path.getsize(file_path)
         file_size_kb = file_size / 1024
-        logger.debug("[LC] Loading TXT via TextLoader: %s (%.2fKB)", file_path, file_size_kb)
+        logger.debug(
+            "[LC] Loading TXT via TextLoader: %s (%.2fKB)", file_path, file_size_kb
+        )
 
         loader = TextLoader(file_path, encoding="utf-8")
         documents = loader.load()

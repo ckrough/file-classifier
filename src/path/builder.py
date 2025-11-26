@@ -18,18 +18,6 @@ from src.naming.registry import get_style
 from src.analysis.models import NormalizedMetadata
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 def _validate_no_periods_in_folders(directory_path: str) -> None:
     """Ensure folder names do not contain periods."""
     folders = directory_path.rstrip("/").split("/")
@@ -68,6 +56,7 @@ class PathMetadata:
 
 
 from typing import Optional
+
 
 def build_path(  # pylint: disable=too-many-arguments,too-many-positional-arguments
     domain: str,
@@ -122,7 +111,9 @@ def build_path(  # pylint: disable=too-many-arguments,too-many-positional-argume
 
     # Single period rule (ensure exactly one dot)
     if filename.count(".") != 1:
-        raise ValueError("Filename must contain exactly one period (extension separator).")
+        raise ValueError(
+            "Filename must contain exactly one period (extension separator)."
+        )
 
     full_path = f"{directory_path}{filename}"
 

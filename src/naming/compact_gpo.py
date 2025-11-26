@@ -3,7 +3,12 @@ from __future__ import annotations
 import re
 from src.analysis.models import NormalizedMetadata
 from src.naming.styles import NamingStyle
-from src.naming.utils import to_title_case, pluralize_doctype, LOWER_UNDERSCORE_ALLOWED, ensure_allowed
+from src.naming.utils import (
+    to_title_case,
+    pluralize_doctype,
+    LOWER_UNDERSCORE_ALLOWED,
+    ensure_allowed,
+)
 
 
 class CompactGPOStyle(NamingStyle):

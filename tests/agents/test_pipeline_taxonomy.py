@@ -69,9 +69,7 @@ def test_pipeline_applies_taxonomy_canonicalization(
 @pytest.mark.unit
 @patch("src.agents.pipeline.standardize_metadata")
 @patch("src.agents.pipeline.classify_document")
-def test_pipeline_rejects_unknown_domain(
-    mock_classify, mock_standardize
-):
+def test_pipeline_rejects_unknown_domain(mock_classify, mock_standardize):
     """Unknown domains should always cause pipeline failure (domains are strict)."""
 
     mock_classify.return_value = RawMetadata(
@@ -108,9 +106,7 @@ def test_pipeline_rejects_unknown_domain(
 @pytest.mark.unit
 @patch("src.agents.pipeline.standardize_metadata")
 @patch("src.agents.pipeline.classify_document")
-def test_pipeline_allows_new_doctypes(
-    mock_classify, mock_standardize, monkeypatch
-):
+def test_pipeline_allows_new_doctypes(mock_classify, mock_standardize, monkeypatch):
     """New doctypes should be allowed (doctypes are flexible)."""
 
     monkeypatch.setattr(app_settings, "NAMING_STYLE", "descriptive_nara", raising=False)
@@ -147,9 +143,7 @@ def test_pipeline_allows_new_doctypes(
 @pytest.mark.unit
 @patch("src.agents.pipeline.standardize_metadata")
 @patch("src.agents.pipeline.classify_document")
-def test_pipeline_allows_new_categories(
-    mock_classify, mock_standardize, monkeypatch
-):
+def test_pipeline_allows_new_categories(mock_classify, mock_standardize, monkeypatch):
     """New categories should be allowed (categories are flexible)."""
 
     monkeypatch.setattr(app_settings, "NAMING_STYLE", "descriptive_nara", raising=False)

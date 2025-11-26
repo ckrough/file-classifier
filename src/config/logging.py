@@ -14,7 +14,9 @@ VERBOSE = "verbose"
 DEBUG = "debug"
 
 
-def _validate_log_dir(log_dir: str) -> str:  # pylint: disable=too-many-return-statements
+def _validate_log_dir(
+    log_dir: str,
+) -> str:  # pylint: disable=too-many-return-statements
     """
     Validate and sanitize LOG_DIR environment variable to prevent path injection.
 

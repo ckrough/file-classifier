@@ -129,8 +129,7 @@ jq examples (jq required: brew install jq):
         choices=[p.value for p in AIProvider],
         help=(
             "Select AI provider (overrides AI_PROVIDER env var). "
-            "Supported providers: "
-            + ", ".join(sorted(p.value for p in AIProvider))
+            "Supported providers: " + ", ".join(sorted(p.value for p in AIProvider))
         ),
     )
     ai_group.add_argument(

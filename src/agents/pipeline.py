@@ -83,7 +83,9 @@ def process_document_multi_agent(
         )
 
         # Step 2: Standards Enforcement Agent
-        logger.info("Step 2/2: Standards Enforcement Agent normalizing metadata: %s", filename)
+        logger.info(
+            "Step 2/2: Standards Enforcement Agent normalizing metadata: %s", filename
+        )
         step_start = time.perf_counter()
         normalized: NormalizedMetadata = standardize_metadata(raw_metadata, ai_client)
         step_elapsed = time.perf_counter() - step_start

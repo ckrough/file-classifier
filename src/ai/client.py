@@ -157,9 +157,8 @@ class LangChainClient(AIClient):
 
         # Attempt to capture the resolved model name from the underlying LLM
         # Different LangChain chat models expose this slightly differently
-        self.model_name = (
-            getattr(self.llm, "model_name", None)
-            or getattr(self.llm, "model", None)
+        self.model_name = getattr(self.llm, "model_name", None) or getattr(
+            self.llm, "model", None
         )
 
         # Cache for structured output chains by schema class
