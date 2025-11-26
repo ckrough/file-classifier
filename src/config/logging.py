@@ -14,61 +14,65 @@ VERBOSE = "verbose"
 DEBUG = "debug"
 
 
-def _validate_log_dir(
-    log_dir: str,
-) -> str:  # pylint: disable=too-many-return-statements
-    """
-    Validate and sanitize LOG_DIR environment variable to prevent path injection.
+def _has_path_traversal(path: str) -> bool:
+    """Return True if the path contains obvious path traversal patterns."""
+    return ".." in path or path.startswith("/..")
 
-    Args:
-        log_dir: The log directory path to validate
 
-    Returns:
-        str: Validated log directory path (defaults to /tmp if invalid)
-
-    Security: Prevents path traversal, symlink attacks, and restricts to
-        safe directories.
-    """
-    # Check for path traversal BEFORE normalization (detect attack attempts)
-    if ".." in log_dir or log_dir.startswith("/.."):
-        return "/tmp"  # nosec B108
-
-    # Resolve symbolic links AND normalize to absolute canonical path
-    # os.path.realpath() resolves symlinks, preventing symlink bypass attacks
-    try:
-        log_dir = os.path.realpath(log_dir)
-    except (OSError, ValueError):
-        # Path resolution failed (e.g., circular symlink, permission denied)
-        return "/tmp"  # nosec B108
-
-    # Check for path traversal again after resolution
-    if ".." in log_dir:
-        return "/tmp"  # nosec B108
-
-    # Restrict to safe directories only (whitelist approach)
+def _is_under_allowed_prefixes(log_dir: str) -> bool:
+    """Check that the log directory is under a whitelisted prefix."""
     # /tmp - ephemeral container logs
     # /var/tmp - persistent temp logs
     # /var/log - system log directory
     # /app/logs - application-specific log directory in container
     allowed_prefixes = ("/tmp", "/var/tmp", "/var/log", "/app/logs")  # nosec B108
-    if not any(log_dir.startswith(prefix) for prefix in allowed_prefixes):
-        return "/tmp"  # nosec B108
+    return any(log_dir.startswith(prefix) for prefix in allowed_prefixes)
 
-    # Verify directory exists and is writable
+
+def _ensure_writable_directory(log_dir: str) -> bool:
+    """Ensure the target directory exists and is writable."""
     if not os.path.exists(log_dir):
-        # Try to create the directory if it doesn't exist
         try:
             os.makedirs(log_dir, mode=0o755, exist_ok=True)
         except (OSError, PermissionError):
-            return "/tmp"  # nosec B108
+            return False
 
     if not os.path.isdir(log_dir):
-        return "/tmp"  # nosec B108
+        return False
 
     if not os.access(log_dir, os.W_OK):
+        return False
+
+    return True
+
+
+def _validate_log_dir(log_dir: str) -> str:
+    """Validate and sanitize LOG_DIR to prevent unsafe log paths.
+
+    Returns a safe directory path (defaulting to /tmp when validation fails).
+    """
+    # Check for path traversal BEFORE normalization (detect attack attempts)
+    if _has_path_traversal(log_dir):
         return "/tmp"  # nosec B108
 
-    return log_dir
+    # Resolve symbolic links AND normalize to absolute canonical path
+    try:
+        resolved_dir = os.path.realpath(log_dir)
+    except (OSError, ValueError):
+        # Path resolution failed (e.g., circular symlink, permission denied)
+        return "/tmp"  # nosec B108
+
+    # Check for path traversal again after resolution
+    if _has_path_traversal(resolved_dir):
+        return "/tmp"  # nosec B108
+
+    if not _is_under_allowed_prefixes(resolved_dir):
+        return "/tmp"  # nosec B108
+
+    if not _ensure_writable_directory(resolved_dir):
+        return "/tmp"  # nosec B108
+
+    return resolved_dir
 
 
 def setup_logging(verbosity: Optional[str] = None):

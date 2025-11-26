@@ -102,7 +102,8 @@ jq examples (jq required: brew install jq):
     naming_group = parser.add_argument_group(
         "naming",
         description=(
-            "Configure naming conventions. Overrides NAMING_STYLE env var for this run."
+            "Configure naming conventions. "
+            "Overrides NAMING_STYLE env var for this run."
         ),
     )
     naming_group.add_argument(
@@ -119,8 +120,9 @@ jq examples (jq required: brew install jq):
     ai_group = parser.add_argument_group(
         "AI configuration",
         description=(
-            "Configure AI provider and model. Overrides AI_PROVIDER/AI_MODEL/OLLAMA_MODEL "
-            "environment variables for this run."
+            "Configure AI provider and model. "
+            "Overrides AI_PROVIDER/AI_MODEL/OLLAMA_MODEL environment variables "
+            "for this run."
         ),
     )
     ai_group.add_argument(
@@ -129,7 +131,8 @@ jq examples (jq required: brew install jq):
         choices=[p.value for p in AIProvider],
         help=(
             "Select AI provider (overrides AI_PROVIDER env var). "
-            "Supported providers: " + ", ".join(sorted(p.value for p in AIProvider))
+            "Supported providers: "
+            + ", ".join(sorted(p.value for p in AIProvider))
         ),
     )
     ai_group.add_argument(

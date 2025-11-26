@@ -115,7 +115,10 @@ def test_analyze_file_content_pdf(mock_multi_agent, mock_load_pdf):
     mock_path = PathMetadata(
         directory_path="financial/banking/statement/",
         filename="statement-chase-savings-20230115.pdf",
-        full_path="financial/banking/statement/statement-chase-savings-20230115.pdf",
+        full_path=(
+            "financial/banking/statement/"
+            "statement-chase-savings-20230115.pdf"
+        ),
     )
     mock_multi_agent.return_value = (mock_raw, mock_normalized, mock_path)
 
@@ -193,7 +196,10 @@ def test_analyze_file_content_complex_filename(mock_multi_agent, mock_load_pdf):
     mock_path = PathMetadata(
         directory_path="financial/banking/invoice/",
         filename="invoice-bofa-wire_transfer_fee-20240315.pdf",
-        full_path="financial/banking/invoice/invoice-bofa-wire_transfer_fee-20240315.pdf",
+        full_path=(
+            "financial/banking/invoice/"
+            "invoice-bofa-wire_transfer_fee-20240315.pdf"
+        ),
     )
     mock_multi_agent.return_value = (mock_raw, mock_normalized, mock_path)
 
@@ -253,7 +259,10 @@ def test_analyze_file_content_no_date(mock_multi_agent, mock_load_pdf):
     mock_path = PathMetadata(
         directory_path="legal/contracts/agreement/",
         filename="agreement-vendor_name-service.pdf",
-        full_path="legal/contracts/agreement/agreement-vendor_name-service.pdf",
+        full_path=(
+            "legal/contracts/agreement/"
+            "agreement-vendor_name-service.pdf"
+        ),
     )
     mock_multi_agent.return_value = (mock_raw, mock_normalized, mock_path)
 

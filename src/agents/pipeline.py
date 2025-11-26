@@ -21,7 +21,6 @@ from src.analysis.models import (
     RawMetadata,
     NormalizedMetadata,
 )
-from src.config import settings
 from src.taxonomy import canonical_domain, canonical_category, canonical_doctype
 
 __all__ = ["process_document_multi_agent"]

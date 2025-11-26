@@ -8,7 +8,6 @@ from src.taxonomy import (
     canonical_doctype,
     get_active_taxonomy,
     reset_taxonomy,
-    load_taxonomy,
     list_available_taxonomies,
     generate_taxonomy_xml,
 )

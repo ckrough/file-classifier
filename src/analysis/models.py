@@ -57,22 +57,27 @@ class RawMetadata(BaseModel):
 
     domain: str = Field(
         ...,
-        description="Primary domain: Financial, Property, Insurance, Tax, "
-        "Legal, Medical",
+        description=(
+            "Primary domain: Financial, Property, Insurance, Tax, Legal, Medical"
+        ),
     )
     category: str = Field(
         ...,
-        description="Functional category within domain "
-        "(e.g., Banking, Real_Estate, Health)",
+        description=(
+            "Functional category within domain (e.g., Banking, Real_Estate, Health)"
+        ),
     )
     doctype: str = Field(
         ...,
-        description="Document type: statement, receipt, invoice, policy, "
-        "deed, title, etc.",
+        description=(
+            "Document type: statement, receipt, invoice, policy, deed, title, etc."
+        ),
     )
     vendor_raw: str = Field(
         ...,
-        description="Raw vendor name as found in document " "(e.g., 'Bank of America')",
+        description=(
+            "Raw vendor name as found in document (e.g., 'Bank of America')"
+        ),
     )
     date_raw: str = Field(
         ...,
@@ -122,15 +127,21 @@ class NormalizedMetadata(BaseModel):
     )
     vendor_name: str = Field(
         ...,
-        description="Standardized vendor name (canonical slug; lowercase with underscores).",
+        description=(
+            "Standardized vendor name (canonical slug; lowercase with underscores)."
+        ),
     )
     date: str = Field(
         ...,
-        description="Selected date in YYYY, YYYYMM, or YYYYMMDD per canonical policy",
+        description=(
+            "Selected date in YYYY, YYYYMM, or YYYYMMDD per canonical policy"
+        ),
     )
     subject: str = Field(
         ...,
-        description="Canonical subject (1-3 words, lowercase, underscores; WHAT not HOW)",
+        description=(
+            "Canonical subject (1-3 words, lowercase, underscores; WHAT not HOW)"
+        ),
     )
     version: Optional[str] = Field(
         None,

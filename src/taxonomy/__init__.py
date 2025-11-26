@@ -170,13 +170,32 @@ def _parse_taxonomy_data(data: dict, default_name: str) -> TaxonomyConfig:
         description=data.get("description", ""),
     )
 
-    # Parse domains
+    _parse_domains_section(data, config)
+    _parse_doctypes_section(data, config)
+    _parse_aliases_section(data, config)
+
+    logger.debug(
+        "Loaded taxonomy '%s': %d domains, %d doctypes, %d domain aliases, "
+        "%d category aliases, %d doctype aliases",
+        config.name,
+        len(config.domain_names),
+        len(config.doctype_names),
+        len(config.domain_aliases),
+        len(config.category_aliases),
+        len(config.doctype_aliases),
+    )
+
+    return config
+
+
+def _parse_domains_section(data: dict, config: TaxonomyConfig) -> None:
+    """Populate domain structures on the taxonomy config."""
     for domain_data in data.get("domains", []):
         domain_name = _normalize_token(domain_data.get("name", ""))
         if not domain_name:
             continue
 
-        categories = []
+        categories: List[CategoryInfo] = []
         config.category_names[domain_name] = set()
 
         for cat_data in domain_data.get("categories", []):
@@ -200,7 +219,9 @@ def _parse_taxonomy_data(data: dict, default_name: str) -> TaxonomyConfig:
         )
         config.domain_names.add(domain_name)
 
-    # Parse doctypes
+
+def _parse_doctypes_section(data: dict, config: TaxonomyConfig) -> None:
+    """Populate doctype structures on the taxonomy config."""
     for doctype_data in data.get("doctypes", []):
         doctype_name = _normalize_token(doctype_data.get("name", ""))
         if not doctype_name:
@@ -213,7 +234,9 @@ def _parse_taxonomy_data(data: dict, default_name: str) -> TaxonomyConfig:
         )
         config.doctype_names.add(doctype_name)
 
-    # Parse aliases
+
+def _parse_aliases_section(data: dict, config: TaxonomyConfig) -> None:
+    """Populate alias mappings on the taxonomy config."""
     aliases_data = data.get("aliases", {})
 
     # Domain aliases
@@ -237,19 +260,6 @@ def _parse_taxonomy_data(data: dict, default_name: str) -> TaxonomyConfig:
         canonical_normalized = _normalize_token(canonical)
         if alias_normalized and canonical_normalized:
             config.doctype_aliases[alias_normalized] = canonical_normalized
-
-    logger.debug(
-        "Loaded taxonomy '%s': %d domains, %d doctypes, %d domain aliases, "
-        "%d category aliases, %d doctype aliases",
-        config.name,
-        len(config.domain_names),
-        len(config.doctype_names),
-        len(config.domain_aliases),
-        len(config.category_aliases),
-        len(config.doctype_aliases),
-    )
-
-    return config
 
 
 def list_available_taxonomies() -> List[str]:
@@ -410,7 +420,9 @@ def generate_taxonomy_xml(config: Optional[TaxonomyConfig] = None) -> str:
     for domain in config.domains:
         if domain.description:
             lines.append(
-                f'      <domain name="{domain.name}" description="{_escape_xml(domain.description)}">'
+                "      "
+                f'<domain name="{domain.name}" '
+                f'description="{_escape_xml(domain.description)}">'
             )
         else:
             lines.append(f'      <domain name="{domain.name}">')
@@ -418,7 +430,10 @@ def generate_taxonomy_xml(config: Optional[TaxonomyConfig] = None) -> str:
         for category in domain.categories:
             if category.description:
                 lines.append(
-                    f'        <category name="{category.name}">{_escape_xml(category.description)}</category>'
+                    "        "
+                    f'<category name="{category.name}">'  # noqa: S308
+                    f"{_escape_xml(category.description)}"
+                    "</category>"
                 )
             else:
                 lines.append(f'        <category name="{category.name}"/>')
@@ -432,7 +447,10 @@ def generate_taxonomy_xml(config: Optional[TaxonomyConfig] = None) -> str:
     for doctype in config.doctypes:
         if doctype.description:
             lines.append(
-                f'      <doctype name="{doctype.name}">{_escape_xml(doctype.description)}</doctype>'
+                "      "
+                f'<doctype name="{doctype.name}">'  # noqa: S308
+                f"{_escape_xml(doctype.description)}"
+                "</doctype>"
             )
         else:
             lines.append(f'      <doctype name="{doctype.name}"/>')

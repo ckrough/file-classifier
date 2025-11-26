@@ -16,7 +16,8 @@ _REGISTRY: Dict[str, Type[NamingStyle]] = {
 def get_style(name: str) -> NamingStyle:
     key = (name or "").strip().lower()
     if key not in _REGISTRY:
+        allowed = ", ".join(sorted(_REGISTRY.keys()))
         raise ValueError(
-            f"Unknown naming style '{name}'. Allowed: {', '.join(sorted(_REGISTRY.keys()))}"
+            f"Unknown naming style '{name}'. Allowed: {allowed}"
         )
     return _REGISTRY[key]()

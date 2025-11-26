@@ -1,5 +1,3 @@
-import os
-import importlib
 import pytest
 
 from src.path.builder import build_path, PathMetadata

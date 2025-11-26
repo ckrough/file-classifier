@@ -12,10 +12,11 @@ Central validations enforced here:
 """
 
 from dataclasses import dataclass
+from typing import Optional
 
+from src.analysis.models import NormalizedMetadata
 from src.config import settings
 from src.naming.registry import get_style
-from src.analysis.models import NormalizedMetadata
 
 
 def _validate_no_periods_in_folders(directory_path: str) -> None:
@@ -24,16 +25,18 @@ def _validate_no_periods_in_folders(directory_path: str) -> None:
     for folder in folders:
         if "." in folder:
             raise ValueError(
-                f"Folder name '{folder}' contains period. Folder names must not contain periods."
+                "Folder name "
+                f"'{folder}' contains period. Folder names must not contain periods."
             )
 
 
 def _validate_hierarchy_depth(directory_path: str) -> None:
-    """Validate that directory hierarchy does not exceed configured maximum depth."""
+    """Validate that directory hierarchy does not exceed configured depth."""
     depth = len(directory_path.rstrip("/").split("/"))
     if depth > settings.MAX_HIERARCHY_DEPTH:
         raise ValueError(
-            f"Directory hierarchy depth ({depth}) exceeds configured maximum ({settings.MAX_HIERARCHY_DEPTH})."
+            "Directory hierarchy depth ("
+            f"{depth}) exceeds configured maximum ({settings.MAX_HIERARCHY_DEPTH})."
         )
 
 
@@ -53,9 +56,6 @@ class PathMetadata:
     directory_path: str
     filename: str
     full_path: str
-
-
-from typing import Optional
 
 
 def build_path(  # pylint: disable=too-many-arguments,too-many-positional-arguments
@@ -120,7 +120,8 @@ def build_path(  # pylint: disable=too-many-arguments,too-many-positional-argume
     # Path length validation (configured budget)
     if len(full_path) > settings.MAX_PATH_LENGTH:
         raise ValueError(
-            f"Path too long: {len(full_path)} chars. Maximum allowed: {settings.MAX_PATH_LENGTH}."
+            "Path too long: "
+            f"{len(full_path)} chars. Maximum allowed: {settings.MAX_PATH_LENGTH}."
         )
 
     return PathMetadata(

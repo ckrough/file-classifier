@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import re
 
-# TitleCase for folder segments: replace underscores with spaces, title-case, then restore underscores
+# TitleCase for folder segments: replace underscores with spaces,
+# title-case, then restore underscores
 
 
 def to_title_case(text: str) -> str:
@@ -42,5 +43,6 @@ def ensure_allowed(text: str, pattern: re.Pattern[str]) -> None:
     if not pattern.match(text):
         bad = {c for c in text if not re.match(r"[a-z0-9_-]", c)}
         raise ValueError(
-            f"Invalid characters: {bad}. Only a-z, 0-9, underscores (_), and hyphens (-) allowed."
+            "Invalid characters: "
+            f"{bad}. Only a-z, 0-9, underscores (_), and hyphens (-) allowed."
         )

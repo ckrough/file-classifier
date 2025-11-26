@@ -16,7 +16,6 @@ replaced with the active taxonomy's XML representation at load time.
 
 import logging
 import re
-from functools import lru_cache
 from pathlib import Path
 
 from langchain_core.prompts import ChatPromptTemplate

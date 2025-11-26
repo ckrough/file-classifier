@@ -12,7 +12,6 @@ import pytest
 
 from src.agents.pipeline import process_document_multi_agent
 from src.analysis.models import RawMetadata, NormalizedMetadata
-from src.path.builder import PathMetadata
 from src.config import settings as app_settings
 
 
@@ -26,7 +25,8 @@ class DummyAIClient(Mock):
 def test_pipeline_applies_taxonomy_canonicalization(
     mock_classify, mock_standardize, monkeypatch
 ):
-    """Non-canonical domain/category/doctype should be canonicalized before path build."""
+    """Non-canonical domain/category/doctype should be canonicalized
+    before path build."""
 
     monkeypatch.setattr(app_settings, "NAMING_STYLE", "descriptive_nara", raising=False)
 
